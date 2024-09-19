@@ -6,9 +6,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "npm run build --prefix client && npm run server",
+    "start": "npm run server",
     "server": "nodemon --quiet server",
     "client": "npm start --prefix client",
+    "build": "cd client && npm run build",
     "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "author": "",

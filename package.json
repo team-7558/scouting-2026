@@ -9,7 +9,7 @@
     "start": "npm run server",
     "server": "nodemon --quiet server",
     "client": "npm start --prefix client",
-    "build": "cd client && npm run build",
+    "build": "cd client/ && npm install && npm run build",
     "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "author": "",
@@ -17,8 +17,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.0",
-    "path": "^0.12.7",
-    "react-scripts": "^5.0.1"
+    "path": "^0.12.7"
   },
   "overrides": {
     "react-scripts": {

@@ -1,30 +1,25 @@
 {
-  "name": "node-js-getting-started",
-  "version": "0.3.0",
-  "description": "A sample Node.js app using Express 4",
-  "engines": {
-    "node": "20.x"
-  },
+  "name": "scouting-2023-server",
+  "version": "1.0.0",
+  "description": "Server for the scouting-2023 off season app",
   "main": "index.js",
+  "type": "module",
+  "private": true,
   "scripts": {
-    "start": "node index.js",
-    "test": "node test.js"
+    "start": "npm run build --prefix client && npm run server",
+    "server": "nodemon --quiet server",
+    "client": "npm start --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
   },
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "ejs": "^3.1.9",
-    "express": "^4.15.2"
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "path": "^0.12.7"
   },
   "devDependencies": {
-    "tape": "^5.7.4"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/heroku/node-js-getting-started"
-  },
-  "keywords": [
-    "node",
-    "heroku",
-    "express"
-  ],
-  "license": "MIT"
+    "concurrently": "^9.0.1",
+    "nodemon": "^3.1.5"
+  }
 }

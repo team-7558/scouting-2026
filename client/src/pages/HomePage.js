@@ -9,17 +9,13 @@ const HomePage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const redirect = (path) => {
-    navigate(path)
-  }
-
   return(
     <div>
       <h1>HOME PAGE</h1>
       <span>
-        <button className="button" onClick={() => redirect("/addTournament")}>Add Tournament</button>
-        <button className="button" onClick={() => redirect("/scoutMatch")}>Scout Match</button>
-        <button className="button" onClick={() => redirect("/viewData")}>View Data</button>
+        <button className="button" onClick={() => navigate("/addTournament")}>Add Tournament</button>
+        <button className="button" onClick={() => navigate("/scoutMatch")}>Scout Match</button>
+        <button className="button" onClick={() => navigate("/viewData")}>View Data</button>
       </span>
     </div>
   );

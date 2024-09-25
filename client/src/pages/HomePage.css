@@ -1,6 +1,6 @@
 body{
     background-size: cover;
-    background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url("/public/alt-f4_background2.png");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("/public/alt-f4_background2.png");
 }
 
 h1{
@@ -12,7 +12,7 @@ h1{
 span {
     display: flex;
     justify-content: center;
-    gap: 20px; /* Adjust the space between buttons as needed */
+    gap: 5%; /* Adjust the space between buttons as needed */
   }
 
 .button{
@@ -20,7 +20,7 @@ span {
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 5%;
-    width: 200px;
+    width: 30%;
     height: 115px;
 
     font-size: 30px;

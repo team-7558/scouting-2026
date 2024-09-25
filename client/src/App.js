@@ -4,7 +4,14 @@ import HomePage from "./pages/HomePage.js";
 import SignInPage from "./pages/SignInPage.js";
 
 const App = () => {
-  return <>Our website</>;
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/signin" element={<SignInPage />} />
+      </Routes>
+    </>
+  );
 };
 
 export default App;

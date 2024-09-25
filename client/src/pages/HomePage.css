@@ -1,6 +1,6 @@
 body{
     background-size: cover;
-    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("/public/alt-f4_background2.png");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("/public/alt-f4_background.png");
 }
 
 h1{

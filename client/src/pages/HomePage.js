@@ -13,9 +13,9 @@ const HomePage = () => {
     <div>
       <h1>HOME PAGE</h1>
       <span>
-        <button className="button" onClick={() => navigate("/addTournament")}>Add Tournament</button>
-        <button className="button" onClick={() => navigate("/scoutMatch")}>Scout Match</button>
-        <button className="button" onClick={() => navigate("/viewData")}>View Data</button>
+        <button className="homePageButton" onClick={() => navigate("/addTournament")}>Add Tournament</button>
+        <button className="homePageButton" onClick={() => navigate("/scoutMatch")}>Scout Match</button>
+        <button className="homePageButton" onClick={() => navigate("/viewData")}>View Data</button>
       </span>
     </div>
   );

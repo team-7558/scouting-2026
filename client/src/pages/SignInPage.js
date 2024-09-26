@@ -1,3 +1,4 @@
+import "./SignInPage.css"
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -42,20 +43,23 @@ const SignInPage = () => {
 
   return (
     <div>
-      <h2>Sign In</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <h1>Sign In</h1>
       <form onSubmit={handleSubmit}>
+        <center>
+          <div>
+            <label>Username:</label><br></br>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+          </div>
+        </center>
+        <br></br>
+        <center>
         <div>
-          <label>Username:</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Password:</label>
+          <label>Password:</label><br></br>
           <input
             type="password"
             value={password}
@@ -63,7 +67,12 @@ const SignInPage = () => {
             required
           />
         </div>
-        <button type="submit">Sign In</button>
+        </center>
+        <br></br>
+        {error && <p style={{ color: "red" }}>{error}</p>}
+        <center>
+          <button className="button" type="submit">Sign In</button>
+        </center>
       </form>
     </div>
   );

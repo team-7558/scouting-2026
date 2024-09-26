@@ -3,40 +3,39 @@ body{
     background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("/public/alt-f4_background.png");
 }
 
+label{
+    color: white;
+}
+
 h1{
     color: white;
     text-align: center;
     font-size: 40px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
-span {
-    display: flex;
-    justify-content: center;
-    gap: 5%; /* Adjust the space between buttons as needed */
-  }
-
-.homePageButton{
+.button{
     display: inline-block;
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 5%;
     width: 30%;
-    height: 115px;
+    height: 30px;
 
-    font-size: 30px;
+    font-size: 20px;
     border-radius: 15px;
     border-color: red;
-    border-width: 5px;
+    border-width: 2px;
 
     color: white;
     background-color: black;
 }
 
-.homePageButton:hover{
+.button:hover{
     color: red;
 }
 
-.link{
-    color: white;
-    text-decoration: none;
+p{
+    text-align: center;
 }

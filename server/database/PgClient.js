@@ -1,0 +1,42 @@
+import pg from "pg";
+const { Pool } = pg;
+
+import { extractRoleFromRequest } from "../routes/auth.js";
+import { USER_ROLES } from "./auth.js";
+
+// Database URI
+const connectionString = process.env.DATABASE_URL;
+
+const config = {
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+};
+
+const pool = new Pool(config);
+
+// the pool will emit an error on behalf of any idle clients
+// it contains if a backend error or network partition happens
+pool.on("error", (err, client) => {
+  console.error("Unexpected error on idle client", err);
+  process.exit(-1);
+});
+
+export const pgClient = async () => await pool.connect();
+
+export const protectOperation =
+  (operation, allowedroles = null) =>
+  async (req, ...args) => {
+    try {
+      if (
+        !allowedroles ||
+        allowedroles.includes(await extractRoleFromRequest(req))
+      ) {
+        return await operation(...args);
+      }
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
+  };

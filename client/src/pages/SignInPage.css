@@ -1,6 +1,6 @@
 body{
     background-size: cover;
-    background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url("/public/alt-f4_background.png");
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/public/alt-f4_background.png");
 }
 
 label{
@@ -10,7 +10,7 @@ label{
 h1{
     color: white;
     text-align: center;
-    font-size: 40px;
+    font-size: 30px;
     margin-top: 10px;
     margin-bottom: 10px;
 }

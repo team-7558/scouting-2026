@@ -1,0 +1,41 @@
+body{
+    background-size: cover;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("/public/alt-f4_background.png");
+}
+
+label{
+    color: white;
+}
+
+h1{
+    color: white;
+    text-align: center;
+    font-size: 30px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.button{
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 5%;
+    width: 30%;
+    height: 30px;
+
+    font-size: 20px;
+    border-radius: 15px;
+    border-color: red;
+    border-width: 2px;
+
+    color: white;
+    background-color: black;
+}
+
+.button:hover{
+    color: red;
+}
+
+p{
+    text-align: center;
+}

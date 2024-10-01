@@ -15,7 +15,7 @@ span {
     gap: 5%; /* Adjust the space between buttons as needed */
   }
 
-.button{
+.homePageButton{
     display: inline-block;
     margin-left: auto;
     margin-right: auto;
@@ -32,7 +32,7 @@ span {
     background-color: black;
 }
 
-.button:hover{
+.homePageButton:hover{
     color: red;
 }
 

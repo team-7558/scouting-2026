@@ -12,7 +12,7 @@ h1{
 span {
     display: flex;
     justify-content: center;
-    gap: 5%; /* Adjust the space between buttons as needed */
+    gap: 5%;
   }
 
 .homePageButton{

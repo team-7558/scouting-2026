@@ -69,7 +69,7 @@ function MatchScouting(){
       context.font = `${textSize}px "Times New Roman"`;
       context.textAlign = "center";
       context.baseLine = "top";
-      context.fillText(text, posX + width/2, posY+textSize);
+      context.fillText(text, posX + width/2, posY+textSize/2+(height/2));
 
       let newButtons = buttons;
       newButtons.push({posX, posY, width, height, onClick});
@@ -115,11 +115,17 @@ function MatchScouting(){
       createButton(width*0.92, height*0.03, width*0.05, width*0.05, 5, "#BBBBBB", () => {setXOpened(true)}, "X", 40, "#FF0000");
       if (xOpened){
         //main background
-        createButton(width*0.3, height*0.3, width*0.4, height*0.2, 15, "#BBBBBB", () => {}, "Are you sure you want to restart?", 20, "#000000");
+        createButton(width*0.35, height*0.3, width*0.3, height*0.2, 15, "#BBBBBB", () => {});
+        context.fillStyle = "#000000";
+        context.font = `20px Times New Roman`;
+        context.textAlign = "center";
+        context.baseLine = "top";
+        context.fillText("Are you sure you want to restart?", width*0.5, height*0.35);
+
         //yes button
-        createButton(width*0.35, height*0.4, width*0.1, height*0.05, 5, "#AAFFAA", resetState, "Yes", 15, "#000000");
+        createButton(width*0.38, height*0.4, width*0.1, height*0.05, 5, "#AAFFAA", resetState, "Yes", 15, "#000000");
         //no button
-        createButton(width*0.55, height*0.4, width*0.1, height*0.05, 5, "#FFAAAA", () => {setXOpened(false)}, "No", 15, "#000000");
+        createButton(width*0.52, height*0.4, width*0.1, height*0.05, 5, "#FFAAAA", () => {setXOpened(false)}, "No", 15, "#000000");
       }
     }
 

@@ -1,4 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
+
+import { ThemeProvider } from "@mui/material/styles";
+import { BlueTheme } from "./BlueTheme.js";
+
 import fieldBlueLeft from "../assets/scouting-2025/fieldBlue.png";
 import coralIconImage from "../assets/scouting-2025/coralIcon.png";
 import algaeIconImage from "../assets/scouting-2025/algaeIcon.png";
@@ -9,6 +13,8 @@ const aspectRatio = 16 / 9;
 /** define all button placements based on this synthetic*/
 const virtualWidth = aspectRatio * 900;
 const virtualHeight = 900;
+
+const fieldWidth = virtualWidth * 0.7;
 
 const getCanvasDimensions = () => {
   const { innerWidth, innerHeight } = window;
@@ -68,11 +74,28 @@ const ScoutMatch = () => {
     height: 0,
   });
 
-  const CanvasButton = ({ x, y, label, ...props }) => {
+  const FieldButton = ({ x, y, width, height, label, ...props }) => {
+    const buttonStyle = {
+      left: `${convertToActualX(x)}px`,
+      top: `${convertToActualY(y)}px`,
+      width: width,
+      height: height,
+    };
+
+    return (
+      <CanvasButton sx={buttonStyle} {...props}>
+        {label}
+      </CanvasButton>
+    );
+  };
+
+  const CanvasButton = ({ x, y, width, height, label, ...props }) => {
     const buttonStyle = {
       position: "absolute",
       left: `${convertToActualX(x)}px`,
       top: `${convertToActualY(y)}px`,
+      width: width,
+      height: height,
       fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.03}px`,
       zIndex: 1,
     };
@@ -84,7 +107,12 @@ const ScoutMatch = () => {
     );
   };
 
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [cursorPosition, setCursorPosition] = useState({
+    x: 0,
+    y: 0,
+    canvasX: 0,
+    canvasY: 0,
+  });
   const handleMouseMove = (event) => {
     setCursorPosition({
       x: event.clientX,
@@ -121,48 +149,50 @@ const ScoutMatch = () => {
   }, [canvasRect]);
 
   return (
-    <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
-      <canvas
-        ref={canvasRef}
-        onMouseMove={handleMouseMove}
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "#ffffff",
-        }}
-      />
-      // show curser with canvas coordinates
-      <p
-        style={{
-          position: "absolute",
-          left: cursorPosition.x + 10,
-          top: cursorPosition.y + 10,
-          pointerEvents: "none",
-        }}
-      >
-        {cursorPosition.canvasX},{cursorPosition.canvasY}
-      </p>
-      <CanvasButton
-        canvasRect={canvasRect}
-        x={100} // Virtual canvas x-coordinate (relative to 1600x900px)
-        y={100} // Virtual canvas y-coordinate (relative to 1600x900px)
-        color="primary"
-        variant="contained"
-        label="Button 1"
-        onClick={() => alert("Button 1 clicked!")}
-      />
-      <CanvasButton
-        canvasRect={canvasRect}
-        x={400} // Virtual canvas x-coordinate
-        y={300} // Virtual canvas y-coordinate
-        color="secondary"
-        variant="contained"
-        label="Button 2"
-        onClick={() => alert("Button 2 clicked!")}
-      />
-    </Box>
+    <ThemeProvider theme={BlueTheme}>
+      <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
+        <canvas
+          ref={canvasRef}
+          onMouseMove={handleMouseMove}
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "#ffffff",
+          }}
+        />
+        // show curser with canvas coordinates
+        <p
+          style={{
+            position: "absolute",
+            left: cursorPosition.x + 10,
+            top: cursorPosition.y + 10,
+            pointerEvents: "none",
+          }}
+        >
+          {cursorPosition.canvasX},{cursorPosition.canvasY}
+        </p>
+        <CanvasButton
+          canvasRect={canvasRect}
+          x={100} // Virtual canvas x-coordinate (relative to 1600x900px)
+          y={100} // Virtual canvas y-coordinate (relative to 1600x900px)
+          color="primary"
+          variant="contained"
+          label="Button 1"
+          onClick={() => alert("Button 1 clicked!")}
+        />
+        <CanvasButton
+          canvasRect={canvasRect}
+          x={400} // Virtual canvas x-coordinate
+          y={300} // Virtual canvas y-coordinate
+          color="secondary"
+          variant="contained"
+          label="Button 2"
+          onClick={() => alert("Button 2 clicked!")}
+        />
+      </Box>
+    </ThemeProvider>
   );
 };
 export default ScoutMatch;

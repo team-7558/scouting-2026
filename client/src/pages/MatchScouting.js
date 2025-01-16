@@ -90,14 +90,14 @@ function MatchScouting() {
 
   function handleMouseMove(e) {
     //checks if the mouse is down, scout is in pre-match, and click is on the slider area
-    if (
-      clickX >= button.posX &&
-      clickX <= button.posX + button.width &&
-      clickY >= button.posY &&
-      clickY <= button.posY + button.height
-    ) {
-      setStartPosition(e.clientY);
-    }
+    // if (
+    //   clickX >= button.posX &&
+    //   clickX <= button.posX + button.width &&
+    //   clickY >= button.posY &&
+    //   clickY <= button.posY + button.height
+    // ) {
+    //   setStartPosition(e.clientY);
+    // }
   }
 
   useEffect(() => {
@@ -317,7 +317,7 @@ function MatchScouting() {
         );
       }
 
-      drawXButton();
+      // drawXButton();
     }
 
     //circles around reef. starts at top left is 0, continues clockwise.

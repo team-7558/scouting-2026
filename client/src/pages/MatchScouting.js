@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import fieldBlueLeft from "../assets/scouting-2025/fieldBlue.png";
+import fieldBlueLeft from "../assets/scouting-2025/field/blue_left.png";
 import coralIconImage from "../assets/scouting-2025/coralIcon.png";
 import algaeIconImage from "../assets/scouting-2025/algaeIcon.png";
 

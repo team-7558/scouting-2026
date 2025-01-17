@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 import { BlueTheme } from "./BlueTheme.js";
 
-import fieldBlueLeft from "../assets/scouting-2025/fieldBlue.png";
+import fieldBlueLeft from "../assets/scouting-2025/field/blue_left.png";
 import coralIconImage from "../assets/scouting-2025/coralIcon.png";
 import algaeIconImage from "../assets/scouting-2025/algaeIcon.png";
 import { Box, Button } from "@mui/material";
@@ -94,9 +94,12 @@ const ScoutMatch = () => {
       position: "absolute",
       left: `${convertToActualX(x)}px`,
       top: `${convertToActualY(y)}px`,
-      width: width,
-      height: height,
-      fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.03}px`,
+      width: (width * canvasRect.width) / virtualWidth,
+      height: (height * canvasRect.height) / virtualHeight,
+      "min-width": 0,
+      "min-height": 0,
+      padding: "none",
+      fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.02}px`,
       zIndex: 1,
     };
 
@@ -155,6 +158,7 @@ const ScoutMatch = () => {
           ref={canvasRef}
           onMouseMove={handleMouseMove}
           style={{
+            overflow: "hidden",
             position: "absolute",
             top: "50%",
             left: "50%",
@@ -165,9 +169,10 @@ const ScoutMatch = () => {
         // show curser with canvas coordinates
         <p
           style={{
+            color: "#000",
             position: "absolute",
-            left: cursorPosition.x + 10,
-            top: cursorPosition.y + 10,
+            left: cursorPosition.x,
+            top: cursorPosition.y,
             pointerEvents: "none",
           }}
         >
@@ -175,8 +180,10 @@ const ScoutMatch = () => {
         </p>
         <CanvasButton
           canvasRect={canvasRect}
-          x={100} // Virtual canvas x-coordinate (relative to 1600x900px)
-          y={100} // Virtual canvas y-coordinate (relative to 1600x900px)
+          x={1500} // Virtual canvas x-coordinate (relative to 1600x900px)
+          y={800} // Virtual canvas y-coordinate (relative to 1600x900px)
+          width={100}
+          height={100}
           color="primary"
           variant="contained"
           label="Button 1"
@@ -186,6 +193,8 @@ const ScoutMatch = () => {
           canvasRect={canvasRect}
           x={400} // Virtual canvas x-coordinate
           y={300} // Virtual canvas y-coordinate
+          width={100}
+          height={100}
           color="secondary"
           variant="contained"
           label="Button 2"

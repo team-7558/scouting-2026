@@ -1,12 +1,14 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, startTransition } from "react";
 
 import { ThemeProvider } from "@mui/material/styles";
+import Slider from '@mui/material/Slider';
 import { BlueTheme } from "./BlueTheme.js";
 
 import fieldBlueLeft from "../assets/scouting-2025/fieldBlue.png";
 import coralIconImage from "../assets/scouting-2025/coralIcon.png";
 import algaeIconImage from "../assets/scouting-2025/algaeIcon.png";
 import { Box, Button } from "@mui/material";
+import e from "cors";
 
 //Canvas Helpers
 const aspectRatio = 16 / 9;
@@ -65,6 +67,12 @@ const ScoutMatch = () => {
       (canvasRect.height / virtualHeight) * virtualY + canvasRect.y
     );
   };
+  const convertToActualYLength = (virtualY) => {
+    return virtualY * (canvasRect.width / virtualWidth);
+  }
+  const convertToActualXLength = (virtualX) => {
+    return virtualX * (canvasRect.width / virtualWidth);
+  }
 
   const canvasRef = useRef(null);
   const [canvasRect, setCanvasRect] = useState({
@@ -94,11 +102,15 @@ const ScoutMatch = () => {
       position: "absolute",
       left: `${convertToActualX(x)}px`,
       top: `${convertToActualY(y)}px`,
-      width: width,
-      height: height,
+      width: convertToActualXLength(width),
+      height: convertToActualXLength(height),
       fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.03}px`,
       zIndex: 1,
     };
+
+    const FieldSlider = ({x, y, height, ...props }) => {
+      
+    }
 
     return (
       <Button sx={buttonStyle} {...props}>
@@ -148,51 +160,156 @@ const ScoutMatch = () => {
     drawCanvas(canvasRef.current);
   }, [canvasRect]);
 
-  return (
-    <ThemeProvider theme={BlueTheme}>
-      <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
-        <canvas
-          ref={canvasRef}
-          onMouseMove={handleMouseMove}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "#ffffff",
-          }}
-        />
-        // show curser with canvas coordinates
-        <p
-          style={{
-            position: "absolute",
-            left: cursorPosition.x + 10,
-            top: cursorPosition.y + 10,
-            pointerEvents: "none",
-          }}
-        >
-          {cursorPosition.canvasX},{cursorPosition.canvasY}
-        </p>
-        <CanvasButton
-          canvasRect={canvasRect}
-          x={100} // Virtual canvas x-coordinate (relative to 1600x900px)
-          y={100} // Virtual canvas y-coordinate (relative to 1600x900px)
-          color="primary"
-          variant="contained"
-          label="Button 1"
-          onClick={() => alert("Button 1 clicked!")}
-        />
-        <CanvasButton
-          canvasRect={canvasRect}
-          x={400} // Virtual canvas x-coordinate
-          y={300} // Virtual canvas y-coordinate
-          color="secondary"
-          variant="contained"
-          label="Button 2"
-          onClick={() => alert("Button 2 clicked!")}
-        />
-      </Box>
-    </ThemeProvider>
-  );
+  //debugging things
+  const DisplayMouseCoords = () => {
+    return (<p
+        style={{
+          position: "absolute",
+          left: cursorPosition.x + 10,
+          top: cursorPosition.y + 10,
+          pointerEvents: "none",
+          color: "#8888FF",
+        }}
+      >
+        {cursorPosition.canvasX},{cursorPosition.canvasY}
+      </p>
+    );
+  }
+  
+
+  //general states
+  const phases = {preMatch: 0}
+  const [phase, setPhase] = useState(phases.preMatch);
+
+  //pre-match states
+  const [startPos, setStartPos] = useState(-10);
+  const [preload, setPreload] = useState(null);
+  const [startPosSlider, setStartPosSlider] = useState({
+    width: 100,
+    markerColor: "#FF0000",
+    railColor: "#FFAAAA",
+    trackColor: "#FFAAAA"
+  });
+
+  const [preloadButton, setPreloadButton] = useState({
+    color: "error",
+    text: "Preload?"
+  });
+
+  const [startMatchButton, setStartMatchButton] = useState({
+    color: "disabled"
+  })
+  if (phase==phases.preMatch){    
+    const onStartPosSliderClicked = (value) => {
+      let startPosSliderCopy = JSON.parse(JSON.stringify(startPosSlider));
+      startPosSliderCopy.width = 5;
+      startPosSliderCopy.markerColor = "#00FF00";
+      startPosSliderCopy.railColor = "#ABABAB";
+      startPosSliderCopy.trackColor = "#AAAAFF";
+      setStartPosSlider(startPosSliderCopy);
+      setStartPos(value);
+
+      if (preload!=null){
+        setStartMatchButton({color: "primary"});
+      }
+    }
+
+    const onPreloadButtonClicked = () => {
+      if (preload==null || preload==false){
+        setPreload(true);
+        let preloadButtonCopy = JSON.parse(JSON.stringify(preloadButton));
+        preloadButtonCopy.color="primary";
+        preloadButtonCopy.text="Preload Coral";
+        setPreloadButton(preloadButtonCopy);
+      }else{
+        setPreload(false);
+        let preloadButtonCopy = JSON.parse(JSON.stringify(preloadButton));
+        preloadButtonCopy.color="secondary";
+        preloadButtonCopy.text="No Preload";
+        setPreloadButton(preloadButtonCopy);
+      }
+
+      if (startPos>=0){
+        setStartMatchButton({color: "primary"});
+      }
+    }
+
+    const onStartMatchButtonClicked = () => {
+      if (startMatchButton.color != "disabled"){
+        alert("go to auto");
+      }
+    }
+    return (
+      <ThemeProvider theme={BlueTheme}>
+        <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
+          <canvas
+            ref={canvasRef}
+            onMouseMove={handleMouseMove}
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              background: "#ffffff",
+            }}
+          />
+          
+            <DisplayMouseCoords />
+
+            {/* start match */}
+            <CanvasButton 
+              x={20}
+              y={20}
+              height={400}
+              width={400}
+              color={startMatchButton.color}
+              variant="contained"
+              label="Start Match"
+              onClick={onStartMatchButtonClicked}
+            />
+
+            {/* preload */}
+            <CanvasButton
+              x={20}
+              y={500}
+              height={200}
+              width={400}
+              color={preloadButton.color}
+              variant="contained"
+              label={preloadButton.text}
+              onClick={onPreloadButtonClicked}
+            />      
+
+            {/* start position slider. Cannot be wrapped in it's own component or it re-renders anytime it is moved, so you can't drag it */}
+            <Slider
+              orientation="vertical"
+              value={startPos}
+              onChange={(event, value) => onStartPosSliderClicked(value)}
+              min={0}
+              max={100}
+              step={0.1}
+              valueLabelDisplay="auto"
+              sx={{
+                position: "absolute",
+                top: convertToActualY(20) + "px",
+                left: convertToActualX(1180) - convertToActualXLength(startPosSlider.width/2) + "px",
+                height: convertToActualYLength(875) + "px",
+                width: convertToActualXLength(startPosSlider.width) + "px",
+                '& .MuiSlider-thumb': {
+                  color: startPosSlider.markerColor,
+                },
+                '& .MuiSlider-track': {
+                  color: startPosSlider.trackColor,
+                },
+                '& .MuiSlider-rail': {
+                  color: startPosSlider.railColor,
+                },
+              }}
+            />
+
+          </Box>
+        </ThemeProvider>
+      )
+  }
 };
 export default ScoutMatch;

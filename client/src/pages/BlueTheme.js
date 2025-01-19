@@ -6,8 +6,15 @@ export const BlueTheme = createTheme({
     primary: {
       main: "#3f51b5",
     },
-    secondary: {
-      main: "#f50057",
+    error: {
+      main: "#FF0000",
     },
+    secondary: {
+      main: "#00AA55"
+    },
+    disabled: {
+      main: '#AAAAAA',
+      contrastText: '#555555',
+    }
   },
 });

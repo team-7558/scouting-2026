@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, startTransition } from "react";
 
 import { ThemeProvider } from "@mui/material/styles";
-import Slider from '@mui/material/Slider';
+import Slider from "@mui/material/Slider";
 import { BlueTheme } from "./BlueTheme.js";
 
 import fieldBlueLeft from "../assets/scouting-2025/field/blue_left.png";
@@ -67,12 +67,12 @@ const ScoutMatch = () => {
       (canvasRect.height / virtualHeight) * virtualY + canvasRect.y
     );
   };
-  const convertToActualYLength = (virtualY) => {
+  const scaleLengthToActual = (virtualY) => {
     return virtualY * (canvasRect.width / virtualWidth);
-  }
-  const convertToActualXLength = (virtualX) => {
+  };
+  const scaleWidthToActual = (virtualX) => {
     return virtualX * (canvasRect.width / virtualWidth);
-  }
+  };
 
   const canvasRef = useRef(null);
   const [canvasRect, setCanvasRect] = useState({
@@ -111,9 +111,7 @@ const ScoutMatch = () => {
       zIndex: 1,
     };
 
-    const FieldSlider = ({x, y, height, ...props }) => {
-      
-    }
+    const FieldSlider = ({ x, y, height, ...props }) => {};
 
     return (
       <Button sx={buttonStyle} {...props}>
@@ -165,7 +163,8 @@ const ScoutMatch = () => {
 
   //debugging things
   const DisplayMouseCoords = () => {
-    return (<p
+    return (
+      <p
         style={{
           position: "absolute",
           left: cursorPosition.x + 10,
@@ -177,11 +176,10 @@ const ScoutMatch = () => {
         {cursorPosition.canvasX},{cursorPosition.canvasY}
       </p>
     );
-  }
-  
+  };
 
   //general states
-  const phases = {preMatch: 0}
+  const phases = { preMatch: 0 };
   const [phase, setPhase] = useState(phases.preMatch);
 
   //pre-match states
@@ -191,18 +189,19 @@ const ScoutMatch = () => {
     width: 100,
     markerColor: "#FF0000",
     railColor: "#FFAAAA",
-    trackColor: "#FFAAAA"
+    trackColor: "#FFAAAA",
   });
 
   const [preloadButton, setPreloadButton] = useState({
     color: "error",
-    text: "Preload?"
+    text: "Preload?",
   });
 
   const [startMatchButton, setStartMatchButton] = useState({
-    color: "disabled"
-  })
-  if (phase==phases.preMatch){    
+    color: "disabled",
+  });
+
+  if (phase == phases.preMatch) {
     const onStartPosSliderClicked = (value) => {
       let startPosSliderCopy = JSON.parse(JSON.stringify(startPosSlider));
       startPosSliderCopy.width = 5;
@@ -212,36 +211,36 @@ const ScoutMatch = () => {
       setStartPosSlider(startPosSliderCopy);
       setStartPos(value);
 
-      if (preload!=null){
-        setStartMatchButton({color: "primary"});
+      if (preload != null) {
+        setStartMatchButton({ color: "primary" });
       }
-    }
+    };
 
     const onPreloadButtonClicked = () => {
-      if (preload==null || preload==false){
+      if (preload == null || preload == false) {
         setPreload(true);
         let preloadButtonCopy = JSON.parse(JSON.stringify(preloadButton));
-        preloadButtonCopy.color="primary";
-        preloadButtonCopy.text="Preload Coral";
+        preloadButtonCopy.color = "primary";
+        preloadButtonCopy.text = "Preload Coral";
         setPreloadButton(preloadButtonCopy);
-      }else{
+      } else {
         setPreload(false);
         let preloadButtonCopy = JSON.parse(JSON.stringify(preloadButton));
-        preloadButtonCopy.color="secondary";
-        preloadButtonCopy.text="No Preload";
+        preloadButtonCopy.color = "secondary";
+        preloadButtonCopy.text = "No Preload";
         setPreloadButton(preloadButtonCopy);
       }
 
-      if (startPos>=0){
-        setStartMatchButton({color: "primary"});
+      if (startPos >= 0) {
+        setStartMatchButton({ color: "primary" });
       }
-    }
+    };
 
     const onStartMatchButtonClicked = () => {
-      if (startMatchButton.color != "disabled"){
+      if (startMatchButton.color != "disabled") {
         alert("go to auto");
       }
-    }
+    };
     return (
       <ThemeProvider theme={BlueTheme}>
         <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
@@ -256,63 +255,73 @@ const ScoutMatch = () => {
               background: "#ffffff",
             }}
           />
-          
-            <DisplayMouseCoords />
 
-            {/* start match */}
-            <CanvasButton 
-              x={20}
-              y={20}
-              height={400}
-              width={400}
-              color={startMatchButton.color}
-              variant="contained"
-              label="Start Match"
-              onClick={onStartMatchButtonClicked}
-            />
+          <DisplayMouseCoords />
 
-            {/* preload */}
-            <CanvasButton
-              x={20}
-              y={500}
-              height={200}
-              width={400}
-              color={preloadButton.color}
-              variant="contained"
-              label={preloadButton.text}
-              onClick={onPreloadButtonClicked}
-            />      
+          {/* start match */}
+          <CanvasButton
+            x={20}
+            y={20}
+            height={400}
+            width={400}
+            color={startMatchButton.color}
+            variant="contained"
+            label="Start Match"
+            onClick={onStartMatchButtonClicked}
+          />
 
-            {/* start position slider. Cannot be wrapped in it's own component or it re-renders anytime it is moved, so you can't drag it */}
-            <Slider
-              orientation="vertical"
-              value={startPos}
-              onChange={(event, value) => onStartPosSliderClicked(value)}
-              min={0}
-              max={100}
-              step={0.1}
-              valueLabelDisplay="auto"
-              sx={{
-                position: "absolute",
-                top: convertToActualY(20) + "px",
-                left: convertToActualX(1315) - convertToActualXLength(startPosSlider.width/2) + "px",
-                height: convertToActualYLength(875) + "px",
-                width: convertToActualXLength(startPosSlider.width) + "px",
-                '& .MuiSlider-thumb': {
-                  color: startPosSlider.markerColor,
-                },
-                '& .MuiSlider-track': {
-                  color: startPosSlider.trackColor,
-                },
-                '& .MuiSlider-rail': {
-                  color: startPosSlider.railColor,
-                },
-              }}
-            />
-
-          </Box>
-        </ThemeProvider>
-      )
+          {/* preload */}
+          <CanvasButton
+            x={20}
+            y={500}
+            height={200}
+            width={400}
+            color={preloadButton.color}
+            variant="contained"
+            label={preloadButton.text}
+            onClick={onPreloadButtonClicked}
+          />
+          {/* start position slider. Cannot be wrapped in it's own component or it re-renders anytime it is moved, so you can't drag it */}
+          <Slider
+            orientation="vertical"
+            value={startPos}
+            onChange={(event, value) => onStartPosSliderClicked(value)}
+            min={1}
+            max={13}
+            step={1}
+            valueLabelDisplay="auto"
+            sx={{
+              position: "absolute",
+              "margin-top": scaleLengthToActual(75),
+              "margin-bottom": scaleLengthToActual(75),
+              top: convertToActualY(0),
+              left:
+                convertToActualX(1315) -
+                scaleWidthToActual(startPosSlider.width / 2) +
+                "px",
+              height: scaleLengthToActual(750),
+              width: scaleWidthToActual(startPosSlider.width),
+              "& .MuiSlider-thumb": {
+                "background-image": `url(
+                  "https://i.imgur.com/TqGjfyf.jpg"
+                )`,
+                width: scaleWidthToActual(150),
+                height: scaleWidthToActual(150),
+                "background-position": "center",
+                "background-size": "cover",
+                "border-radius": 0,
+              },
+              "& .MuiSlider-track": {
+                color: startPosSlider.trackColor,
+              },
+              "& .MuiSlider-rail": {
+                color: startPosSlider.railColor,
+              },
+            }}
+          />
+        </Box>
+      </ThemeProvider>
+    );
   }
 };
 export default ScoutMatch;

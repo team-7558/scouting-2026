@@ -2,7 +2,7 @@ import { createTheme } from "@mui/material/styles";
 
 export const BlueTheme = createTheme({
   palette: {
-    mode: "dark",
+    mode: "light",
     primary: {
       main: "#3f51b5",
     },
@@ -10,11 +10,11 @@ export const BlueTheme = createTheme({
       main: "#FF0000",
     },
     secondary: {
-      main: "#00AA55"
+      main: "#00AA55",
     },
     disabled: {
-      main: '#AAAAAA',
-      contrastText: '#555555',
-    }
+      main: "#AAAAAA",
+      contrastText: "#555555",
+    },
   },
 });

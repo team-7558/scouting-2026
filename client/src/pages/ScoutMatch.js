@@ -10,13 +10,22 @@ import algaeIconImage from "../assets/scouting-2025/algaeIcon.png";
 import { Box, Button } from "@mui/material";
 import e from "cors";
 
+const COLORS = {
+  INACTIVE: "grey",
+  PENDING: "info",
+  SUCCESS: "success",
+  DISABLED: "disabled",
+  ACTIVE: "primary",
+};
+
 //Canvas Helpers
 const aspectRatio = 16 / 9;
 /** define all button placements based on this synthetic*/
 const virtualWidth = aspectRatio * 900;
 const virtualHeight = 900;
+const fieldBackgroundSize = 0.7;
 
-const fieldWidth = virtualWidth * 0.7;
+const fieldWidth = virtualWidth * fieldBackgroundSize;
 
 const getCanvasDimensions = () => {
   const { innerWidth, innerHeight } = window;
@@ -37,16 +46,16 @@ const drawCanvas = (canvas) => {
   fieldImage.onload = () => {
     ctx.drawImage(
       fieldImage,
-      canvas.width * 0.3,
+      canvas.width * (1 - fieldBackgroundSize),
       0,
-      canvas.width * 0.7,
+      canvas.width * fieldBackgroundSize,
       canvas.height
     );
   };
 };
 
 //Scout Match Component
-const ScoutMatch = () => {
+const ScoutMatch = (driver_station, team_number, scout_perspective) => {
   const convertToVirtualX = (actualX) => {
     return Math.round(
       (virtualWidth / canvasRect.width) * (actualX - canvasRect.x)
@@ -178,150 +187,110 @@ const ScoutMatch = () => {
     );
   };
 
-  //general states
-  const phases = { preMatch: 0 };
-  const [phase, setPhase] = useState(phases.preMatch);
+  // match state
+  const [matchStartTime, setMatchStartTime] = useState(-1);
+  const PHASES = { PREMATCH: "prematch", AUTO: "auto", TELE: "tele" };
+  const [phase, setPhase] = useState(PHASES.PREMATCH);
 
-  //pre-match states
-  const [startPos, setStartPos] = useState(-10);
-  const [preload, setPreload] = useState(null);
-  const [startPosSlider, setStartPosSlider] = useState({
-    width: 100,
-    markerColor: "#FF0000",
-    railColor: "#FFAAAA",
-    trackColor: "#FFAAAA",
-  });
+  // robot state
+  const [startingPosition, setStartingPosition] = useState(-1);
+  // preload/(X, Y)coordinates/coral station (if its null, it means they aren't holding coral)
+  const [coralAttained, setCoralAttained] = useState(null);
 
-  const [preloadButton, setPreloadButton] = useState({
-    color: "error",
-    text: "Preload?",
-  });
-
-  const [startMatchButton, setStartMatchButton] = useState({
-    color: "disabled",
-  });
-
-  if (phase == phases.preMatch) {
-    const onStartPosSliderClicked = (value) => {
-      let startPosSliderCopy = JSON.parse(JSON.stringify(startPosSlider));
-      startPosSliderCopy.width = 5;
-      startPosSliderCopy.markerColor = "#00FF00";
-      startPosSliderCopy.railColor = "#ABABAB";
-      startPosSliderCopy.trackColor = "#AAAAFF";
-      setStartPosSlider(startPosSliderCopy);
-      setStartPos(value);
-
-      if (preload != null) {
-        setStartMatchButton({ color: "primary" });
-      }
-    };
-
-    const onPreloadButtonClicked = () => {
-      if (preload == null || preload == false) {
-        setPreload(true);
-        let preloadButtonCopy = JSON.parse(JSON.stringify(preloadButton));
-        preloadButtonCopy.color = "primary";
-        preloadButtonCopy.text = "Preload Coral";
-        setPreloadButton(preloadButtonCopy);
-      } else {
-        setPreload(false);
-        let preloadButtonCopy = JSON.parse(JSON.stringify(preloadButton));
-        preloadButtonCopy.color = "secondary";
-        preloadButtonCopy.text = "No Preload";
-        setPreloadButton(preloadButtonCopy);
-      }
-
-      if (startPos >= 0) {
-        setStartMatchButton({ color: "primary" });
-      }
-    };
-
-    const onStartMatchButtonClicked = () => {
-      if (startMatchButton.color != "disabled") {
-        alert("go to auto");
-      }
-    };
+  const StartingPositionSlider = () => {
     return (
-      <ThemeProvider theme={BlueTheme}>
-        <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
-          <canvas
-            ref={canvasRef}
-            onMouseMove={handleMouseMove}
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              background: "#ffffff",
-            }}
-          />
+      <Slider
+        /* start position slider. Cannot be wrapped in it's own component or it re-renders anytime it is moved, so you can't drag it */
+        orientation="vertical"
+        value={startingPosition}
+        onChange={(event, value) => {
+          setStartingPosition(value);
+        }}
+        min={1}
+        max={13}
+        step={1}
+        valueLabelDisplay="auto"
+        sx={{
+          position: "absolute",
+          "margin-top": scaleLengthToActual(75),
+          "margin-bottom": scaleLengthToActual(75),
+          top: convertToActualY(0),
+          left: convertToActualX(1315) - scaleWidthToActual(100 / 2),
+          height: scaleLengthToActual(750),
+          width: scaleWidthToActual(100),
+          "& .MuiSlider-thumb": {
+            "background-image": `url(
+            "https://i.imgur.com/TqGjfyf.jpg"
+          )`,
+            width: scaleWidthToActual(150),
+            height: scaleWidthToActual(150),
+            "background-position": "center",
+            "background-size": "cover",
+            "border-radius": 0,
+          },
+          "& .MuiSlider-track": {
+            color: startingPosition == -1 ? COLORS.INACTIVE : COLORS.ACTIVE,
+          },
+          "& .MuiSlider-rail": {
+            color: startingPosition == -1 ? COLORS.INACTIVE : COLORS.ACTIVE,
+          },
+        }}
+      />
+    );
+  };
 
-          <DisplayMouseCoords />
-
-          {/* start match */}
+  const renderSideBar = () => {
+    if (phase == PHASES.PREMATCH) {
+      return (
+        <div>
           <CanvasButton
             x={20}
             y={20}
             height={400}
             width={400}
-            color={startMatchButton.color}
+            disabled={startingPosition < 0}
+            color={COLORS.ACTIVE}
             variant="contained"
             label="Start Match"
-            onClick={onStartMatchButtonClicked}
+            onClick={() => setMatchStartTime(Date.now())}
           />
 
-          {/* preload */}
           <CanvasButton
             x={20}
             y={500}
             height={200}
             width={400}
-            color={preloadButton.color}
+            color={coralAttained == null ? COLORS.PENDING : COLORS.SUCCESS}
             variant="contained"
-            label={preloadButton.text}
-            onClick={onPreloadButtonClicked}
+            label="Has Preload?"
+            onClick={() =>
+              setCoralAttained(coralAttained == null ? "preload" : null)
+            }
           />
-          {/* start position slider. Cannot be wrapped in it's own component or it re-renders anytime it is moved, so you can't drag it */}
-          <Slider
-            orientation="vertical"
-            value={startPos}
-            onChange={(event, value) => onStartPosSliderClicked(value)}
-            min={1}
-            max={13}
-            step={1}
-            valueLabelDisplay="auto"
-            sx={{
-              position: "absolute",
-              "margin-top": scaleLengthToActual(75),
-              "margin-bottom": scaleLengthToActual(75),
-              top: convertToActualY(0),
-              left:
-                convertToActualX(1315) -
-                scaleWidthToActual(startPosSlider.width / 2) +
-                "px",
-              height: scaleLengthToActual(750),
-              width: scaleWidthToActual(startPosSlider.width),
-              "& .MuiSlider-thumb": {
-                "background-image": `url(
-                  "https://i.imgur.com/TqGjfyf.jpg"
-                )`,
-                width: scaleWidthToActual(150),
-                height: scaleWidthToActual(150),
-                "background-position": "center",
-                "background-size": "cover",
-                "border-radius": 0,
-              },
-              "& .MuiSlider-track": {
-                color: startPosSlider.trackColor,
-              },
-              "& .MuiSlider-rail": {
-                color: startPosSlider.railColor,
-              },
-            }}
-          />
-        </Box>
-      </ThemeProvider>
-    );
-  }
+        </div>
+      );
+    }
+  };
+
+  return (
+    <ThemeProvider theme={BlueTheme}>
+      <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
+        <canvas
+          ref={canvasRef}
+          onMouseMove={handleMouseMove}
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "#ffffff",
+          }}
+        />
+        <DisplayMouseCoords />
+        {renderSideBar()}
+        {StartingPositionSlider()}
+      </Box>
+    </ThemeProvider>
+  );
 };
 export default ScoutMatch;

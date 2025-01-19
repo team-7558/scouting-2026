@@ -274,10 +274,12 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
 
   return (
     <ThemeProvider theme={BlueTheme}>
-      <Box sx={{ position: "relative", width: "100vw", height: "100vh" }}>
+      <Box
+        onMouseMove={handleMouseMove}
+        sx={{ position: "relative", width: "100vw", height: "100vh" }}
+      >
         <canvas
           ref={canvasRef}
-          onMouseMove={handleMouseMove}
           style={{
             position: "absolute",
             top: "50%",

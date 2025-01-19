@@ -4,7 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import Slider from '@mui/material/Slider';
 import { BlueTheme } from "./BlueTheme.js";
 
-import fieldBlueLeft from "../assets/scouting-2025/fieldBlue.png";
+import fieldBlueLeft from "../assets/scouting-2025/field/blue_left.png";
 import coralIconImage from "../assets/scouting-2025/coralIcon.png";
 import algaeIconImage from "../assets/scouting-2025/algaeIcon.png";
 import { Box, Button } from "@mui/material";
@@ -102,9 +102,12 @@ const ScoutMatch = () => {
       position: "absolute",
       left: `${convertToActualX(x)}px`,
       top: `${convertToActualY(y)}px`,
-      width: convertToActualXLength(width),
-      height: convertToActualXLength(height),
-      fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.03}px`,
+      width: (width * canvasRect.width) / virtualWidth,
+      height: (height * canvasRect.height) / virtualHeight,
+      "min-width": 0,
+      "min-height": 0,
+      padding: "none",
+      fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.02}px`,
       zIndex: 1,
     };
 
@@ -292,7 +295,7 @@ const ScoutMatch = () => {
               sx={{
                 position: "absolute",
                 top: convertToActualY(20) + "px",
-                left: convertToActualX(1180) - convertToActualXLength(startPosSlider.width/2) + "px",
+                left: convertToActualX(1315) - convertToActualXLength(startPosSlider.width/2) + "px",
                 height: convertToActualYLength(875) + "px",
                 width: convertToActualXLength(startPosSlider.width) + "px",
                 '& .MuiSlider-thumb': {

@@ -19,8 +19,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/signin" element={<SignInPage />} />
-          <Route path="/<scoutMatch>" element={<MatchScouting />} />
-          <Route path="/scoutMatch2" element={<ScoutMatch />} />
+          <Route path="/<scoutMatch>" element={<ScoutMatch />} />
         </Routes>
       </ThemeProvider>
     </React.Fragment>

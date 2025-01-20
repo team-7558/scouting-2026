@@ -8,7 +8,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 
 import HomePage from "./pages/HomePage.js";
 import SignInPage from "./pages/SignInPage.js";
-import ScoutMatch from "./pages/ScoutMatch.js";
+import ScoutMatch from "./pages/ScoutMatch/ScoutMatch.js";
 
 const App = () => {
   return (

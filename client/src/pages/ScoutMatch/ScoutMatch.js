@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect, startTransition } from "react";
 
 import { ThemeProvider } from "@mui/material/styles";
 import Slider from "@mui/material/Slider";
-import { BlueTheme } from "./BlueTheme.js";
+import { BlueTheme } from "./themes/BlueTheme.js";
 
-import fieldBlueLeft from "../assets/scouting-2025/field/blue_left.png";
-import coralIconImage from "../assets/scouting-2025/coralIcon.png";
-import algaeIconImage from "../assets/scouting-2025/algaeIcon.png";
+import fieldBlueLeft from "../../assets/scouting-2025/field/blue_left.png";
+import coralIconImage from "../../assets/scouting-2025/coralIcon.png";
+import algaeIconImage from "../../assets/scouting-2025/algaeIcon.png";
 import { Box, Button } from "@mui/material";
 import e from "cors";
+import FullscreenDialog from "./FullScreenDialog.js";
 
 const COLORS = {
   INACTIVE: "grey",
@@ -19,6 +20,7 @@ const COLORS = {
 };
 
 //Canvas Helpers
+
 const aspectRatio = 16 / 9;
 /** define all button placements based on this synthetic*/
 const virtualWidth = aspectRatio * 900;
@@ -274,6 +276,7 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
 
   return (
     <ThemeProvider theme={BlueTheme}>
+      <FullscreenDialog />
       <Box
         onMouseMove={handleMouseMove}
         sx={{ position: "relative", width: "100vw", height: "100vh" }}

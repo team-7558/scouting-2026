@@ -91,36 +91,45 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
     height: 0,
   });
 
-  const FieldButton = ({ x, y, width, height, label, ...props }) => {
-    const buttonStyle = {
-      left: `${convertToActualX(x)}px`,
-      top: `${convertToActualY(y)}px`,
-      width: width,
-      height: height,
-    };
-
-    return (
-      <CanvasButton sx={buttonStyle} {...props}>
-        {label}
-      </CanvasButton>
-    );
-  };
-
-  const CanvasButton = ({ x, y, width, height, label, ...props }) => {
+  const FieldButton = ({ x, y, width, height, label, sx, ...props }) => {
     const buttonStyle = {
       position: "absolute",
       left: `${convertToActualX(x)}px`,
       top: `${convertToActualY(y)}px`,
       width: (width * canvasRect.width) / virtualWidth,
       height: (height * canvasRect.height) / virtualHeight,
-      "min-width": 0,
-      "min-height": 0,
+      "minWidth": 0,
+      "minHeight": 0,
       padding: "none",
       fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.02}px`,
       zIndex: 1,
+      ...sx
     };
 
-    const FieldSlider = ({ x, y, height, ...props }) => {};
+    return (
+      <CanvasButton 
+        sx={buttonStyle} 
+        label={label}
+        {...props}
+
+      />
+    );
+  };
+
+  const CanvasButton = ({ x, y, width, height, label, sx, ...props }) => {
+    const buttonStyle = {
+      position: "absolute",
+      left: `${convertToActualX(x)}px`,
+      top: `${convertToActualY(y)}px`,
+      width: (width * canvasRect.width) / virtualWidth,
+      height: (height * canvasRect.height) / virtualHeight,
+      "minWidth": 0,
+      "minHeight": 0,
+      padding: "none",
+      fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.02}px`,
+      zIndex: 1,
+      ...sx
+    };
 
     return (
       <Button sx={buttonStyle} {...props}>
@@ -195,7 +204,9 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
   // robot state
   const [startingPosition, setStartingPosition] = useState(-1);
   // preload/(X, Y)coordinates/coral station (if its null, it means they aren't holding coral)
-  const [coralAttained, setCoralAttained] = useState(null);
+  const [coralAttained, setCoralAttained] = useState("preload");
+  //list of all coral cycles. pickupPos: coralAttainedValues, pickupTime, scorePos, scoreTime
+  const [coralCycles, setCoralCycles] = useState([]);
 
   const StartingPositionSlider = () => {
     return (
@@ -252,7 +263,17 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
             color={COLORS.ACTIVE}
             variant="contained"
             label="Start Match"
-            onClick={() => setMatchStartTime(Date.now())}
+            onClick={() => {
+              setMatchStartTime(Date.now());
+              console.log(Date.now())
+              if (coralAttained != null){
+                let coralCyclesCopy = JSON.parse(JSON.stringify(coralCycles));
+                coralCyclesCopy.push({pickupPos: coralAttained, pickupTime: Date.now(), scorePos: null, scoreTime: null});
+                setCoralCycles(coralCyclesCopy);
+                console.log(coralCyclesCopy);
+              }
+              setPhase(PHASES.AUTO);
+            }}
           />
 
           <CanvasButton
@@ -262,15 +283,222 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
             width={400}
             color={coralAttained == null ? COLORS.PENDING : COLORS.SUCCESS}
             variant="contained"
-            label="Has Preload?"
+            label={coralAttained == null ? "No Preload" : "Preload Coral"}
             onClick={() =>
               setCoralAttained(coralAttained == null ? "preload" : null)
             }
           />
         </div>
       );
+    }else if (phase == PHASES.AUTO){
+
     }
   };
+
+  const renderField = () => {
+    if (phase == PHASES.PREMATCH){
+      return (
+        StartingPositionSlider()
+      );
+    } else if (phase == PHASES.AUTO){
+      const drawCoralPickups = () => {
+        return (<div>
+          <FieldButton
+            x={475}
+            y={0}
+            height={150}
+            width={200}
+            color={coralAttained==null ? COLORS.ACTIVE : COLORS.DISABLED}
+            variant="contained"
+            label={"Left Coral Station"}
+            onClick={() => {
+              console.log("left coral station clicked");
+            }}
+          />
+
+          <FieldButton
+            x={475}
+            y={750}
+            height={150}
+            width={200}
+            color={coralAttained==null ? COLORS.ACTIVE : COLORS.DISABLED}
+            variant="contained"
+            label={"Right Coral Station"}
+            onClick={() => {
+              console.log("right coral station clicked");
+            }}
+          />
+        </div>);
+      }
+
+      const drawReefButtons = () => {
+        return(<div>
+          <FieldButton
+            x={895}
+            y={315}
+            height={50}
+            width={50}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+          />
+
+          <FieldButton
+            x={1015}
+            y={320}
+            height={50}
+            width={50}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+          />
+
+          <FieldButton
+            x={1080}
+            y={425}
+            height={50}
+            width={50}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+          />
+
+          <FieldButton
+            x={1015}
+            y={530}
+            height={50}
+            width={50}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+          />
+
+          <FieldButton
+            x={895}
+            y={530}
+            height={50}
+            width={50}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+          />
+
+          <FieldButton
+            x={835}
+            y={425}
+            height={50}
+            width={50}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+          />
+        </div>);
+      }
+
+      const drawAlgaeScores = () => {
+        return (<div>
+          <FieldButton
+            x={1100}
+            y={750}
+            height={150}
+            width={300}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={"Score Processor"}
+          />
+
+          <FieldButton
+            x={1400}
+            y={480}
+            height={420}
+            width={150}
+            color={COLORS.ACTIVE}
+            variant="contained"
+            label={"Score Net"}
+          />
+        </div>);
+      }
+
+      const drawCoralMarkButtons = () => {
+        return (<div>
+          <CanvasButton
+            x={590}
+            y={220}
+            height={50}
+            width={50}
+            color={COLORS.SUCCESS}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+            onClick={() => {
+              console.log("coral mark 1 clicked")
+            }}
+          />
+
+          <CanvasButton
+            x={590}
+            y={425}
+            height={50}
+            width={50}
+            color={COLORS.SUCCESS}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+            onClick={() => {
+              console.log("coral mark clicked")
+            }}
+          />
+
+          <CanvasButton
+            x={590}
+            y={630}
+            height={50}
+            width={50}
+            color={COLORS.SUCCESS}
+            variant="contained"
+            label={""}
+            sx={{
+              borderRadius: '50%'
+            }}
+            onClick={() => {
+              console.log("coral mark clicked")
+            }}
+          />
+        </div>);
+      }
+
+      return (
+        <>
+          {drawCoralPickups()}
+          {drawReefButtons()}
+          {drawAlgaeScores()}   
+          {drawCoralMarkButtons()}       
+        </>
+      );
+    }
+  }
 
   return (
     <ThemeProvider theme={BlueTheme}>
@@ -290,9 +518,10 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
         />
         <DisplayMouseCoords />
         {renderSideBar()}
-        {StartingPositionSlider()}
+        {renderField()}
       </Box>
     </ThemeProvider>
   );
 };
+
 export default ScoutMatch;

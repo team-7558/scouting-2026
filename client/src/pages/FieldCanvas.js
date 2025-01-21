@@ -10,6 +10,9 @@ import React, {
 import { Box, Button } from "@mui/material";
 import fullField from "../assets/scouting-2025/field/full_field.png";
 
+const scale = (value, startingDimen, targetDimen) =>
+  (value * targetDimen) / startingDimen;
+
 const fieldWidthCm = 1755;
 const fieldHeightCm = 805;
 
@@ -21,37 +24,48 @@ const fieldAspectRatio = fieldVirtualWidth / fieldVirtualHeight;
 
 const FieldContext = createContext();
 
-// Scale field coordinates to canvas coordinates
-const scaleCoordinates = (fieldBoxRect, fieldX, fieldY, width, height) => {
-  const scaledX = (fieldX / fieldVirtualWidth) * fieldBoxRect.width;
-  const scaledY = (fieldY / fieldVirtualHeight) * fieldBoxRect.height;
-  const scaledWidth = (width / fieldVirtualWidth) * fieldBoxRect.width;
-  const scaledHeight = (height / fieldVirtualHeight) * fieldBoxRect.height;
+const convertToVirtualX = (canvasBoundingWidth, actualX) => {
+  return Math.round((actualX / canvasBoundingWidth) * fieldVirtualWidth);
+};
 
-  return { scaledX, scaledY, scaledWidth, scaledHeight };
+const convertToVirtualY = (boundingHeight, actualY) => {
+  return Math.round((actualY / boundingHeight) * fieldVirtualHeight);
 };
 
 const FieldLocalComponent = ({
   fieldX,
   fieldY,
-  fieldWidth,
-  fieldHeight,
+  virtualWidth,
+  virtualHeight,
   children,
 }) => {
-  const context = useContext(FieldContext);
-  const { scaledX, scaledY, scaledWidth, scaledHeight } = scaleCoordinates(
-    context.fieldBoxRect,
-    fieldX,
-    fieldY,
-    fieldWidth,
-    fieldHeight
-  );
+  const fieldContext = useContext(FieldContext);
+
+  // Scale field coordinates to canvas coordinates
+  const scaleCoordinates = () => {
+    const { canvasBoundingWidth, boundingHeight } = fieldContext;
+    const scaledX = scale(fieldX, fieldVirtualWidth, canvasBoundingWidth);
+    const scaledY = scale(fieldY, fieldVirtualHeight, boundingHeight);
+    const scaledWidth = scale(
+      virtualWidth,
+      fieldVirtualWidth,
+      canvasBoundingWidth
+    );
+    const scaledHeight = scale(
+      virtualHeight,
+      fieldVirtualHeight,
+      boundingHeight
+    );
+    return { scaledX, scaledY, scaledWidth, scaledHeight };
+  };
+
+  const { scaledX, scaledY, scaledWidth, scaledHeight } = scaleCoordinates();
   return (
     <Box
       style={{
         position: "absolute",
-        left: scaledX,
-        top: scaledY,
+        left: scaledX - scaledWidth / 2,
+        top: scaledY - scaledHeight / 2,
         width: scaledWidth,
         height: scaledHeight,
       }}
@@ -61,73 +75,117 @@ const FieldLocalComponent = ({
   );
 };
 
-const FieldCanvas = forwardRef(({ theme, fieldBoxRect, children }, ref) => {
-  const CONTEXT_WRAPPER = {
-    fieldBoxRect,
-  };
-  const canvasRef = useRef(null);
-
-  const scaleWidthToActual = (virtualWidth) =>
-    (virtualWidth * fieldBoxRect.width) / fieldVirtualWidth;
-
-  const scaleHeightToActual = (virtualHeight) =>
-    (virtualHeight * fieldBoxRect.height) / fieldVirtualHeight;
-
-  // Expose methods to the parent via ref
-  useImperativeHandle(ref, () => ({
-    scaleWidthToActual,
-    scaleHeightToActual,
-  }));
-
-  // Draw the field image on the canvas
-  const drawFieldImage = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    const fieldImage = new Image();
-    fieldImage.src = fullField;
-
-    fieldImage.onload = () => {
-      // Match height and calculate width based on aspect ratio
-      canvas.height = fieldBoxRect.height;
-      canvas.width = fieldBoxRect.height * fieldAspectRatio;
-
-      // Clear the canvas and draw the image
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(fieldImage, 0, 0, canvas.width, canvas.height);
+const FieldCanvas = forwardRef(
+  ({ theme, children, boundingWidth, boundingHeight }, ref) => {
+    const canvasBoundingWidth = boundingHeight * fieldAspectRatio;
+    const CONTEXT_WRAPPER = {
+      boundingWidth,
+      boundingHeight,
+      canvasBoundingWidth,
     };
-  };
+    const canvasRef = useRef(null);
 
-  useEffect(() => {
-    drawFieldImage();
-  }, []);
+    const scaleWidthToActual = (virtualWidth) =>
+      scale(virtualWidth, fieldVirtualWidth, canvasBoundingWidth);
 
-  return (
-    <FieldContext.Provider value={CONTEXT_WRAPPER}>
-      <Box
-        style={{
-          position: "relative",
-          width: fieldBoxRect.width,
-          height: fieldBoxRect.height,
-        }}
-      >
-        <canvas
-          ref={canvasRef}
+    const scaleHeightToActual = (virtualHeight) =>
+      scale(virtualHeight, fieldVirtualHeight, boundingHeight);
+
+    // Expose methods to the parent via ref
+    useImperativeHandle(ref, () => ({
+      scaleWidthToActual,
+      scaleHeightToActual,
+    }));
+
+    // Draw the field image on the canvas
+    const drawFieldImage = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      const fieldImage = new Image();
+      fieldImage.src = fullField;
+
+      fieldImage.onload = () => {
+        // Match height and calculate width based on aspect ratio
+        canvas.height = boundingHeight;
+        canvas.width = boundingHeight * fieldAspectRatio;
+
+        // Clear the canvas and draw the image
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(fieldImage, 0, 0, canvas.width, canvas.height);
+      };
+    };
+
+    useEffect(() => {
+      drawFieldImage();
+    }, []);
+
+    const [cursorPosition, setCursorPosition] = useState({
+      x: 0,
+      y: 0,
+      canvasX: 0,
+      canvasY: 0,
+    });
+    const handleMouseMove = (event) => {
+      const element = event.currentTarget;
+      const rect = element.getBoundingClientRect();
+      setCursorPosition({
+        x: Math.round(event.clientX - rect.left) + 30,
+        y: Math.round(event.clientY - rect.top) + 30,
+        canvasX: convertToVirtualX(
+          canvasBoundingWidth,
+          Math.round(event.clientX - rect.left)
+        ),
+        canvasY: convertToVirtualY(
+          boundingHeight,
+          Math.round(event.clientY - rect.top)
+        ),
+      });
+    };
+    //debugging things
+    const DisplayMouseCoords = () => {
+      return (
+        <p
           style={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            background: theme.palette.background.default,
-            height: fieldBoxRect.height,
-            width: fieldBoxRect.height * fieldAspectRatio, // Maintain aspect ratio
+            left: cursorPosition.x,
+            top: cursorPosition.y,
+            color: "#8888FF",
           }}
-        />
-        {/* Render dynamic child components */}
-        {children}
-      </Box>
-    </FieldContext.Provider>
-  );
-});
+        >
+          {cursorPosition.canvasX},{cursorPosition.canvasY}
+        </p>
+      );
+    };
+    return (
+      <FieldContext.Provider value={CONTEXT_WRAPPER}>
+        <Box
+          onMouseMove={handleMouseMove}
+          style={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <canvas
+            ref={canvasRef}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              background: theme.palette.background.default,
+              height: boundingHeight,
+              width: canvasBoundingWidth,
+            }}
+          />
+          {/* Render dynamic child components */}
+          {children}
+          <DisplayMouseCoords />
+        </Box>
+      </FieldContext.Provider>
+    );
+  }
+);
 
 export { FieldCanvas, FieldLocalComponent };

@@ -47,8 +47,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           <FieldLocalComponent
             fieldX={fieldX}
             fieldY={fieldY}
-            fieldWidth={fieldWidth}
-            fieldHeight={fieldHeight}
+            virtualWidth={fieldWidth}
+            virtualHeight={fieldHeight}
           >
             {componentFunction(match)}
           </FieldLocalComponent>
@@ -88,6 +88,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     y: 0,
     width: 0,
     height: 0,
+    fontSize: 0,
   });
 
   const handleMouseMove = (event) => {
@@ -117,8 +118,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         step={1}
         valueLabelDisplay="auto"
         sx={{
-          "margin-top": fieldRef.scaleHeightToActual(150),
-          "margin-bottom": fieldRef.scaleHeightToActual(150),
           "& .MuiSlider-thumb": {
             "background-image": `url(
             "https://i.imgur.com/TqGjfyf.jpg"
@@ -130,9 +129,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             "border-radius": 0,
           },
           "& .MuiSlider-track": {
+            width: fieldRef.scaleWidthToActual(75),
             color: startingPosition == -1 ? COLORS.INACTIVE : COLORS.ACTIVE,
           },
           "& .MuiSlider-rail": {
+            width: fieldRef.scaleWidthToActual(75),
             color: startingPosition == -1 ? COLORS.INACTIVE : COLORS.ACTIVE,
           },
         }}
@@ -142,24 +143,32 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   const PrematchChildren = [
     createFieldLocalMatchComponent(
       "startingPositionSlider",
-      1750,
-      0,
-      75,
+      1516,
+      805,
+      150,
       1310,
       StartingPositionSlider
     ),
     createFieldLocalMatchComponent(
-      "other button",
-      2000,
-      200,
+      "defenceButton",
+      1755,
+      805,
       200,
       200,
       (match) => (
         <Button
           variant="contained"
+          sx={{
+            fontSize: scaledBoxRect.fontSize,
+            width: "100%",
+            height: "100%",
+            minWidth: 0,
+            minHeight: 0,
+            padding: "none",
+          }}
           onClick={() => match.setIsDefending((prev) => !prev)}
         >
-          Defence
+          {match.isDefending ? "Offence" : "Defence"}
         </Button>
       )
     ),
@@ -174,14 +183,15 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     return (
       <Box
         sx={{
-          transform: `translateX(${isDefending ? -50 : 0}%)`,
+          transform: `translateX(${isDefending ? -61 : 0}%)`,
         }}
       >
         {scaledBoxRect.width > 0 && (
           <FieldCanvas
             ref={fieldCanvasRef}
             theme={BlueTheme}
-            fieldBoxRect={scaledBoxRect}
+            boundingWidth={scaledBoxRect.width}
+            boundingHeight={scaledBoxRect.height}
             children={fieldChildren}
           />
         )}
@@ -223,6 +233,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       y: rect.top,
       width,
       height,
+      fontSize: Math.min(width, height) * 0.05,
     });
   };
 
@@ -250,7 +261,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             height: "100vh",
           }}
         >
-          <FullscreenDialog />
+          {/* <FullscreenDialog /> */}
           <Box
             ref={scaledBoxRef}
             sx={{
@@ -261,6 +272,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               height: scaledBoxRect.height,
               transform: "translate(-50%, -50%)",
               background: BlueTheme.palette.background.default,
+              fontSize: scaledBoxRect.fontSize,
             }}
           >
             <Box

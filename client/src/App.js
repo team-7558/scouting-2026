@@ -8,8 +8,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 
 import HomePage from "./pages/HomePage.js";
 import SignInPage from "./pages/SignInPage.js";
-import MatchScouting from "./pages/MatchScouting.js";
-import ScoutMatch from "./pages/ScoutMatch.js";
+import ScoutMatch from "./pages/ScoutMatch/ScoutMatch2.js";
 
 const App = () => {
   return (
@@ -19,8 +18,16 @@ const App = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/signin" element={<SignInPage />} />
-          <Route path="/<scoutMatch>" element={<MatchScouting />} />
-          <Route path="/scoutMatch2" element={<ScoutMatch />} />
+          <Route
+            path="/scoutMatch"
+            element={
+              <ScoutMatch
+                driverStation="b1"
+                teamNumber="7558"
+                scoutPerspective="scoringTable"
+              />
+            }
+          />
         </Routes>
       </ThemeProvider>
     </React.Fragment>

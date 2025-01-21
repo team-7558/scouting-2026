@@ -14,6 +14,7 @@ import { BlueTheme } from "./themes/BlueTheme.js";
 import { Box, Button } from "@mui/material";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
+import ScaledBox from "./ScaledBox.js";
 
 const COLORS = {
   INACTIVE: "grey",
@@ -33,31 +34,6 @@ const MatchContext = createContext();
 
 // Scout Match Component
 const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
-  const createFieldLocalMatchComponent = (
-    id,
-    fieldX,
-    fieldY,
-    fieldWidth,
-    fieldHeight,
-    componentFunction
-  ) => {
-    return (
-      <MatchContext.Consumer key={id}>
-        {(match) => (
-          <FieldLocalComponent
-            fieldX={fieldX}
-            fieldY={fieldY}
-            virtualWidth={fieldWidth}
-            virtualHeight={fieldHeight}
-          >
-            {componentFunction(match)}
-          </FieldLocalComponent>
-        )}
-      </MatchContext.Consumer>
-    );
-  };
-
-  const context = useContext(MatchContext);
   // match state
   const [matchStartTime, setMatchStartTime] = useState(-1);
   const PHASES = { PREMATCH: "prematch", AUTO: "auto", TELE: "tele" };
@@ -82,30 +58,10 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     setCoralAttained,
   };
   const fieldCanvasRef = useRef(null);
-  const scaledBoxRef = useRef(null);
-  const [scaledBoxRect, setScaledBoxRect] = useState({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-    fontSize: 0,
-  });
-
-  const handleMouseMove = (event) => {
-    setCursorPosition({
-      x: event.clientX,
-      y: event.clientY,
-    });
-  };
-
-  const scaleWidthToActual = (virtualValue) =>
-    (virtualValue / virtualWidth) * scaledBoxRect.width;
-
-  const scaleHeightToActual = (virtualValue) =>
-    (virtualValue / virtualHeight) * scaledBoxRect.height;
 
   const StartingPositionSlider = (match) => {
     const fieldRef = fieldCanvasRef.current;
+    console.log("Vanshil", fieldRef);
     if (!fieldRef) return;
     return (
       <Slider
@@ -140,41 +96,42 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       />
     );
   };
-  const PrematchChildren = [
-    createFieldLocalMatchComponent(
-      "startingPositionSlider",
-      1516,
-      805,
-      150,
-      1310,
-      StartingPositionSlider
-    ),
-    createFieldLocalMatchComponent(
-      "defenceButton",
-      1755,
-      805,
-      200,
-      200,
-      (match) => (
-        <Button
-          variant="contained"
-          sx={{
-            fontSize: scaledBoxRect.fontSize,
-            width: "100%",
-            height: "100%",
-            minWidth: 0,
-            minHeight: 0,
-            padding: "none",
-          }}
-          onClick={() => match.setIsDefending((prev) => !prev)}
-        >
-          {match.isDefending ? "Offence" : "Defence"}
-        </Button>
-      )
-    ),
-  ];
 
-  const renderFieldCanvas = () => {
+  const renderFieldCanvas = (scaledBoxRect) => {
+    const PrematchChildren = [
+      createFieldLocalMatchComponent(
+        "startingPositionSlider",
+        1516,
+        805,
+        150,
+        1310,
+        StartingPositionSlider
+      ),
+      createFieldLocalMatchComponent(
+        "defenceButton",
+        1755,
+        805,
+        200,
+        200,
+        (match) => (
+          <Button
+            variant="contained"
+            sx={{
+              fontSize: scaledBoxRect.fontSize,
+              width: "100%",
+              height: "100%",
+              minWidth: 0,
+              minHeight: 0,
+              padding: "none",
+            }}
+            onClick={() => match.setIsDefending((prev) => !prev)}
+          >
+            {match.isDefending ? "Offence" : "Defence"}
+          </Button>
+        )
+      ),
+    ];
+
     const fieldChildren = [
       ...PrematchChildren,
       // ...AutoButtons,
@@ -203,104 +160,62 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     return <div>Sidebar Content</div>;
   };
 
-  const createFieldButton = ({ props }) => {};
-
-  const getScaledBoxDimensions = () => {
-    const { innerWidth, innerHeight } = window;
-    let width = innerWidth;
-    let height = width / aspectRatio;
-
-    if (height > innerHeight) {
-      height = innerHeight;
-      width = height * aspectRatio;
-    }
-
-    return { width, height };
-  };
-
-  const resizeScaledBox = () => {
-    const { width, height } = getScaledBoxDimensions();
-
-    const rect = scaledBoxRef.current?.getBoundingClientRect() || {
-      x: 0,
-      y: 0,
-      width: 0,
-      height: 0,
-    };
-
-    setScaledBoxRect({
-      x: rect.left,
-      y: rect.top,
-      width,
-      height,
-      fontSize: Math.min(width, height) * 0.05,
-    });
-  };
-
-  useEffect(() => {
-    resizeScaledBox();
-    window.addEventListener("resize", resizeScaledBox);
-    return () => window.removeEventListener("resize", resizeScaledBox);
-  }, []);
-
-  const [cursorPosition, setCursorPosition] = useState({
-    x: 0,
-    y: 0,
-    scaledBoxX: 0,
-    scaledBoxY: 0,
-  });
-
   return (
     <MatchContext.Provider value={CONTEXT_WRAPPER}>
       <ThemeProvider theme={BlueTheme}>
-        <Box
-          onMouseMove={handleMouseMove}
-          sx={{
-            position: "relative",
-            width: "100vw",
-            height: "100vh",
-          }}
-        >
-          {/* <FullscreenDialog /> */}
-          <Box
-            ref={scaledBoxRef}
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              width: scaledBoxRect.width,
-              height: scaledBoxRect.height,
-              transform: "translate(-50%, -50%)",
-              background: BlueTheme.palette.background.default,
-              fontSize: scaledBoxRect.fontSize,
-            }}
-          >
-            <Box
-              sx={{
-                position: "absolute",
-                left: scaleWidthToActual(sidebarVirtualWidth),
-                width:
-                  scaledBoxRect.width - scaleWidthToActual(sidebarVirtualWidth),
-                height: scaledBoxRect.height,
-                overflow: "hidden",
-              }}
-            >
-              {renderFieldCanvas()}
-            </Box>
-            <Box
-              sx={{
-                position: "absolute",
-                left: 0,
-                width: scaleWidthToActual(sidebarVirtualWidth),
-                height: scaledBoxRect.height,
-              }}
-            >
-              {renderSideBar()}
-            </Box>
-          </Box>
-        </Box>
+        <ScaledBox>
+          {(scaledBoxRect) => (
+            <>
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: "25%",
+                  width: "75%",
+                  height: "100%",
+                  overflow: "hidden",
+                }}
+              >
+                {renderFieldCanvas(scaledBoxRect)}
+              </Box>
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  width: "25%",
+                  height: "100%",
+                }}
+              >
+                {renderSideBar()}
+              </Box>
+            </>
+          )}
+        </ScaledBox>
       </ThemeProvider>
     </MatchContext.Provider>
+  );
+};
+
+const createFieldLocalMatchComponent = (
+  id,
+  fieldX,
+  fieldY,
+  virtualWidth,
+  virtualHeight,
+  componentFunction
+) => {
+  return (
+    <MatchContext.Consumer key={id}>
+      {(match) => (
+        <FieldLocalComponent
+          fieldX={fieldX}
+          fieldY={fieldY}
+          virtualWidth={virtualWidth}
+          virtualHeight={virtualHeight}
+        >
+          {componentFunction(match)}
+        </FieldLocalComponent>
+      )}
+    </MatchContext.Consumer>
   );
 };
 

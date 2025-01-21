@@ -24,14 +24,6 @@ const fieldAspectRatio = fieldVirtualWidth / fieldVirtualHeight;
 
 const FieldContext = createContext();
 
-const convertToVirtualX = (canvasBoundingWidth, actualX) => {
-  return Math.round((actualX / canvasBoundingWidth) * fieldVirtualWidth);
-};
-
-const convertToVirtualY = (boundingHeight, actualY) => {
-  return Math.round((actualY / boundingHeight) * fieldVirtualHeight);
-};
-
 const FieldLocalComponent = ({
   fieldX,
   fieldY,
@@ -85,6 +77,14 @@ const FieldCanvas = forwardRef(
     };
     const canvasRef = useRef(null);
 
+    const convertToVirtualX = (actualX) => {
+      return Math.round((actualX / canvasBoundingWidth) * fieldVirtualWidth);
+    };
+
+    const convertToVirtualY = (actualY) => {
+      return Math.round((actualY / boundingHeight) * fieldVirtualHeight);
+    };
+
     const scaleWidthToActual = (virtualWidth) =>
       scale(virtualWidth, fieldVirtualWidth, canvasBoundingWidth);
 
@@ -131,16 +131,10 @@ const FieldCanvas = forwardRef(
       const element = event.currentTarget;
       const rect = element.getBoundingClientRect();
       setCursorPosition({
-        x: Math.round(event.clientX - rect.left) + 30,
-        y: Math.round(event.clientY - rect.top) + 30,
-        canvasX: convertToVirtualX(
-          canvasBoundingWidth,
-          Math.round(event.clientX - rect.left)
-        ),
-        canvasY: convertToVirtualY(
-          boundingHeight,
-          Math.round(event.clientY - rect.top)
-        ),
+        x: event.clientX - rect.left + 30,
+        y: event.clientY - rect.top + 30,
+        canvasX: convertToVirtualX(Math.round(event.clientX - rect.left)),
+        canvasY: convertToVirtualY(Math.round(event.clientY - rect.top)),
       });
     };
     //debugging things

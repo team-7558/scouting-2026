@@ -84,6 +84,12 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
   const scaleWidthToActual = (virtualX) => {
     return virtualX * (canvasRect.width / virtualWidth);
   };
+  const convertToActualXDist = (virtualX) => {
+    return (virtualX * canvasRect.width) / virtualWidth;
+  }
+  const convertToActualYDist = (virtualY) => {
+    return (virtualY * canvasRect.width) / virtualWidth;
+  }
 
   const canvasRef = useRef(null);
   const [canvasRect, setCanvasRect] = useState({
@@ -252,49 +258,53 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
     );
   };
 
-  const renderSideBar = () => {
-    if (phase == PHASES.PREMATCH) {
-      return (
-        <div>
-          <CanvasButton
-            x={20}
-            y={20}
-            height={400}
-            width={400}
-            disabled={startingPosition < 0}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label="Start Match"
-            onClick={() => {
-              setMatchStartTime(Date.now());
-              console.log(Date.now())
-              if (coralAttained != null){
-                let coralCyclesCopy = JSON.parse(JSON.stringify(coralCycles));
-                coralCyclesCopy.push({pickupPos: coralAttained, pickupTime: Date.now(), scorePos: null, scoreTime: null});
-                setCoralCycles(coralCyclesCopy);
-                console.log(coralCyclesCopy);
-              }
-              setPhase(PHASES.AUTO);
-            }}
-          />
-
-          <CanvasButton
-            x={20}
-            y={500}
-            height={200}
-            width={400}
-            color={coralAttained == null ? COLORS.PENDING : COLORS.SUCCESS}
-            variant="contained"
-            label={coralAttained == null ? "No Preload" : "Preload Coral"}
-            onClick={() =>
-              setCoralAttained(coralAttained == null ? "preload" : null)
-            }
-          />
-        </div>
-      );
-    }else if (phase == PHASES.AUTO){
+  const RenderSideBar = () => {
+    let buttonsList = []
+    if (phase == PHASES.PREMATCH){
+      buttonsList = [
+        {id: 0,
+          disabled: startingPosition < 0, 
+          color: COLORS.ACTIVE,
+          label: "Start Match",
+          onClick: () => {
+            setMatchStartTime(Date.now());
+            setPhase(PHASES.AUTO);
+          }
+        }, 
+        {id: 1,
+          color: coralAttained == null ? COLORS.PENDING : COLORS.SUCCESS,
+          label: coralAttained == null ? "No Preload" : "Preload Coral",
+          onClick: () => {
+            setCoralAttained(coralAttained==null ? "preload" : null);
+          }
+        }
+      ]
+    }else if (phase == PHASES.AUTO){ //reef buttons have been clicked
 
     }
+
+    const numButtons = buttonsList.length;
+    return (
+      <>
+        {buttonsList.map((button, index) => (
+          <Button
+            key={button.id}
+            variant="contained"
+            {...button}
+            sx={{
+              width: `${convertToActualXDist(400)}px`, 
+              height: `${convertToActualYDist((900 / numButtons) * 0.9)}px`, 
+              position: 'absolute',
+              left: `${convertToActualX(10)}px`, 
+              top: `${convertToActualY(10 + index*(900 / numButtons))}px`, 
+              ...button.sx
+            }}
+          >
+            {button.label}
+          </Button>
+        ))}
+      </>
+    );    
   };
 
   const renderField = () => {
@@ -520,7 +530,7 @@ const ScoutMatch = (driver_station, team_number, scout_perspective) => {
           }}
         />
         <DisplayMouseCoords />
-        {renderSideBar()}
+        <RenderSideBar />
         {renderField()}
       </Box>
     </ThemeProvider>

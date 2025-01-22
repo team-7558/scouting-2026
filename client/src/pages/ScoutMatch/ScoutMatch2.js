@@ -96,13 +96,15 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   const scaleHeightToActual = (virtualValue) =>
     (virtualValue / virtualHeight) * scaledBoxRect.height;
 
-  const FieldButton = ({ props }) => {
+  const FieldButton = ({ children, ...props }) => {
     return (
       <Button
         variant="contained"
         sx={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0 }}
         {...props}
-      ></Button>
+      >
+        {children}
+      </Button>
     );
   };
 
@@ -178,7 +180,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         200,
         150,
         (match) => (
-          <Button
+          <FieldButton
             color={
               match.coralAttained == null ? COLORS.ACTIVE : COLORS.DISABLED
             }
@@ -187,7 +189,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             }}
           >
             Left Coral Station
-          </Button>
+          </FieldButton>
         )
       ),
 
@@ -198,7 +200,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         200,
         150,
         (match) => (
-          <Button
+          <FieldButton
             color={
               match.coralAttained == null ? COLORS.ACTIVE : COLORS.DISABLED
             }
@@ -207,7 +209,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             }}
           >
             Right Coral Station
-          </Button>
+          </FieldButton>
         )
       ),
 

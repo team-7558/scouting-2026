@@ -167,10 +167,112 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
   const renderFieldCanvas = () => {
     const fieldChildren = [
-      ...PrematchChildren,
-      // ...AutoButtons,
-      //...
+      ...(phase == PHASES.PREMATCH ? PrematchChildren : []),
+
+      // Coral Pickup Buttons
+      createFieldLocalMatchComponent(
+        "leftCoralStation",
+        475,
+        0,
+        200,
+        150,
+        (match) => (
+          <Button
+            variant="contained"
+            color={
+              match.coralAttained == null ? COLORS.ACTIVE : COLORS.DISABLED
+            }
+            onClick={() => {
+              console.log("left coral station clicked");
+            }}
+          >
+            Left Coral Station
+          </Button>
+        )
+      ),
+
+      createFieldLocalMatchComponent(
+        "rightCoralStation",
+        475,
+        750,
+        200,
+        150,
+        (match) => (
+          <Button
+            variant="contained"
+            color={
+              match.coralAttained == null ? COLORS.ACTIVE : COLORS.DISABLED
+            }
+            onClick={() => {
+              console.log("right coral station clicked");
+            }}
+          >
+            Right Coral Station
+          </Button>
+        )
+      ),
+
+      // Reef Buttons
+      ...[315, 320, 425, 530, 530, 425].map((y, index) => {
+        const x = [895, 1015, 1080, 1015, 895, 835][index];
+        return createFieldLocalMatchComponent(
+          `reefButton${index}`,
+          x,
+          y,
+          50,
+          50,
+          (match) => (
+            <Button
+              variant="contained"
+              color={COLORS.ACTIVE}
+              sx={{ borderRadius: "50%" }}
+            ></Button>
+          )
+        );
+      }),
+
+      // Algae Scores
+      createFieldLocalMatchComponent(
+        "scoreProcessor",
+        1100,
+        750,
+        300,
+        150,
+        (match) => (
+          <Button variant="contained" color={COLORS.ACTIVE}>
+            Score Processor
+          </Button>
+        )
+      ),
+
+      createFieldLocalMatchComponent("scoreNet", 1400, 480, 150, 420, () => (
+        <Button variant="contained" color={COLORS.ACTIVE}>
+          Score Net
+        </Button>
+      )),
+
+      // Coral Mark Buttons
+      ...[220, 425, 630].map((y, index) => {
+        return createFieldLocalMatchComponent(
+          `coralMark${index}`,
+          590,
+          y,
+          50,
+          50,
+          (match) => (
+            <Button
+              variant="contained"
+              color={COLORS.SUCCESS}
+              sx={{ borderRadius: "50%" }}
+              onClick={() => {
+                console.log(`coral mark ${index + 1} clicked`);
+              }}
+            ></Button>
+          )
+        );
+      }),
     ];
+
     return (
       <Box
         sx={{
@@ -190,7 +292,83 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   };
 
   const renderSideBar = () => {
-    return <div>Sidebar Content</div>;
+    let buttonsList = [];
+    if (phase === PHASES.PREMATCH) {
+      buttonsList = [
+        {
+          id: 0,
+          flexWeight: 2,
+          component: (
+            <Button
+              variant="contained"
+              color={startingPosition < 0 ? "disabled" : COLORS.ACTIVE}
+              disabled={startingPosition < 0}
+              onClick={() => {
+                setMatchStartTime(Date.now());
+                setPhase(PHASES.AUTO);
+              }}
+              sx={{
+                width: "100%",
+                height: "100%",
+                fontSize: "1.5rem",
+              }}
+            >
+              Start Match
+            </Button>
+          ),
+        },
+        {
+          id: 1,
+          flexWeight: 1,
+          component: (
+            <Button
+              variant="contained"
+              color={coralAttained == null ? COLORS.PENDING : COLORS.SUCCESS}
+              onClick={() => {
+                setCoralAttained(coralAttained == null ? "preload" : null);
+              }}
+              sx={{
+                width: "100%",
+                height: "100%",
+                fontSize: "1.5rem",
+              }}
+            >
+              {coralAttained == null ? "No Preload" : "Preload Coral"}
+            </Button>
+          ),
+        },
+      ];
+    } else if (phase === PHASES.AUTO) {
+      // Additional button configurations for AUTO phase
+    }
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
+          backgroundColor: BlueTheme.palette.background.paper,
+          overflowY: "auto",
+        }}
+      >
+        {buttonsList.map((button, index) => (
+          <Box
+            key={index}
+            sx={{
+              flex: button.flexWeight || 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 0,
+            }}
+          >
+            {button.component}
+          </Box>
+        ))}
+      </Box>
+    );
   };
 
   const createFieldButton = ({ props }) => {};

@@ -9,6 +9,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import HomePage from "./pages/HomePage.js";
 import SignInPage from "./pages/SignInPage.js";
 import ScoutMatch from "./pages/ScoutMatch/ScoutMatch2.js";
+import ScoutMatch2 from "./pages/ScoutMatch/ScoutMatch.js"
 
 const App = () => {
   return (
@@ -28,6 +29,7 @@ const App = () => {
               />
             }
           />
+          <Route path="/scoutMatch2" element={<ScoutMatch2 />} />
         </Routes>
       </ThemeProvider>
     </React.Fragment>

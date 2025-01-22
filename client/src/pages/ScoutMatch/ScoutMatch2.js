@@ -90,18 +90,21 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     height: 0,
   });
 
-  const handleMouseMove = (event) => {
-    setCursorPosition({
-      x: event.clientX,
-      y: event.clientY,
-    });
-  };
-
   const scaleWidthToActual = (virtualValue) =>
     (virtualValue / virtualWidth) * scaledBoxRect.width;
 
   const scaleHeightToActual = (virtualValue) =>
     (virtualValue / virtualHeight) * scaledBoxRect.height;
+
+  const FieldButton = ({ props }) => {
+    return (
+      <Button
+        variant="contained"
+        sx={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0 }}
+        {...props}
+      ></Button>
+    );
+  };
 
   const StartingPositionSlider = (match) => {
     const fieldRef = fieldCanvasRef.current;
@@ -139,6 +142,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       />
     );
   };
+
   const PrematchChildren = [
     createFieldLocalMatchComponent(
       "startingPositionSlider",
@@ -155,12 +159,9 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       200,
       200,
       (match) => (
-        <Button
-          variant="contained"
-          onClick={() => match.setIsDefending((prev) => !prev)}
-        >
+        <FieldButton onClick={() => match.setIsDefending((prev) => !prev)}>
           Defence
-        </Button>
+        </FieldButton>
       )
     ),
   ];
@@ -178,7 +179,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         150,
         (match) => (
           <Button
-            variant="contained"
             color={
               match.coralAttained == null ? COLORS.ACTIVE : COLORS.DISABLED
             }
@@ -199,7 +199,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         150,
         (match) => (
           <Button
-            variant="contained"
             color={
               match.coralAttained == null ? COLORS.ACTIVE : COLORS.DISABLED
             }
@@ -222,11 +221,10 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           50,
           50,
           (match) => (
-            <Button
-              variant="contained"
+            <FieldButton
               color={COLORS.ACTIVE}
               sx={{ borderRadius: "50%" }}
-            ></Button>
+            ></FieldButton>
           )
         );
       }),
@@ -239,17 +237,18 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         300,
         150,
         (match) => (
-          <Button variant="contained" color={COLORS.ACTIVE}>
-            Score Processor
-          </Button>
+          <FieldButton color={COLORS.ACTIVE}>Score Processor</FieldButton>
         )
       ),
 
-      createFieldLocalMatchComponent("scoreNet", 1400, 480, 150, 420, () => (
-        <Button variant="contained" color={COLORS.ACTIVE}>
-          Score Net
-        </Button>
-      )),
+      createFieldLocalMatchComponent(
+        "scoreNet",
+        1400,
+        480,
+        150,
+        420,
+        (match) => <FieldButton color={COLORS.ACTIVE}>Score Net</FieldButton>
+      ),
 
       // Coral Mark Buttons
       ...[220, 425, 630].map((y, index) => {
@@ -260,14 +259,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           50,
           50,
           (match) => (
-            <Button
-              variant="contained"
+            <FieldButton
               color={COLORS.SUCCESS}
               sx={{ borderRadius: "50%" }}
               onClick={() => {
                 console.log(`coral mark ${index + 1} clicked`);
               }}
-            ></Button>
+            ></FieldButton>
           )
         );
       }),
@@ -410,18 +408,10 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     return () => window.removeEventListener("resize", resizeScaledBox);
   }, []);
 
-  const [cursorPosition, setCursorPosition] = useState({
-    x: 0,
-    y: 0,
-    scaledBoxX: 0,
-    scaledBoxY: 0,
-  });
-
   return (
     <MatchContext.Provider value={CONTEXT_WRAPPER}>
       <ThemeProvider theme={BlueTheme}>
         <Box
-          onMouseMove={handleMouseMove}
           sx={{
             position: "relative",
             width: "100vw",

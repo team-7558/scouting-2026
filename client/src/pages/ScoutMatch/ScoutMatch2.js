@@ -580,7 +580,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         );
       }
 
-      //ALGAE pickup from coral mark TODO: implement it
+      //ALGAE pickup from coral mark
       if (algaeAttained != null && 
         typeof algaeAttained.position == "string" && 
         algaeAttained.position.includes("coralMark") && 

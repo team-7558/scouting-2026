@@ -12,5 +12,8 @@ export const BlueTheme = createTheme({
     secondary: {
       main: "#00AA55",
     },
+    transparent: {
+      main: "rgba(0, 0, 0, 0)"
+    }
   },
 });

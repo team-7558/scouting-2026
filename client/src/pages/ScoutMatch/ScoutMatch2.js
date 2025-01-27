@@ -254,6 +254,189 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     removeNotDoneActions(false, true, false, true);
   }
   const AutoChildren = [
+
+    ...[0, 1350].map((y, index) => {
+      const drawBorder = coralAttained!=null && typeof coralAttained.position=="string" && coralAttained.position.includes(index==0 ? "leftCoralStation" : "rightCoralStation") && !coralAttained.done
+      console.log(drawBorder);
+      return createFieldLocalMatchComponent(
+        "coralStation" + index,
+        0,
+        y,
+        450,
+        250,
+        (match) => (
+          <FieldButton
+            color={COLORS.ACTIVE}
+            disabled={coralAttained != null && coralAttained.done}
+            onClick={() => onCoralStationButtonClicked(index==0 ? "left" : "right")}
+            sx={{
+              border: drawBorder ? "10px solid rgb(0, 0, 0)" : "",
+            }}
+          >
+            {index==0 ? "Left" : "Right"} Coral Station
+          </FieldButton>
+        )
+      )
+    }), 
+
+    // Reef Buttons 
+    ...[550, 550, 740, 950, 950, 740].map((y, index) => {
+      const x = [850, 1170, 1300, 1170, 850, 750][index];
+      const drawBorder = (coralDeposited != null && typeof coralDeposited.position == "string" && coralDeposited.position.includes(index) && coralDeposited.position.includes("reef")) || 
+        (algaeAttained != null && typeof algaeAttained.position == "string" && algaeAttained.position.includes(index) && algaeAttained.position.includes("reef") && !algaeAttained.done)
+      return createFieldLocalMatchComponent(
+          `${index}ReefButton`,
+          x,
+          y,
+          100,
+          120,
+          (match) => (
+            <FieldButton
+              color={COLORS.PENDING}
+              onClick={() => onReefButtonClicked(index)}
+              sx={{borderRadius: '50%', 
+                width: '100%',       
+                height: '100%', 
+                border: drawBorder ? '10px solid rgb(0, 0, 0)' : '',
+              }}
+            >
+              
+            </FieldButton>
+          )
+      );
+    }),
+
+    // Algae Scores - Proccessor
+    createFieldLocalMatchComponent(
+      "scoreProcessor",
+      1500,
+      1400,
+      500,
+      200,
+      (match) => (
+        <FieldButton 
+          color={COLORS.SUCCESS}
+          disabled={algaeAttained==null || !algaeAttained.done}
+          onClick={() => {onAlgaeScored("processor");}}
+        >
+          Score Processor
+        </FieldButton>
+      )
+    ),
+
+    // Algae Scores - Net
+    createFieldLocalMatchComponent(
+      "scoreNet",
+      2000,
+      900,
+      300,
+      700,
+      (match) => 
+        <FieldButton 
+      color={COLORS.SUCCESS}
+      disabled={algaeAttained==null || !algaeAttained.done}
+      onClick={() => {onAlgaeScored("net");}}
+    >
+      Score Net
+    </FieldButton>
+    ),
+
+    // Coral Mark Buttons
+    ...[380, 750, 1120].map((y, index) => {
+      const drawBorderCoral = coralAttained!=null && typeof coralAttained.position == "string" && coralAttained.position.includes("coralMark") && coralAttained.position.includes(index)
+      const drawBorderAlgae = algaeAttained!=null && typeof algaeAttained.position == "string" && algaeAttained.position.includes("coralMark") && algaeAttained.position.includes(index)
+      return createFieldLocalMatchComponent(
+        `coralMark${index}`,
+        210,
+        y,
+        50,
+        120,
+        (match) => (
+          <FieldButton
+            color={COLORS.SUCCESS}
+            sx={{ borderRadius: '50%',
+              width: '100%',       
+              height: '100%',
+              border: drawBorderCoral || drawBorderAlgae ? "10px solid rgb(0, 0, 0)" : ""
+             }}
+            onClick={() => {
+              onCoralMarkClicked(index);
+            }}
+          ></FieldButton>
+        )
+      );
+    }),
+
+    //timer
+    createFieldLocalMatchComponent(
+      "timer",
+      2000,
+      0,
+      300,
+      100,
+      (match) => 
+        <FieldButton
+        color={COLORS.TRANSPARENT}
+        style={{
+          fontSize: "2em",
+          fontWeight: 1000,
+        }}>
+          {currentTime}
+        </FieldButton>
+    ),
+
+    //coral icon
+    createFieldLocalMatchComponent(
+      "coralIcon",
+      1950,
+      100,
+      400,
+      200,
+      (match) => 
+        <FieldButton
+        color={COLORS.TRANSPARENT}>
+          <span style={{
+            display: 'block',
+            overflow: 'hidden',
+            visibility: coralAttained!=null && coralAttained.done ? "visible" : "hidden",
+          }}>
+            <img src={CoralIcon} alt="CORAL ICON NOT FOUND" style={{
+              display: 'block', 
+              objectFit: 'cover', 
+              height:'100%',
+              width:'100%', 
+            }}></img>
+          </span>
+        </FieldButton>
+    ),
+
+    //algae icon
+    createFieldLocalMatchComponent(
+      "algaeIcon",
+      1950,
+      300,
+      400,
+      200,
+      (match) => 
+        <FieldButton
+        color={COLORS.TRANSPARENT}>
+          <span style={{
+            display: 'block',
+            overflow: 'hidden',
+            visibility: algaeAttained!=null && algaeAttained.done ? "visible" : "hidden",
+          }}>
+            <img src={AlgaeIcon} alt="ALGAE ICON NOT FOUND" style={{
+              display: 'block', 
+              objectFit: 'cover', 
+              height:'100%',
+              width:'100%', 
+            }}></img>
+          </span>
+        </FieldButton>
+    ),
+  ]
+
+  const TeleChildren = [
     // Coral Pickup Left side 
     createFieldLocalMatchComponent(
       "leftCoralStation",
@@ -352,32 +535,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     </FieldButton>
     ),
 
-    // Coral Mark Buttons
-    ...[380, 750, 1120].map((y, index) => {
-      const drawBorderCoral = coralAttained!=null && typeof coralAttained.position == "string" && coralAttained.position.includes("coralMark") && coralAttained.position.includes(index)
-      const drawBorderAlgae = algaeAttained!=null && typeof algaeAttained == "string" && algaeAttained.position.includes("coralMark") && algaeAttained.position.includes(index)
-      return createFieldLocalMatchComponent(
-        `coralMark${index}`,
-        210,
-        y,
-        50,
-        120,
-        (match) => (
-          <FieldButton
-            color={COLORS.SUCCESS}
-            sx={{ borderRadius: '50%',
-              width: '100%',       
-              height: '100%',
-              border: drawBorderCoral || drawBorderAlgae ? "10px solid rgb(0, 0, 0)" : ""
-             }}
-            onClick={() => {
-              onCoralMarkClicked(index);
-            }}
-          ></FieldButton>
-        )
-      );
-    }),
-
     //timer
     createFieldLocalMatchComponent(
       "timer",
@@ -447,14 +604,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     ),
   ]
 
-  const teleopChildren = [
-    
-  ]
-
   const renderFieldCanvas = () => {
     const fieldChildren = [
       ...(phase === PHASES.PREMATCH ? PrematchChildren : []),
       ...(phase === PHASES.AUTO ? AutoChildren : []),
+      ...(phase === PHASES.TELE ? TeleChildren : []),
     ];
 
     return (
@@ -732,6 +886,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         removeNotDoneActions(false, true, true, true);
       }
 
+      //coral station 2
       if (coralAttained!=null &&
         !coralAttained.done &&
         typeof coralAttained.position == "string" &&
@@ -777,7 +932,214 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             }
           );
       }
-    }
+    } else if (phase === PHASES.AUTO) {
+      //REEF CORAL DROPOFF BUTTONS
+      if (coralDeposited != null && 
+        typeof coralDeposited.position == "string" && 
+        coralDeposited.position.includes("reef") && 
+        !coralDeposited.done){
+          //L1-4 BUTTONS
+          const onScoreReefClicked = (level) => {
+            setCoralDeposited({position: coralDeposited.position + level, time: currentTime, done: true});
+            removeNotDoneActions(true, false, true, true);
+          }
+
+          [1, 2, 3, 4].map((level, index) => {
+            buttonsList.push(
+              {
+                id: index,
+                flexWeight: 1,
+                component: (
+                  <Button
+                    variant="contained"
+                    color={COLORS.PENDING}
+                    onClick={() => {onScoreReefClicked(`L${level}`)}}
+                  >
+                    L{level}
+                  </Button>
+                )
+              }
+            )}
+          )
+
+            //drop coral button
+            buttonsList.push(
+              {
+                id: 4,
+                flexWeight: 1,
+                component: (
+                  <Button
+                    variant="contained"
+                    color={COLORS.PENDING}
+                    onClick={() => {onScoreReefClicked("Drop")}}
+                  >
+                    DROP CORAL
+                  </Button>
+                )
+              }
+            )
+      }
+
+      //REEF ALGAE PICKUP BUTTON
+      if (algaeAttained != null && 
+        typeof algaeAttained.position == "string" && 
+        algaeAttained.position.includes("reef") && 
+        !algaeAttained.done){
+          buttonsList.push(
+            {id: 5,
+              flexWeight: 1,
+              component: (
+                <Button
+                  variant="contained"
+                  color={COLORS.PENDING}
+                  onClick={() => {
+                    setAlgaeAttained({position: algaeAttained.position, time: currentTime, done: true});
+                    if (coralAttained != null && !coralAttained.done){
+                      setCoralDeposited(null);
+                    }
+                  }}
+                >
+                  REEF ALGAE PICKUPS
+                </Button>
+              ),
+            }
+          );
+      }
+
+      //REEF MENU CANCEL BUTTON
+      if ((coralDeposited != null && 
+        typeof coralDeposited.position == "string" && 
+        coralDeposited.position.includes("reef") && 
+        !coralDeposited.done)
+        ||
+        algaeAttained != null && 
+        typeof algaeAttained.position == "string" && 
+        algaeAttained.position.includes("reef") && 
+        !algaeAttained.done){
+          buttonsList.push({
+            id: 6,
+            flexWeight: 1,
+            component: (
+              <Button
+                variant="contained"
+                color={COLORS.PENDING}
+                onClick={() => {removeNotDoneActions(true, true, true, true)}}
+              >
+                CANCEL
+              </Button>
+            )
+          })
+      }
+
+      //PROCESSOR/NET SCORE MENU
+      const onAlgaeScored = (success) => {
+        if (success)
+          setAlgaeDeposited({position: algaeDeposited.position, time: currentTime, done: true});
+        else{
+          setAlgaeDeposited({position: algaeDeposited.position + "Drop", time: currentTime, done: true});
+        }
+      }
+      if (algaeDeposited!=null && 
+        !algaeDeposited.done && 
+        (algaeDeposited.position == "processor" || algaeDeposited.position == "net")){
+          buttonsList.push(
+            {id: 0,
+              flexWeight: 1,
+              component: (
+                <Button
+                  variant="contained"
+                  color={COLORS.PENDING}
+                  onClick={() => onAlgaeScored(true)}
+                >
+                  SCORE {algaeDeposited.position}
+                </Button>
+              ),
+            }, 
+            {
+              id: 1,
+              flexWeight: 1,
+              component: (
+                <Button
+                    variant="contained"
+                    color={COLORS.PENDING}
+                    onClick={() => onAlgaeScored(false)}
+                  >
+                    MISS {algaeDeposited.position}
+                  </Button>
+              )
+            },
+            {
+              id: 2,
+              flexWeight: 1,
+              component: (
+                <Button
+                    variant="contained"
+                    color={COLORS.PENDING}
+                    onClick={() => removeNotDoneActions(true, true, true, true)}
+                  >
+                    CANCEL
+                  </Button>
+              )
+            }
+          );
+      }
+
+      //coral stations.
+      const onCoralPickup = (success) => {
+        setCoralAttained({position: coralAttained.position, time: currentTime, done: true});
+        if (!success){
+          setCoralDeposited({position: coralAttained.position + "Drop", time: currentTime, done: true});
+        }
+        removeNotDoneActions(false, true, true, true);
+      }
+
+      //coral station 2
+      if (coralAttained!=null &&
+        !coralAttained.done &&
+        typeof coralAttained.position == "string" &&
+        (coralAttained.position.includes("CoralStation"))){
+          buttonsList.push(
+            {id: 0,
+              flexWeight: 1,
+              component: (
+                <Button
+                  variant="contained"
+                  color={COLORS.PENDING}
+                  onClick={() => onCoralPickup(true)}
+                >
+                  CORAL PICKUP
+                </Button>
+              ),
+            },
+            {
+              id: 1,
+              flexWeight: 1,
+              component: (
+                <Button
+                    variant="contained"
+                    color={COLORS.PENDING}
+                    onClick={() => onCoralPickup(false)}
+                  >
+                    MISS CORAL PICKUP
+                  </Button>
+              )
+            },
+            {
+              id: 2,
+              flexWeight: 1,
+              component: (
+                <Button
+                    variant="contained"
+                    color={COLORS.PENDING}
+                    onClick={() => removeNotDoneActions(true, true, true, true)}
+                  >
+                    CANCEL
+                  </Button>
+              )
+            }
+          );
+      }
+    } 
 
     return (
       <Box

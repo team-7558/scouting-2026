@@ -48,8 +48,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       <MatchContext.Consumer key={id}>
         {(match) => (
           <FieldLocalComponent
-            fieldX={fieldX}
-            fieldY={fieldY}
+            fieldX={fieldX - fieldWidth / 2}
+            fieldY={fieldY - fieldHeight / 2}
             fieldWidth={fieldWidth}
             fieldHeight={fieldHeight}
           >
@@ -83,8 +83,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   };
 
   const [coral, setCoral] = useState({
-    attainedLocation: null, // if not null, pickup is pending
-    attainedTime: null, // if not null, holding gamepiece
+    attainedLocation: null,
+    attainedTime: null,
 
     depositLocation: null,
     depositTime: null,
@@ -98,14 +98,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     depositTime: null,
   });
 
-  //[reefNum][Leve]/drop. (if its null, means they haven't shot anything)
-  const [coralDeposited, setCoralDeposited] = useState(null);
-
-  // (X, Y)coordinates/[reefNum] (if its null, it means they aren't holding algae)
-  const [algaeAttained, setAlgaeAttained] = useState(null);
-  //processor/net/drop (if its null, means they haven't shot anything)
-  const [algaeDeposited, setAlgaeDeposited] = useState(null);
-
   //increment timer
   useEffect(() => {
     const interval = setInterval(() => {
@@ -116,6 +108,42 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
     return () => clearInterval(interval);
   }, [matchStartTime]);
+
+  useEffect(() => {
+    if (coral.depositTime != null) {
+      // TODO Update cycles when scored
+      setCoral({});
+    }
+  }, [coral]);
+
+  useEffect(() => {
+    if (algae.depositTime != null) {
+      // TODO Update cycles when scored
+      setAlgae({});
+    }
+  }, [algae]);
+
+  // TODO add sanity checks here
+  const updateCoral = (updates) => {
+    // intentially re-writing the entire state,
+    // the caller of this method should decide if it wants to include prior state
+    setCoral(updates);
+  };
+
+  const hasCoral = () => {
+    return coral.attainedTime != null;
+  };
+
+  const hasAlgae = () => {
+    return algae.attainedTime != null;
+  };
+
+  // TODO add sanity checks here
+  const updateAlgae = (updates) => {
+    // intentially re-writing the entire state,
+    // the caller of this method should decide if it wants to include prior state
+    setAlgae(updates);
+  };
 
   const CONTEXT_WRAPPER = {
     matchStartTime,
@@ -129,6 +157,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     coral,
     setCoral,
     algae,
+    setAlgae,
+    updateCoral,
+    updateAlgae,
+    hasCoral,
+    hasAlgae,
   };
 
   const fieldCanvasRef = useRef(null);
@@ -146,11 +179,19 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   const scaleHeightToActual = (virtualValue) =>
     (virtualValue / virtualHeight) * scaledBoxRect.height;
 
-  const FieldButton = ({ children, ...props }) => {
+  const FieldButton = ({ children, sx, ...props }) => {
     return (
       <Button
         variant="contained"
-        sx={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0 }}
+        sx={{
+          ...sx,
+          width: "100%",
+          height: "100%",
+          minWidth: 0,
+          minHeight: 0,
+          padding: 0,
+          margin: 0,
+        }}
         {...props}
       >
         {children}
@@ -195,42 +236,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     );
   };
 
-  useEffect(() => {
-    if (coral.depositTime != null) {
-      // TODO Update cycles when scored
-      setCoral({});
-    }
-  }, [coral]);
-
-  useEffect(() => {
-    if (algae.depositTime != null) {
-      // TODO Update cycles when scored
-      setAlgae({});
-    }
-  }, [algae]);
-
-  // TODO add sanity checks here
-  const updateCoral = (updates) => {
-    // intentially re-writing the entire state,
-    // the caller of this method should decide if it wants to include prior state
-    setCoral(updates);
-  };
-
-  const hasCoral = () => {
-    return coral.attainedTime != null;
-  };
-
-  const hasAlgae = () => {
-    return algae.attainedTime != null;
-  };
-
-  // TODO add sanity checks here
-  const updateAlgae = (updates) => {
-    // intentially re-writing the entire state,
-    // the caller of this method should decide if it wants to include prior state
-    setAlgae(updates);
-  };
-
   const PrematchChildren = [
     createFieldLocalMatchComponent(
       "startingPositionSlider",
@@ -240,50 +245,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       1310,
       StartingPositionSlider
     ),
-    createFieldLocalMatchComponent(
-      "other button",
-      2000,
-      200,
-      200,
-      200,
-      (match) => (
-        <FieldButton onClick={() => match.setIsDefending((prev) => !prev)}>
-          Defence
-        </FieldButton>
-      )
-    ),
   ];
 
-  const onCoralStationButtonClicked = (side) => {
-    updateCoral({
-      attainedLocation: "CoralStation",
-    });
-  };
+  const onCoralStationButtonClicked = (match, side) => {};
 
-  const onReefButtonClicked = (num) => {
-    if (hasCoral()) {
-      updateCoral({ ...coral, depositLocation: "reef" + num });
-    }
-    if (!hasAlgae()) {
-      setAlgae({ attainedLocation: "reef" + num });
-    }
-  };
+  const onReefButtonClicked = (match, num) => {};
 
-  const onAlgaeScored = (location) => {
-    updateAlgae({
-      ...algae,
-      depositLocation: location,
-    });
-  };
+  const onAlgaeScored = (match, location) => {};
 
-  const onCoralMarkClicked = (num) => {
-    if (!hasCoral()) {
-      updateCoral({ attainedLocation: "coralMark" + num });
-    }
-    if (!hasAlgae()) {
-      updateAlgae({ attainedLocation: "coralMark" + num });
-    }
-  };
   const AutoChildren = [
     ...[0, 1350].map((y, index) => {
       return createFieldLocalMatchComponent(
@@ -295,11 +264,12 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         (match) => (
           <FieldButton
             color={COLORS.ACTIVE}
-            disabled={hasCoral()}
+            disabled={match.hasCoral()}
             onClick={() =>
-              onCoralStationButtonClicked(index == 0 ? "left" : "right")
+              match.updateCoral({
+                attainedLocation: "CoralStation:" + index,
+              })
             }
-            sx={{}}
           >
             {index == 0 ? "Left" : "Right"} Coral Station
           </FieldButton>
@@ -315,16 +285,24 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         x,
         y,
         100,
-        120,
+        100,
         (match) => (
           <FieldButton
             color={COLORS.PENDING}
-            disabled={!hasCoral() && hasAlgae()}
-            onClick={() => onReefButtonClicked(index)}
+            disabled={!match.hasCoral() && match.hasAlgae()}
+            onClick={() => {
+              if (match.hasCoral()) {
+                match.updateCoral({
+                  ...coral,
+                  depositLocation: "reef" + index,
+                });
+              }
+              if (!match.hasAlgae()) {
+                match.setAlgae({ attainedLocation: "reef" + index });
+              }
+            }}
             sx={{
               borderRadius: "50%",
-              width: "100%",
-              height: "100%",
             }}
           ></FieldButton>
         )
@@ -341,9 +319,12 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       (match) => (
         <FieldButton
           color={COLORS.ACTIVE}
-          disabled={!hasAlgae()}
+          disabled={!match.hasAlgae()}
           onClick={() => {
-            onAlgaeScored("processor");
+            match.updateAlgae({
+              ...match.algae,
+              depositLocation: "processor",
+            });
           }}
         >
           Score Processor
@@ -355,10 +336,12 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     createFieldLocalMatchComponent("scoreNet", 2000, 900, 300, 700, (match) => (
       <FieldButton
         color={COLORS.ACTIVE}
-        disabled={!hasAlgae()}
+        disabled={!match.hasAlgae()}
         onClick={() => {
-          onAlgaeScored("net");
-          console.log(algae);
+          match.updateAlgae({
+            ...match.algae,
+            depositLocation: "net",
+          });
         }}
       >
         Score Net
@@ -366,23 +349,27 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     )),
 
     // Coral Mark Buttons
-    ...[380, 750, 1120].map((y, index) => {
+    ...[390, 760, 1125].map((y, index) => {
       return createFieldLocalMatchComponent(
         `coralMark${index}`,
-        210,
+        250,
         y,
-        50,
-        120,
+        300,
+        300,
         (match) => (
           <FieldButton
             color={COLORS.SUCCESS}
             sx={{
               borderRadius: "50%",
-              width: "100%",
-              height: "100%",
             }}
+            disabled={match.hasAlgae() && match.hasCoral()}
             onClick={() => {
-              onCoralMarkClicked(index);
+              if (!match.hasCoral()) {
+                match.updateCoral({ attainedLocation: "coralMark" + index });
+              }
+              if (!match.hasAlgae()) {
+                match.updateAlgae({ attainedLocation: "coralMark" + index });
+              }
             }}
           ></FieldButton>
         )
@@ -421,7 +408,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 style={{
                   display: "block",
                   overflow: "hidden",
-                  visibility: hasCoral() ? "visible" : "hidden",
+                  visibility: match.hasCoral() ? "visible" : "hidden",
                 }}
               >
                 <img
@@ -452,9 +439,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 style={{
                   display: "block",
                   overflow: "hidden",
-                  visibility:
-                    // algaeAttained != null && algaeAttained.done
-                    algae.attainedTime != null ? "visible" : "hidden",
+                  visibility: algae.attainedTime != null ? "visible" : "hidden",
                 }}
               >
                 <img
@@ -471,6 +456,23 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             </FieldButton>
           )
         ),
+      ],
+      ...[
+        phase === PHASES.TELE &&
+          createFieldLocalMatchComponent(
+            "other button",
+            2000,
+            200,
+            200,
+            200,
+            (match) => (
+              <FieldButton
+                onClick={() => match.setIsDefending((prev) => !prev)}
+              >
+                Defence
+              </FieldButton>
+            )
+          ),
       ],
     ];
 
@@ -546,18 +548,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     } else if (phase === PHASES.AUTO || phase === PHASES.TELE) {
       //REEF CORAL DROPOFF BUTTONS
       if (coral.depositLocation?.includes("reef")) {
-        //L1-4 BUTTONS
-        const onScoreReefClicked = (level) => {
-          updateCoral({
-            ...coral,
-            depositLocation: level,
-            depositTime: currentTime,
-          });
-          if (!hasAlgae()) {
-            updateAlgae({});
-          }
-        };
-
         [1, 2, 3, 4].map((level, index) => {
           buttonsList.push({
             id: index,
@@ -567,7 +557,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 variant="contained"
                 color={COLORS.PENDING}
                 onClick={() => {
-                  onScoreReefClicked(`L${level}`);
+                  updateCoral({
+                    ...coral,
+                    depositLocation: coral.depositLocation + `L${level}`,
+                    depositTime: currentTime,
+                  });
+                  if (!hasAlgae()) {
+                    updateAlgae({});
+                  }
                 }}
               >
                 L{level}
@@ -585,7 +582,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               variant="contained"
               color={COLORS.PENDING}
               onClick={() => {
-                onScoreReefClicked("Drop");
+                updateCoral({
+                  ...coral,
+                  depositLocation: "DROP",
+                  depositTime: currentTime,
+                });
+                if (!hasAlgae()) {
+                  updateAlgae({});
+                }
               }}
             >
               DROP CORAL
@@ -595,14 +599,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       }
 
       //REEF ALGAE PICKUP BUTTON
-      if (
-        algae.attainedLocation &&
-        !hasAlgae()
-        // algaeAttained != null &&
-        // typeof algaeAttained.location == "string" &&
-        // algaeAttained.location.includes("reef") &&
-        // !algaeAttained.done
-      ) {
+      if (!hasAlgae() && algae.attainedLocation?.includes("reef")) {
         buttonsList.push({
           id: 5,
           flexWeight: 1,
@@ -611,7 +608,10 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               variant="contained"
               color={COLORS.PENDING}
               onClick={() => {
-                updateAlgae({ ...algae, attainedTime: currentTime });
+                updateAlgae({
+                  ...algae,
+                  attainedTime: currentTime,
+                });
                 updateCoral({ ...coral, depositLocation: null });
               }}
             >
@@ -621,30 +621,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         });
       }
 
-      //REEF MENU CANCEL BUTTON
-      if (
-        (coralDeposited != null &&
-          typeof coralDeposited.location == "string" &&
-          coralDeposited.location.includes("reef") &&
-          !coralDeposited.done) ||
-        (algaeAttained != null &&
-          typeof algaeAttained.location == "string" &&
-          algaeAttained.location.includes("reef") &&
-          !algaeAttained.done)
-      ) {
-        buttonsList.push({
-          id: 6,
-          flexWeight: 1,
-          component: (
-            <Button variant="contained" color={COLORS.PENDING}>
-              CANCEL
-            </Button>
-          ),
-        });
-      }
-
       //CORAL pickup from coral mark
-      if (!hasCoral() && coral.attainedLocation?.includes("coralMarl")) {
+      if (!hasCoral() && coral.attainedLocation?.includes("coralMark")) {
         buttonsList.push({
           id: 0,
           flexWeight: 5,

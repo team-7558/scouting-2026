@@ -2,14 +2,13 @@ import * as React from "react";
 import { theme } from "./AppTheme.js";
 import { ThemeProvider } from "@mui/material/styles";
 
-import { Routes, Route, Navigate } from "react-router-dom";
-
+import { Routes, Route } from "react-router-dom";
 import CssBaseline from "@mui/material/CssBaseline";
 
 import HomePage from "./pages/HomePage.js";
 import SignInPage from "./pages/SignInPage.js";
-import ScoutMatch from "./pages/ScoutMatch/ScoutMatch2.js";
-import ScoutMatch2 from "./pages/ScoutMatch/ScoutMatch.js"
+import ScoutMatch from "./pages/ScoutMatch/ScoutMatch.js";
+import ProtectedRoute from "./ProtectedRoute.js";
 
 const App = () => {
   return (
@@ -17,19 +16,28 @@ const App = () => {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/signin" element={<SignInPage />} />
+          <Route path="/signIn" element={<SignInPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/scoutMatch"
             element={
+              // <ProtectedRoute>
               <ScoutMatch
                 driverStation="b1"
                 teamNumber="7558"
                 scoutPerspective="scoringTable"
               />
+              // </ProtectedRoute>
             }
           />
-          <Route path="/scoutMatch2" element={<ScoutMatch2 />} />
+          {/* <Route path="/scoutMatch2" element={<ScoutMatch2 />} /> */}
         </Routes>
       </ThemeProvider>
     </React.Fragment>

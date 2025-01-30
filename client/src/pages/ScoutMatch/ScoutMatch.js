@@ -1,539 +1,867 @@
-import React, { useState, useRef, useEffect, startTransition } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useContext,
+  createContext,
+} from "react";
+import { useCallback } from "react";
 
 import { ThemeProvider } from "@mui/material/styles";
 import Slider from "@mui/material/Slider";
 import { BlueTheme } from "./themes/BlueTheme.js";
 
-import fieldBlueLeft from "../../assets/scouting-2025/field/blue_left.png";
-import coralIconImage from "../../assets/scouting-2025/coralIcon.png";
-import algaeIconImage from "../../assets/scouting-2025/algaeIcon.png";
 import { Box, Button } from "@mui/material";
-import e from "cors";
+import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
 
+import AlgaeIcon from "../../assets/scouting-2025/algaeIcon.png";
+import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
+
 const COLORS = {
-  INACTIVE: "grey",
   PENDING: "info",
   SUCCESS: "success",
   DISABLED: "disabled",
   ACTIVE: "primary",
+  TRANSPARENT: "transparent",
 };
 
-//Canvas Helpers
-
+// Canvas Helpers
+const sidebarVirtualWidth = 1100;
+const virtualWidth = 3510 + sidebarVirtualWidth;
+const virtualHeight = 1610;
 const aspectRatio = 16 / 9;
-/** define all button placements based on this synthetic*/
-const virtualWidth = aspectRatio * 900;
-const virtualHeight = 900;
-const fieldBackgroundSize = 0.7;
 
-const fieldWidth = virtualWidth * fieldBackgroundSize;
+const MatchContext = createContext();
 
-const getCanvasDimensions = () => {
-  const { innerWidth, innerHeight } = window;
-  let width = innerWidth;
-  let height = width / aspectRatio;
-  if (height > innerHeight) {
-    height = innerHeight;
-    width = innerHeight * aspectRatio;
-  }
-  return { width, height };
-};
-
-const drawCanvas = (canvas) => {
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const fieldImage = new Image();
-  fieldImage.src = fieldBlueLeft;
-  fieldImage.onload = () => {
-    ctx.drawImage(
-      fieldImage,
-      canvas.width * (1 - fieldBackgroundSize),
-      0,
-      canvas.width * fieldBackgroundSize,
-      canvas.height
+// Scout Match Component
+const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
+  const createFieldLocalMatchComponent = (
+    id,
+    fieldX,
+    fieldY,
+    fieldWidth,
+    fieldHeight,
+    componentFunction
+  ) => {
+    return (
+      <MatchContext.Consumer key={id}>
+        {(match) => (
+          <FieldLocalComponent
+            fieldX={fieldX - fieldWidth / 2}
+            fieldY={fieldY - fieldHeight / 2}
+            fieldWidth={fieldWidth}
+            fieldHeight={fieldHeight}
+          >
+            {componentFunction(match)}
+          </FieldLocalComponent>
+        )}
+      </MatchContext.Consumer>
     );
   };
-};
 
-//Scout Match Component
-const ScoutMatch = (driver_station, team_number, scout_perspective) => {
-  const convertToVirtualX = (actualX) => {
-    return Math.round(
-      (virtualWidth / canvasRect.width) * (actualX - canvasRect.x)
-    );
-  };
-  const convertToVirtualY = (actualY) => {
-    return Math.round(
-      (virtualHeight / canvasRect.height) * (actualY - canvasRect.y)
-    );
-  };
-  const convertToActualX = (virtualX) => {
-    return Math.round(
-      (canvasRect.width / virtualWidth) * virtualX + canvasRect.x
-    );
-  };
-  const convertToActualY = (virtualY) => {
-    return Math.round(
-      (canvasRect.height / virtualHeight) * virtualY + canvasRect.y
-    );
-  };
-  const scaleLengthToActual = (virtualY) => {
-    return virtualY * (canvasRect.width / virtualWidth);
-  };
-  const scaleWidthToActual = (virtualX) => {
-    return virtualX * (canvasRect.width / virtualWidth);
-  };
-  const convertToActualXDist = (virtualX) => {
-    return (virtualX * canvasRect.width) / virtualWidth;
-  }
-  const convertToActualYDist = (virtualY) => {
-    return (virtualY * canvasRect.width) / virtualWidth;
-  }
+  const context = useContext(MatchContext);
+  // match state
+  const [matchStartTime, setMatchStartTime] = useState(-1);
+  const [currentTime, setCurrentTime] = useState(0);
+  const PHASES = { PREMATCH: "prematch", AUTO: "auto", TELE: "tele" };
+  const [phase, setPhase] = useState(PHASES.PREMATCH);
 
-  const canvasRef = useRef(null);
-  const [canvasRect, setCanvasRect] = useState({
+  // robot state
+  const [isDefending, setIsDefending] = useState(false);
+  const [startingPosition, setStartingPosition] = useState(-1);
+
+  const [pendingAction, setPendingAction] = useState();
+
+  const GAME_PIECES = {
+    CORAL: "coral",
+    ALGAE: "algae",
+  };
+  const GAME_PIECE_STATUS = {
+    HOLDING: "holding",
+    SCORING: "scoring",
+  };
+
+  const [coral, setCoral] = useState({
+    attainedLocation: null,
+    attainedTime: null,
+
+    depositLocation: null,
+    depositTime: null,
+  });
+
+  const [algae, setAlgae] = useState({
+    attainedLocation: null, // if not null, pickup is pending
+    attainedTime: null, // if not null, holding gamepiece
+
+    depositLocation: null,
+    depositTime: null,
+  });
+
+  //increment timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (matchStartTime > 0) {
+        setCurrentTime(Math.round((Date.now() - matchStartTime) / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [matchStartTime]);
+
+  useEffect(() => {
+    if (coral.depositTime != null) {
+      // TODO Update cycles when scored
+      setCoral({});
+    }
+  }, [coral]);
+
+  useEffect(() => {
+    if (algae.depositTime != null) {
+      // TODO Update cycles when scored
+      setAlgae({});
+    }
+  }, [algae]);
+
+  // TODO add sanity checks here
+  const updateCoral = (updates) => {
+    // intentially re-writing the entire state,
+    // the caller of this method should decide if it wants to include prior state
+    setCoral(updates);
+  };
+
+  const hasCoral = () => {
+    return coral.attainedTime != null;
+  };
+
+  const hasAlgae = () => {
+    return algae.attainedTime != null;
+  };
+
+  // TODO add sanity checks here
+  const updateAlgae = (updates) => {
+    // intentially re-writing the entire state,
+    // the caller of this method should decide if it wants to include prior state
+    setAlgae(updates);
+  };
+
+  const CONTEXT_WRAPPER = {
+    matchStartTime,
+    setMatchStartTime,
+    phase,
+    setPhase,
+    isDefending,
+    setIsDefending,
+    startingPosition,
+    setStartingPosition,
+    coral,
+    setCoral,
+    algae,
+    setAlgae,
+    updateCoral,
+    updateAlgae,
+    hasCoral,
+    hasAlgae,
+  };
+
+  const fieldCanvasRef = useRef(null);
+  const scaledBoxRef = useRef(null);
+  const [scaledBoxRect, setScaledBoxRect] = useState({
     x: 0,
     y: 0,
     width: 0,
     height: 0,
   });
 
-  const FieldButton = ({ x, y, width, height, label, sx, ...props }) => {
-    const buttonStyle = {
-      position: "absolute",
-      left: `${convertToActualX(x)}px`,
-      top: `${convertToActualY(y)}px`,
-      width: (width * canvasRect.width) / virtualWidth,
-      height: (height * canvasRect.height) / virtualHeight,
-      "minWidth": 0,
-      "minHeight": 0,
-      padding: "none",
-      fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.02}px`,
-      zIndex: 1,
-      ...sx
-    };
+  const scaleWidthToActual = (virtualValue) =>
+    (virtualValue / virtualWidth) * scaledBoxRect.width;
 
+  const scaleHeightToActual = (virtualValue) =>
+    (virtualValue / virtualHeight) * scaledBoxRect.height;
+
+  const FieldButton = ({ children, sx, ...props }) => {
     return (
-      <CanvasButton 
-        sx={buttonStyle} 
-        label={label}
+      <Button
+        variant="contained"
+        sx={{
+          ...sx,
+          width: "100%",
+          height: "100%",
+          minWidth: 0,
+          minHeight: 0,
+          padding: 0,
+          margin: 0,
+        }}
         {...props}
-
-      />
-    );
-  };
-
-  const CanvasButton = ({ x, y, width, height, label, sx, ...props }) => {
-    const buttonStyle = {
-      position: "absolute",
-      left: `${convertToActualX(x)}px`,
-      top: `${convertToActualY(y)}px`,
-      width: (width * canvasRect.width) / virtualWidth,
-      height: (height * canvasRect.height) / virtualHeight,
-      "minWidth": 0,
-      "minHeight": 0,
-      padding: "none",
-      fontSize: `${Math.min(canvasRect.width, canvasRect.height) * 0.02}px`,
-      zIndex: 1,
-      ...sx
-    };
-
-    return (
-      <Button sx={buttonStyle} {...props}>
-        {label}
+      >
+        {children}
       </Button>
     );
   };
 
-  const [cursorPosition, setCursorPosition] = useState({
-    x: 0,
-    y: 0,
-    canvasX: 0,
-    canvasY: 0,
-  });
-  const handleMouseMove = (event) => {
-    setCursorPosition({
-      x: event.clientX,
-      y: event.clientY,
-      canvasX: convertToVirtualX(event.clientX),
-      canvasY: convertToVirtualY(event.clientY),
-    });
-  };
-
-  const resizeCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { width, height } = getCanvasDimensions();
-    canvas.width = width;
-    canvas.height = height;
-
-    const rect = canvas.getBoundingClientRect();
-    setCanvasRect({
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-    });
-  };
-
-  useEffect(() => {
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-    return () => window.removeEventListener("resize", resizeCanvas);
-  }, []);
-
-  useEffect(() => {
-    drawCanvas(canvasRef.current);
-  }, [canvasRect]);
-
-  //debugging things
-  const DisplayMouseCoords = () => {
-    return (
-      <p
-        style={{
-          position: "absolute",
-          left: cursorPosition.x + 10,
-          top: cursorPosition.y + 10,
-          pointerEvents: "none",
-          color: "#8888FF",
-        }}
-      >
-        {cursorPosition.canvasX},{cursorPosition.canvasY}
-      </p>
-    );
-  };
-
-  // match state
-  const [matchStartTime, setMatchStartTime] = useState(-1);
-  const PHASES = { PREMATCH: "prematch", AUTO: "auto", TELE: "tele" };
-  const [phase, setPhase] = useState(PHASES.PREMATCH);
-
-  // robot state
-  const [startingPosition, setStartingPosition] = useState(-1);
-  // preload/(X, Y)coordinates/coral station (if its null, it means they aren't holding coral)
-  const [coralAttained, setCoralAttained] = useState("preload");
-  //list of all coral cycles. pickupPos: coralAttainedValues, pickupTime, scorePos, scoreTime
-  const [coralCycles, setCoralCycles] = useState([]);
-
-  const StartingPositionSlider = () => {
+  const StartingPositionSlider = (match) => {
+    const fieldRef = fieldCanvasRef.current;
+    if (!fieldRef) return;
     return (
       <Slider
         /* start position slider. Cannot be wrapped in it's own component or it re-renders anytime it is moved, so you can't drag it */
         orientation="vertical"
-        value={startingPosition}
-        onChange={(event, value) => {
-          setStartingPosition(value);
-        }}
+        value={match.startingPosition}
+        onChange={(event, value) => match.setStartingPosition(value)}
         min={1}
         max={13}
         step={1}
         valueLabelDisplay="auto"
         sx={{
-          position: "absolute",
-          "margin-top": scaleLengthToActual(75),
-          "margin-bottom": scaleLengthToActual(75),
-          top: convertToActualY(0),
-          left: convertToActualX(1315) - scaleWidthToActual(100 / 2),
-          height: scaleLengthToActual(750),
-          width: scaleWidthToActual(100),
+          "margin-top": fieldRef.scaleHeightToActual(150),
+          "margin-bottom": fieldRef.scaleHeightToActual(150),
           "& .MuiSlider-thumb": {
             "background-image": `url(
             "https://i.imgur.com/TqGjfyf.jpg"
           )`,
-            width: scaleWidthToActual(150),
-            height: scaleWidthToActual(150),
+            width: fieldRef.scaleWidthToActual(300),
+            height: fieldRef.scaleHeightToActual(300),
             "background-position": "center",
             "background-size": "cover",
             "border-radius": 0,
           },
           "& .MuiSlider-track": {
-            color: startingPosition == -1 ? COLORS.INACTIVE : COLORS.ACTIVE,
+            color: startingPosition == -1 ? COLORS.DISABLED : COLORS.ACTIVE,
           },
           "& .MuiSlider-rail": {
-            color: startingPosition == -1 ? COLORS.INACTIVE : COLORS.ACTIVE,
+            color: startingPosition == -1 ? COLORS.DISABLED : COLORS.ACTIVE,
           },
         }}
       />
     );
   };
 
-  const RenderSideBar = () => {
-    let buttonsList = []
-    if (phase == PHASES.PREMATCH){
-      buttonsList = [
-        {id: 0,
-          disabled: startingPosition < 0, 
-          color: COLORS.ACTIVE,
-          label: "Start Match",
-          onClick: () => {
-            setMatchStartTime(Date.now());
-            setPhase(PHASES.AUTO);
-          }
-        }, 
-        {id: 1,
-          color: coralAttained == null ? COLORS.PENDING : COLORS.SUCCESS,
-          label: coralAttained == null ? "No Preload" : "Preload Coral",
-          onClick: () => {
-            setCoralAttained(coralAttained==null ? "preload" : null);
-          }
-        }
-      ]
-    }else if (phase == PHASES.AUTO){ //reef buttons have been clicked
+  const PrematchChildren = [
+    createFieldLocalMatchComponent(
+      "startingPositionSlider",
+      1750,
+      0,
+      75,
+      1310,
+      StartingPositionSlider
+    ),
+  ];
 
-    }
+  const onCoralStationButtonClicked = (match, side) => {};
 
-    const numButtons = buttonsList.length;
-    return (
-      <>
-        {buttonsList.map((button, index) => (
-          <Button
-            key={button.id}
-            variant="contained"
-            {...button}
-            sx={{
-              width: `${convertToActualXDist(400)}px`, 
-              height: `${convertToActualYDist((900 / numButtons) * 0.9)}px`, 
-              position: 'absolute',
-              left: `${convertToActualX(10)}px`, 
-              top: `${convertToActualY(10 + index*(900 / numButtons))}px`, 
-              ...button.sx
-            }}
+  const onReefButtonClicked = (match, num) => {};
+
+  const onAlgaeScored = (match, location) => {};
+
+  const AutoChildren = [
+    ...[0, 1350].map((y, index) => {
+      return createFieldLocalMatchComponent(
+        "coralStation" + index,
+        0,
+        y,
+        450,
+        250,
+        (match) => (
+          <FieldButton
+            color={COLORS.ACTIVE}
+            disabled={match.hasCoral()}
+            onClick={() =>
+              match.updateCoral({
+                attainedLocation: "CoralStation:" + index,
+              })
+            }
           >
-            {button.label}
-          </Button>
-        ))}
-      </>
-    );    
+            {index == 0 ? "Left" : "Right"} Coral Station
+          </FieldButton>
+        )
+      );
+    }),
+
+    // Reef Buttons
+    ...[550, 550, 740, 950, 950, 740].map((y, index) => {
+      const x = [850, 1170, 1300, 1170, 850, 750][index];
+      return createFieldLocalMatchComponent(
+        `${index}ReefButton`,
+        x,
+        y,
+        100,
+        100,
+        (match) => (
+          <FieldButton
+            color={COLORS.PENDING}
+            disabled={!match.hasCoral() && match.hasAlgae()}
+            onClick={() => {
+              if (match.hasCoral()) {
+                match.updateCoral({
+                  ...coral,
+                  depositLocation: "reef" + index,
+                });
+              }
+              if (!match.hasAlgae()) {
+                match.setAlgae({ attainedLocation: "reef" + index });
+              }
+            }}
+            sx={{
+              borderRadius: "50%",
+            }}
+          ></FieldButton>
+        )
+      );
+    }),
+
+    // Algae Scores - Proccessor
+    createFieldLocalMatchComponent(
+      "scoreProcessor",
+      1500,
+      1400,
+      500,
+      200,
+      (match) => (
+        <FieldButton
+          color={COLORS.ACTIVE}
+          disabled={!match.hasAlgae()}
+          onClick={() => {
+            match.updateAlgae({
+              ...match.algae,
+              depositLocation: "processor",
+            });
+          }}
+        >
+          Score Processor
+        </FieldButton>
+      )
+    ),
+
+    // Algae Scores - Net
+    createFieldLocalMatchComponent("scoreNet", 2000, 900, 300, 700, (match) => (
+      <FieldButton
+        color={COLORS.ACTIVE}
+        disabled={!match.hasAlgae()}
+        onClick={() => {
+          match.updateAlgae({
+            ...match.algae,
+            depositLocation: "net",
+          });
+        }}
+      >
+        Score Net
+      </FieldButton>
+    )),
+
+    // Coral Mark Buttons
+    ...[390, 760, 1125].map((y, index) => {
+      return createFieldLocalMatchComponent(
+        `coralMark${index}`,
+        250,
+        y,
+        300,
+        300,
+        (match) => (
+          <FieldButton
+            color={COLORS.SUCCESS}
+            sx={{
+              borderRadius: "50%",
+            }}
+            disabled={match.hasAlgae() && match.hasCoral()}
+            onClick={() => {
+              if (!match.hasCoral()) {
+                match.updateCoral({ attainedLocation: "coralMark" + index });
+              }
+              if (!match.hasAlgae()) {
+                match.updateAlgae({ attainedLocation: "coralMark" + index });
+              }
+            }}
+          ></FieldButton>
+        )
+      );
+    }),
+
+    //timer
+    createFieldLocalMatchComponent("timer", 2000, 0, 300, 100, (match) => (
+      <FieldButton
+        color={COLORS.TRANSPARENT}
+        style={{
+          fontSize: "2em",
+          fontWeight: 1000,
+        }}
+      >
+        {currentTime}
+      </FieldButton>
+    )),
+  ];
+
+  const renderFieldCanvas = () => {
+    const fieldChildren = [
+      ...[phase === PHASES.PREMATCH && PrematchChildren],
+      ...[phase === PHASES.AUTO && AutoChildren],
+      ...[
+        //coral icon
+        createFieldLocalMatchComponent(
+          "coralIcon",
+          1900,
+          100,
+          400,
+          200,
+          (match) => (
+            <FieldButton color={COLORS.TRANSPARENT}>
+              <span
+                style={{
+                  display: "block",
+                  overflow: "hidden",
+                  visibility: match.hasCoral() ? "visible" : "hidden",
+                }}
+              >
+                <img
+                  src={CoralIcon}
+                  alt="CORAL ICON NOT FOUND"
+                  style={{
+                    display: "block",
+                    objectFit: "cover",
+                    height: "100%",
+                    width: "100%",
+                  }}
+                ></img>
+              </span>
+            </FieldButton>
+          )
+        ),
+
+        //algae icon
+        createFieldLocalMatchComponent(
+          "algaeIcon",
+          1900,
+          300,
+          400,
+          200,
+          (match) => (
+            <FieldButton color={COLORS.TRANSPARENT}>
+              <span
+                style={{
+                  display: "block",
+                  overflow: "hidden",
+                  visibility: algae.attainedTime != null ? "visible" : "hidden",
+                }}
+              >
+                <img
+                  src={AlgaeIcon}
+                  alt="ALGAE ICON NOT FOUND"
+                  style={{
+                    display: "block",
+                    objectFit: "cover",
+                    height: "100%",
+                    width: "100%",
+                  }}
+                ></img>
+              </span>
+            </FieldButton>
+          )
+        ),
+      ],
+      ...[
+        phase === PHASES.TELE &&
+          createFieldLocalMatchComponent(
+            "other button",
+            2000,
+            200,
+            200,
+            200,
+            (match) => (
+              <FieldButton
+                onClick={() => match.setIsDefending((prev) => !prev)}
+              >
+                Defence
+              </FieldButton>
+            )
+          ),
+      ],
+    ];
+
+    return (
+      <Box
+        sx={{
+          transform: `translateX(${isDefending ? -50 : 0}%)`,
+        }}
+      >
+        {scaledBoxRect.width > 0 && (
+          <FieldCanvas
+            ref={fieldCanvasRef}
+            theme={BlueTheme}
+            fieldBoxRect={scaledBoxRect}
+            children={fieldChildren}
+          />
+        )}
+      </Box>
+    );
   };
 
-  const renderField = () => {
-    if (phase == PHASES.PREMATCH){
-      return (
-        StartingPositionSlider()
-      );
-    } else if (phase == PHASES.AUTO){
-      const drawCoralPickups = () => {
-        return (<div>
-          <FieldButton
-            x={475}
-            y={0}
-            height={150}
-            width={200}
-            color={coralAttained==null ? COLORS.ACTIVE : COLORS.DISABLED}
-            variant="contained"
-            label={"Left Coral Station"}
-            onClick={() => {
-              console.log("left coral station clicked");
-            }}
-          />
+  const renderSideBar = () => {
+    let buttonsList = [];
+    if (phase === PHASES.PREMATCH) {
+      buttonsList = [
+        {
+          id: 0,
+          flexWeight: 2,
+          component: (
+            <Button
+              variant="contained"
+              color={startingPosition < 0 ? "disabled" : COLORS.ACTIVE}
+              disabled={startingPosition < 0}
+              onClick={() => {
+                setMatchStartTime(Date.now());
+                setPhase(PHASES.AUTO);
+              }}
+              sx={{
+                width: "100%",
+                height: "100%",
+                fontSize: "1.5rem",
+              }}
+            >
+              Start Match
+            </Button>
+          ),
+        },
+        {
+          id: 1,
+          flexWeight: 1,
+          component: (
+            <Button
+              variant="contained"
+              color={hasCoral() ? COLORS.SUCCESS : COLORS.PENDING}
+              onClick={() => {
+                setCoral(
+                  hasCoral()
+                    ? {}
+                    : { attainedLocation: "preload", attainedTime: 0 }
+                );
+              }}
+              sx={{
+                width: "100%",
+                height: "100%",
+                fontSize: "1.5rem",
+              }}
+            >
+              {"Preload Coral"}
+            </Button>
+          ),
+        },
+      ];
+    } else if (phase === PHASES.AUTO || phase === PHASES.TELE) {
+      //REEF CORAL DROPOFF BUTTONS
+      if (coral.depositLocation?.includes("reef")) {
+        [1, 2, 3, 4].map((level, index) => {
+          buttonsList.push({
+            id: index,
+            flexWeight: 1,
+            component: (
+              <Button
+                variant="contained"
+                color={COLORS.PENDING}
+                onClick={() => {
+                  updateCoral({
+                    ...coral,
+                    depositLocation: coral.depositLocation + `L${level}`,
+                    depositTime: currentTime,
+                  });
+                  if (!hasAlgae()) {
+                    updateAlgae({});
+                  }
+                }}
+              >
+                L{level}
+              </Button>
+            ),
+          });
+        });
 
-          <FieldButton
-            x={475}
-            y={750}
-            height={150}
-            width={200}
-            color={coralAttained==null ? COLORS.ACTIVE : COLORS.DISABLED}
-            variant="contained"
-            label={"Right Coral Station"}
-            onClick={() => {
-              console.log("right coral station clicked");
-            }}
-          />
-        </div>);
+        //drop coral button
+        buttonsList.push({
+          id: 4,
+          flexWeight: 1,
+          component: (
+            <Button
+              variant="contained"
+              color={COLORS.PENDING}
+              onClick={() => {
+                updateCoral({
+                  ...coral,
+                  depositLocation: "DROP",
+                  depositTime: currentTime,
+                });
+                if (!hasAlgae()) {
+                  updateAlgae({});
+                }
+              }}
+            >
+              DROP CORAL
+            </Button>
+          ),
+        });
       }
 
-      const drawReefButtons = () => {
-        return(<div>
-          <FieldButton
-            x={895}
-            y={315}
-            height={50}
-            width={50}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-          />
-
-          <FieldButton
-            x={1015}
-            y={320}
-            height={50}
-            width={50}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-          />
-
-          <FieldButton
-            x={1080}
-            y={425}
-            height={50}
-            width={50}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-          />
-
-          <FieldButton
-            x={1015}
-            y={530}
-            height={50}
-            width={50}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-          />
-
-          <FieldButton
-            x={895}
-            y={530}
-            height={50}
-            width={50}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-          />
-
-          <FieldButton
-            x={835}
-            y={425}
-            height={50}
-            width={50}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-          />
-        </div>);
+      //REEF ALGAE PICKUP BUTTON
+      if (!hasAlgae() && algae.attainedLocation?.includes("reef")) {
+        buttonsList.push({
+          id: 5,
+          flexWeight: 1,
+          component: (
+            <Button
+              variant="contained"
+              color={COLORS.PENDING}
+              onClick={() => {
+                updateAlgae({
+                  ...algae,
+                  attainedTime: currentTime,
+                });
+                updateCoral({ ...coral, depositLocation: null });
+              }}
+            >
+              REEF ALGAE PICKUPS
+            </Button>
+          ),
+        });
       }
 
-      const drawAlgaeScores = () => {
-        return (<div>
-          <FieldButton
-            x={1100}
-            y={750}
-            height={150}
-            width={300}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={"Score Processor"}
-          />
-
-          <FieldButton
-            x={1400}
-            y={480}
-            height={420}
-            width={150}
-            color={COLORS.ACTIVE}
-            variant="contained"
-            label={"Score Net"}
-          />
-        </div>);
+      //CORAL pickup from coral mark
+      if (!hasCoral() && coral.attainedLocation?.includes("coralMark")) {
+        buttonsList.push({
+          id: 0,
+          flexWeight: 5,
+          component: (
+            <Button
+              variant="contained"
+              color={COLORS.PENDING}
+              onClick={() => {
+                updateCoral({ attainedTime: currentTime });
+                if (!hasAlgae()) {
+                  updateAlgae({});
+                }
+              }}
+            >
+              PICKUP CORAL
+            </Button>
+          ),
+        });
       }
 
-      const drawCoralMarkButtons = () => {
-        return (<div>
-          <CanvasButton
-            x={590}
-            y={220}
-            height={50}
-            width={50}
-            color={COLORS.SUCCESS}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-            onClick={() => {
-              console.log("coral mark 1 clicked")
-            }}
-          />
-
-          <CanvasButton
-            x={590}
-            y={425}
-            height={50}
-            width={50}
-            color={COLORS.SUCCESS}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-            onClick={() => {
-              console.log("coral mark clicked")
-            }}
-          />
-
-          <CanvasButton
-            x={590}
-            y={630}
-            height={50}
-            width={50}
-            color={COLORS.SUCCESS}
-            variant="contained"
-            label={""}
-            sx={{
-              borderRadius: '50%'
-            }}
-            onClick={() => {
-              console.log("coral mark clicked")
-            }}
-          />
-        </div>);
+      //ALGAE pickup from coral mark
+      if (!hasAlgae() && algae.attainedLocation?.includes("coralMark")) {
+        buttonsList.push({
+          id: 0,
+          flexWeight: 5,
+          component: (
+            <Button
+              variant="contained"
+              color={COLORS.PENDING}
+              onClick={() => {
+                updateAlgae({ attainedTime: currentTime });
+                if (!hasCoral()) {
+                  updateCoral({});
+                }
+              }}
+            >
+              PICKUP ALGAE
+            </Button>
+          ),
+        });
       }
 
-      return (
-        <>
-          {drawCoralPickups()}
-          {drawReefButtons()}
-          {drawAlgaeScores()}   
-          {drawCoralMarkButtons()}       
-        </>
-      );
+      //PROCESSOR/NET SCORE MENU
+      const onAlgaeScored = (success) => {
+        if (success) {
+          updateAlgae({ ...algae, depositTime: currentTime });
+        } else {
+          updateAlgae({ ...algae, depositLocation: null });
+        }
+      };
+      if (
+        algae.depositLocation === "processor" ||
+        algae.depositLocation === "net"
+      ) {
+        buttonsList.push(
+          {
+            id: 0,
+            flexWeight: 1,
+            component: (
+              <Button
+                variant="contained"
+                color={COLORS.PENDING}
+                onClick={() => onAlgaeScored(true)}
+              >
+                SCORE {algae.depositLocation}
+              </Button>
+            ),
+          },
+          {
+            id: 1,
+            flexWeight: 1,
+            component: (
+              <Button
+                variant="contained"
+                color={COLORS.PENDING}
+                onClick={() => onAlgaeScored(false)}
+              >
+                CANCEL
+              </Button>
+            ),
+          }
+        );
+      }
+
+      //coral stations.
+      const onCoralPickup = (success) => {
+        if (success) {
+          updateCoral({ ...coral, attainedTime: currentTime });
+        } else {
+          updateCoral({ attainedLocation: null });
+        }
+      };
+
+      //coral station 2
+      if (!hasCoral() && coral.attainedLocation?.includes("CoralStation")) {
+        buttonsList.push(
+          {
+            id: 0,
+            flexWeight: 1,
+            component: (
+              <Button
+                variant="contained"
+                color={COLORS.PENDING}
+                onClick={() => onCoralPickup(true)}
+              >
+                CORAL PICKUP
+              </Button>
+            ),
+          },
+          {
+            id: 1,
+            flexWeight: 1,
+            component: (
+              <Button variant="contained" color={COLORS.PENDING}>
+                CANCEL
+              </Button>
+            ),
+          }
+        );
+      }
     }
-  }
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
+          backgroundColor: BlueTheme.palette.background.paper,
+          overflowY: "auto",
+        }}
+      >
+        {buttonsList.map((button, index) => (
+          <Box
+            key={index}
+            sx={{
+              flex: button.flexWeight || 1,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 0,
+            }}
+          >
+            {button.component}
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  const createFieldButton = ({ props }) => {};
+
+  const getScaledBoxDimensions = () => {
+    const { innerWidth, innerHeight } = window;
+    let width = innerWidth;
+    let height = width / aspectRatio;
+
+    if (height > innerHeight) {
+      height = innerHeight;
+      width = height * aspectRatio;
+    }
+
+    return { width, height };
+  };
+
+  const resizeScaledBox = () => {
+    const { width, height } = getScaledBoxDimensions();
+
+    const rect = scaledBoxRef.current?.getBoundingClientRect() || {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    };
+
+    setScaledBoxRect({
+      x: rect.left,
+      y: rect.top,
+      width,
+      height,
+    });
+  };
+
+  useEffect(() => {
+    resizeScaledBox();
+    window.addEventListener("resize", resizeScaledBox);
+    return () => window.removeEventListener("resize", resizeScaledBox);
+  }, []);
 
   return (
-    <ThemeProvider theme={BlueTheme}>
-      <FullscreenDialog />
-      <Box
-        onMouseMove={handleMouseMove}
-        sx={{ position: "relative", width: "100vw", height: "100vh" }}
-      >
-        <canvas
-          ref={canvasRef}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "#ffffff",
+    <MatchContext.Provider value={CONTEXT_WRAPPER}>
+      <ThemeProvider theme={BlueTheme}>
+        <Box
+          sx={{
+            position: "relative",
+            width: "100vw",
+            height: "100vh",
           }}
-        />
-        <DisplayMouseCoords />
-        <RenderSideBar />
-        {renderField()}
-      </Box>
-    </ThemeProvider>
+        >
+          <FullscreenDialog />
+          <Box
+            ref={scaledBoxRef}
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: scaledBoxRect.width,
+              height: scaledBoxRect.height,
+              transform: "translate(-50%, -50%)",
+              background: BlueTheme.palette.background.default,
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                left: scaleWidthToActual(sidebarVirtualWidth),
+                width:
+                  scaledBoxRect.width - scaleWidthToActual(sidebarVirtualWidth),
+                height: scaledBoxRect.height,
+                overflow: "hidden",
+              }}
+            >
+              {renderFieldCanvas()}
+            </Box>
+            <Box
+              sx={{
+                position: "absolute",
+                left: 0,
+                width: scaleWidthToActual(sidebarVirtualWidth),
+                height: scaledBoxRect.height,
+              }}
+            >
+              {renderSideBar()}
+            </Box>
+          </Box>
+        </Box>
+      </ThemeProvider>
+    </MatchContext.Provider>
   );
 };
 

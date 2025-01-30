@@ -1,22 +1,17 @@
-// import "./HomePage.css";
-import "../assets/generated-css/stylesheet.css";
-import React, { useState } from "react";
-import axios from "axios";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "@mui/material/Button";
+import UpdatePassword from "./UpdatePassword"; // Import the new component
 
 const HomePage = () => {
-  const [token, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   return (
     <div>
       <h1>HOME PAGE</h1>
       <div style={{ display: "flex", justifyContent: "space-around" }}>
-        <Button variant="contained" onClick={() => navigate("/addTournament")}>
-          Add Tournament
+        <Button variant="contained" onClick={() => navigate("/admin")}>
+          Admin
         </Button>
         <Button variant="contained" onClick={() => navigate("/scoutMatch")}>
           Scout Match
@@ -24,6 +19,7 @@ const HomePage = () => {
         <Button variant="contained" onClick={() => navigate("/viewData")}>
           View Data
         </Button>
+        <UpdatePassword />
       </div>
     </div>
   );

@@ -6,6 +6,31 @@ export const USER_ROLES = Object.freeze({
   USER: "user",
 });
 
+const validateCreateUserInput = async (client, username, password) => {
+  // Check if username already exists
+  const checkQuery = `SELECT user_id FROM users WHERE username = $1`;
+  const checkRes = await client.query(checkQuery, [username]);
+
+  if (checkRes.rows.length > 0) {
+    throw new Error("Username already exists. Please choose another.");
+  }
+
+  const usernameRegex = /^[a-zA-Z0-9_]+$/; // Allows only letters, numbers, and underscores
+  const minPasswordLength = 8;
+
+  if (!usernameRegex.test(username)) {
+    throw new Error(
+      "Username must contain only letters, numbers, and underscores, with no spaces."
+    );
+  }
+
+  if (password.length < minPasswordLength) {
+    throw new Error(
+      `Password must be at least ${minPasswordLength} characters long.`
+    );
+  }
+};
+
 const createUserInternal = async (
   username,
   plainPassword,
@@ -13,6 +38,9 @@ const createUserInternal = async (
 ) => {
   const client = await pgClient();
   try {
+    // Validate user input
+    await validateCreateUserInput(client, username, plainPassword);
+
     // Hash the password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(plainPassword, saltRounds);
@@ -40,9 +68,9 @@ const createUserInternal = async (
 const authenticateUserInternal = async (username, plainPassword) => {
   const client = await pgClient();
   try {
-    // Retrieve the user by username, including role
+    // Ensure query selects user_id, username, and role
     const query =
-      "SELECT user_id, password, role FROM users WHERE username = $1";
+      "SELECT user_id, username, password, role FROM users WHERE username = $1";
     const res = await client.query(query, [username]);
 
     if (res.rows.length > 0) {
@@ -51,9 +79,13 @@ const authenticateUserInternal = async (username, plainPassword) => {
 
       if (isMatch) {
         console.log(
-          `User authenticated: ID ${user.user_id}, Role: ${user.role}`
+          `User authenticated: ID ${user.user_id}, Username: ${user.username}, Role: ${user.role}`
         );
-        return user;
+        return {
+          id: user.user_id, // Ensure ID is included
+          username: user.username, // Ensure Username is included
+          role: user.role,
+        };
       } else {
         throw new Error("Invalid password");
       }
@@ -67,7 +99,48 @@ const authenticateUserInternal = async (username, plainPassword) => {
   }
 };
 
+// Update Password Function
+const updatePasswordInternal = async (userId, oldPassword, newPassword) => {
+  const client = await pgClient();
+  console.log(userId, oldPassword, newPassword);
+  try {
+    // Retrieve current password
+    const userQuery = await client.query(
+      "SELECT password FROM users WHERE user_id = $1",
+      [userId]
+    );
+
+    if (userQuery.rows.length === 0) {
+      throw new Error("User not found");
+    }
+
+    const user = userQuery.rows[0];
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+    if (!isMatch) {
+      throw new Error("Incorrect current password");
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update database
+    await client.query("UPDATE users SET password = $1 WHERE user_id = $2", [
+      hashedNewPassword,
+      userId,
+    ]);
+
+    return { message: "Password updated successfully" };
+  } catch (err) {
+    throw err;
+  } finally {
+    await client.release();
+  }
+};
+
+// Protected operations
 export const createUser = protectOperation(createUserInternal, [
   USER_ROLES.ADMIN,
 ]);
 export const authenticateUser = protectOperation(authenticateUserInternal);
+export const updatePassword = protectOperation(updatePasswordInternal);

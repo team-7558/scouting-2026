@@ -5,9 +5,10 @@ import { ThemeProvider } from "@mui/material/styles";
 import { Routes, Route } from "react-router-dom";
 import CssBaseline from "@mui/material/CssBaseline";
 
-import HomePage from "./pages/HomePage.js";
+import HomePage from "./pages/Home/HomePage.js";
 import SignInPage from "./pages/SignInPage.js";
 import ScoutMatch from "./pages/ScoutMatch/ScoutMatch.js";
+import AdminPage from "./pages/Admin/Admin.js";
 import ProtectedRoute from "./ProtectedRoute.js";
 
 const App = () => {
@@ -38,6 +39,14 @@ const App = () => {
             }
           />
           {/* <Route path="/scoutMatch2" element={<ScoutMatch2 />} /> */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </ThemeProvider>
     </React.Fragment>

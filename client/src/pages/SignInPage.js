@@ -1,6 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { postSignIn } from "../requests/AuthRequests.js";
+import {
+  Container,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Alert,
+  Paper,
+} from "@mui/material";
 
 const SignInPage = () => {
   const [username, setUsername] = useState("");
@@ -14,14 +23,13 @@ const SignInPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
 
     try {
       const response = await postSignIn(username, password);
+      // JSON.parse(atob(response.data.token.split(".")[1]));
+      console.log(response.data.token);
       localStorage.setItem("token", response.data.token);
-
-      // Redirect to the original page or homepage after successful login
       navigate(from);
     } catch (err) {
       if (err.response && err.response.status === 401) {
@@ -33,43 +41,47 @@ const SignInPage = () => {
   };
 
   return (
-    <div>
-      <h1>Sign In</h1>
-      <form onSubmit={handleSubmit}>
-        <center>
-          <div>
-            <label>Username:</label>
-            <br />
-            <input
-              type="text"
+    <Container maxWidth="xs">
+      <Paper
+        elevation={3}
+        sx={{ padding: 3, marginTop: 8, textAlign: "center" }}
+      >
+        <Typography variant="h4" gutterBottom>
+          Sign In
+        </Typography>
+        <form onSubmit={handleSubmit}>
+          <Box mb={2}>
+            <TextField
+              fullWidth
+              label="Username"
+              variant="outlined"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
-          </div>
-        </center>
-        <br />
-        <center>
-          <div>
-            <label>Password:</label>
-            <br />
-            <input
+          </Box>
+          <Box mb={2}>
+            <TextField
+              fullWidth
               type="password"
+              label="Password"
+              variant="outlined"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-          </div>
-        </center>
-        <br />
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <center>
-          <button className="button" type="submit">
+          </Box>
+          {error && (
+            <Box mb={2}>
+              <Alert severity="error">{error}</Alert>
+            </Box>
+          )}
+          <Button type="submit" variant="contained" color="primary" fullWidth>
             Sign In
-          </button>
-        </center>
-      </form>
-    </div>
+          </Button>
+        </form>
+      </Paper>
+    </Container>
   );
 };
 

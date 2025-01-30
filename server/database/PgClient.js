@@ -27,6 +27,7 @@ export const pgClient = async () => await pool.connect();
 export const protectOperation =
   (operation, allowedroles = null) =>
   async (req, ...args) => {
+    // return await operation(...args);
     try {
       if (
         !allowedroles ||

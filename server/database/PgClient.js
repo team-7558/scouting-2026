@@ -5,7 +5,6 @@ import { extractRoleFromRequest } from "../routes/auth.js";
 import { USER_ROLES } from "./auth.js";
 
 // Database URI
-const connectionString = process.env.DATABASE_URL;
 
 const config = {
   connectionString: process.env.DATABASE_URL,

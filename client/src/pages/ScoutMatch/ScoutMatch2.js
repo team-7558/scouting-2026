@@ -560,8 +560,33 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           </span>
       )
     ),
-
   ]
+
+  // Check each location
+  const markerPositions = [coral?.attainedLocation, coral?.depositLocation, algae?.attainedLocation, algae?.depositLocation];
+  for (let index = 0; index < markerPositions.length; index++) {
+    const location = markerPositions[index];
+    if (Array.isArray(location)) {
+      AutoTeleChildren.push(
+        createFieldLocalMatchComponent(
+          "clickMarker" + index,
+          location[0],
+          location[1],
+          100,
+          100,
+          (match) => (
+            <FieldButton 
+              variant="contained" 
+              color={COLORS.SUCCESS}
+            >
+
+            </FieldButton>
+          )
+        )
+      );
+    }
+  }
+  
 
   const TeleChildren = [
     //defense button
@@ -595,6 +620,31 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             theme={BlueTheme}
             fieldBoxRect={scaledBoxRect}
             children={fieldChildren}
+            onClick={(x, y) => {
+              if (!hasCoral()){
+                setCoral({
+                  ...coral,
+                  attainedLocation: [x, y],
+                });
+              }else{
+                setCoral({
+                  ...coral, 
+                  depositLocation: [x, y],
+                });
+              }
+
+              if (!hasAlgae()){
+                setAlgae({
+                  ...algae,
+                  attainedLocation: [x, y],
+                });
+              }else{
+                setAlgae({
+                  ...algae, 
+                  depositLocation: [x, y],
+                });
+              }
+            }}
           />
         )}
       </Box>
@@ -847,6 +897,83 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             ),
           },
         );
+      }
+
+      //Coral ground pickup/dropoff
+      if ((Array.isArray(coral.attainedLocation) && coral.attainedTime==null) ||( Array.isArray(coral.depositLocation) && coral.depositTime==null)){
+        drawCancelButton = true;
+        buttonsList.push({
+          id: 0,
+          flexWeight: 1,
+          component: (
+            <Button
+              variant="contained"
+              color={COLORS.PENDING}
+              onClick={() => {
+                if (hasCoral()){
+                  setCoral({
+                    ...coral,
+                    depositTime: currentTime,
+                  });
+                }else{
+                  setCoral({
+                    ...coral,
+                    attainedTime: currentTime,
+                  })
+                }
+
+                if (algae.attainedTime==null){
+                  setAlgae({});
+                }else if (algae.depositTime==null){
+                  setAlgae({
+                    ...algae,
+                    depositLocation: null,
+                  })
+                }
+              }}
+            >
+              CORAL {hasCoral() ? "DROPOFF" : "PICKUP"}
+            </Button>
+          )
+        });
+      }
+
+      if ((Array.isArray(algae.attainedLocation) && algae.attainedTime==null) ||( Array.isArray(algae.depositLocation) && algae.depositTime==null)){
+        drawCancelButton = true;
+        buttonsList.push({
+          id: 0,
+          flexWeight: 1,
+          component: (
+            <Button
+              variant="contained"
+              color={COLORS.PENDING}
+              onClick={() => {
+                if (hasAlgae()){
+                  setAlgae({
+                    ...algae,
+                    depositTime: currentTime,
+                  });
+                }else{
+                  setAlgae({
+                    ...algae,
+                    attainedTime: currentTime,
+                  })
+                }
+
+                if (coral.attainedTime==null){
+                  setCoral({});
+                }else if (coral.depositTime==null){
+                  setCoral({
+                    ...coral,
+                    depositLocation: null,
+                  })
+                }
+              }}
+            >
+              ALGAE {hasAlgae() ? "DROPOFF" : "PICKUP"}
+            </Button>
+          )
+        });
       }
 
       //CANCEL button

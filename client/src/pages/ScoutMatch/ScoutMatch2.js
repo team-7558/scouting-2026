@@ -264,14 +264,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         `coralMark${index}`,
         290,
         y,
-        150,
-        125,
+        250,
+        200,
         (match) => (
           <FieldButton
             color={COLORS.SUCCESS}
             sx={{
               borderRadius: "50%",
-              border: drawBorder ? "5px solid white" : ""
+              border: drawBorder ? "15px solid black" : ""
             }}
             disabled={match.hasAlgae() && match.hasCoral()}
             onClick={() => {
@@ -372,8 +372,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         `${index}ReefButton`,
         x,
         y,
-        100,
-        100,
+        250,
+        200,
         (match) => (
           <FieldButton
             color={COLORS.PENDING}
@@ -410,7 +410,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             }}
             sx={{
               borderRadius: "50%",
-              border: drawBorder ? "5px solid white" : "",
+              border: drawBorder ? "15px solid black" : "",
             }}
           ></FieldButton>
         )
@@ -502,11 +502,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         {currentTime}
       </p>
     )),
+  ]
 
+  const AlgaeCoralIcons = [
     //coral icon
     createFieldLocalMatchComponent(
       "coralIcon",
-      1800,
+      2000,
       250,
       400,
       200,
@@ -516,6 +518,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               display: "block",
               overflow: "hidden",
               visibility: match.hasCoral() ? "visible" : "hidden",
+              pointerEvents: 'none',
             }}
           >
             <img
@@ -526,6 +529,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 objectFit: "cover",
                 height: "100%",
                 width: "100%",
+                pointerEvents: 'none',
               }}
             ></img>
           </span>
@@ -535,8 +539,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     //algae icon
     createFieldLocalMatchComponent(
       "algaeIcon",
-      1800,
-      500,
+      2000,
+      400,
       400,
       200,
       (match) => (
@@ -545,6 +549,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               display: "block",
               overflow: "hidden",
               visibility: algae.attainedTime != null ? "visible" : "hidden",
+              pointerEvents: 'none',
             }}
           >
             <img
@@ -555,6 +560,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 objectFit: "cover",
                 height: "100%",
                 width: "100%",
+                pointerEvents: 'none',
               }}
             ></img>
           </span>
@@ -590,7 +596,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
   const TeleChildren = [
     //defense button
-    createFieldLocalMatchComponent("defense", 2200, 500, 300, 500, (match) => (
+    createFieldLocalMatchComponent(
+      "defense", 
+      2200, 
+      500, 
+      300, 
+      500, 
+      (match) => (
       <FieldButton
         color={COLORS.PRIMARY}
         onClick={() => setIsDefending(!isDefending)}
@@ -603,6 +615,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   const renderFieldCanvas = () => {
     const fieldChildren = [
       ...[phase === PHASES.PREMATCH && PrematchChildren],
+      ...[phase === PHASES.PREMATCH || phase === PHASES.AUTO || phase === PHASES.TELE ? AlgaeCoralIcons : []],
       ...[phase === PHASES.AUTO && AutoChildren],
       ...[phase === PHASES.AUTO || phase === PHASES.TELE ? AutoTeleChildren : []],
       ...[phase === PHASES.TELE ? TeleChildren : []],
@@ -697,7 +710,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 fontSize: "1.5rem",
               }}
             >
-              {"Preload Coral"}
+              {hasCoral() ? "Preload Coral" : "No Preload"}
             </Button>
           ),
         },

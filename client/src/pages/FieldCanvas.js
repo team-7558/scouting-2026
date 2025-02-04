@@ -61,7 +61,7 @@ const FieldLocalComponent = ({
   );
 };
 
-const FieldCanvas = forwardRef(({ theme, fieldBoxRect, children }, ref) => {
+const FieldCanvas = forwardRef(({ theme, fieldBoxRect, children, onClick }, ref) => {
   const CONTEXT_WRAPPER = {
     fieldBoxRect,
   };
@@ -122,6 +122,16 @@ const FieldCanvas = forwardRef(({ theme, fieldBoxRect, children }, ref) => {
             height: fieldBoxRect.height,
             width: fieldBoxRect.height * fieldAspectRatio, // Maintain aspect ratio
           }}
+          onClick={(event) => {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            // Translate from canvas coordinate to field coordinate
+            const fieldX = (x / canvas.width) * (fieldVirtualWidth * 1.2);
+            const fieldY = (y / canvas.height) * fieldVirtualHeight;
+            onClick(Math.round(fieldX), Math.round(fieldY))}}
         />
         {/* Render dynamic child components */}
         {children}

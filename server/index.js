@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import express from "express";
 import cors from "cors";
 
-import authRoutes, { verifyToken } from "./routes/auth.js";
+import authRoutes from "./routes/auth.js";
 import apiRoutes from "./routes/api.js";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
@@ -39,6 +39,7 @@ app.get("*", (req, res) => {
 // Use the auth routes
 app.use("/api", apiRoutes);
 app.use("/auth", authRoutes);
+// app.use("/admin", adminRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

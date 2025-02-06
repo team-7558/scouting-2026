@@ -1,10 +1,39 @@
 import express from "express";
 import jwt from "jsonwebtoken";
-import { authenticateUser, createUser } from "../database/auth.js";
+import {
+  authenticateUser,
+  createUser,
+  updatePassword,
+} from "../database/auth.js";
 
 const router = express.Router();
-
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+
+// Extract user information from the JWT token
+export const extractUserFromToken = (req) => {
+  const token = req.headers["authorization"];
+
+  if (!token) {
+    throw new Error("No token provided.");
+  }
+
+  try {
+    const user = jwt.verify(token, JWT_SECRET); // Ensure correct token extraction
+    return user;
+  } catch (err) {
+    throw new Error("Failed to verify token: " + err.message);
+  }
+};
+
+// Extract only the role from the token using extractUserFromToken to avoid duplicate logic
+export const extractRoleFromRequest = (req) => {
+  try {
+    const user = extractUserFromToken(req);
+    return user.role;
+  } catch (err) {
+    throw new Error("Failed to extract role: " + err.message);
+  }
+};
 
 // Sign-in endpoint
 router.post("/signin", async (req, res) => {
@@ -12,16 +41,18 @@ router.post("/signin", async (req, res) => {
 
   try {
     const user = await authenticateUser(req, username, password);
-    // Create JWT token
+
+    // Ensure ID is a number before signing the token
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      JWT_SECRET,
       {
-        expiresIn: "1h",
-      }
+        id: Number(user.id),
+        username: user.username,
+        role: user.role,
+      },
+      JWT_SECRET,
+      { expiresIn: "1h" }
     );
 
-    // Respond with the token
     return res.json({ token });
   } catch (err) {
     return res.status(401).json({
@@ -31,7 +62,7 @@ router.post("/signin", async (req, res) => {
   }
 });
 
-// Sign-in endpoint
+// Create User Endpoint
 router.post("/createUser", async (req, res) => {
   const { username, password, role } = req.body;
 
@@ -40,41 +71,29 @@ router.post("/createUser", async (req, res) => {
     return res.send("Success: " + JSON.stringify(user));
   } catch (err) {
     console.log(err);
-    return res
-      .status(401)
-      .json({ message: "Issue creating user", error: err.message });
+    return res.status(401).json({ message: err.message });
   }
 });
-export const verifyToken = (req, res, next) => {
-  const token = req.headers["authorization"];
 
-  console.log("verifying token: " + token);
-  if (!token) {
-    return res.redirect("/signin"); // Redirect to login page if no token is provided
-  }
-
+// Update Password Endpoint
+router.post("/updatePassword", async (req, res) => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET); // Extract token from "Bearer <token>"
-    req.user = decoded;
-    next();
+    const user = extractUserFromToken(req);
+    console.log(user);
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both old and new passwords are required" });
+    }
+
+    const result = await updatePassword(req, user.id, oldPassword, newPassword);
+    res.json(result);
   } catch (err) {
-    return res.redirect("/signin"); // Redirect to login page if token is invalid
+    console.error("Error updating password:", err);
+    res.status(500).json({ message: err.message });
   }
-};
-
-export const extractRoleFromRequest = async (req) => {
-  const token = req.headers["authorization"];
-
-  if (!token) {
-    throw new Error("PgClient: No token provided");
-  }
-
-  try {
-    const role = jwt.verify(token, JWT_SECRET).role; // Extract token from "Bearer <token>"
-    return role;
-  } catch (err) {
-    throw new Error("PgClient: Failed to verify token " + err.message);
-  }
-};
+});
 
 export default router;

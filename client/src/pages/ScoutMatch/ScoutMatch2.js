@@ -64,7 +64,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   // match state
   const [matchStartTime, setMatchStartTime] = useState(-1);
   const [currentTime, setCurrentTime] = useState(0);
-  const PHASES = { PREMATCH: "prematch", AUTO: "auto", TELE: "tele" };
+  const PHASES = { PREMATCH: "prematch", AUTO: "auto", TELE: "tele", ENDGAME: "endgame" };
   const [phase, setPhase] = useState(PHASES.PREMATCH);
 
   // robot state
@@ -95,8 +95,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     endTime: null,
   });
 
+  const [hang, setHang] = useState({
+    time: null,
+    position: null,
+    height: null,
+  });
+
   //TODO: replace with real teams.
-  const allies = [7558, 188, 10192]
+  const allies = [7558, 188, 1325]
   const enemies = [2056, 4039, 9785]
 
   useEffect(() => {
@@ -132,6 +138,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       setDefense({});
     }
   }, [defense])
+
+  useEffect(() => {
+    if (hang.time != null){
+      console.log("Hang: " +  JSON.stringify(hang));
+      setHang({});
+    }
+  }, [hang])
 
   // TODO add sanity checks here
   const updateCoral = (updates) => {
@@ -245,6 +258,32 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     );
   };
 
+  const removeNotDoneActions = (coralAttained, coralDeposited, algaeAttained, algaeDeposited, defense, hang) => {
+    if (coralAttained && coral.attainedTime==null){
+      setCoral({});
+    }
+
+    if (coralDeposited && coral.depositLocation==null){
+      setCoral({...coral, depositLocation: null});
+    }
+
+    if (algaeAttained && algae.attainedTime==null){
+      setAlgae({});
+    }
+
+    if (algaeDeposited && algae.depositTime==null){
+      setAlgae({...algae, depositLocation: null});
+    }
+
+    if (defense){
+      setDefense({});
+    }
+
+    if (hang){
+      setHang({});
+    }
+  }
+
   const PrematchChildren = [
     createFieldLocalMatchComponent(
       "startingPositionSlider",
@@ -271,7 +310,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             color={COLORS.SUCCESS}
             sx={{
               borderRadius: "50%",
-              border: drawBorder ? "15px solid black" : ""
+              border: drawBorder ? scaleWidthToActual(50) + "px solid black" : ""
             }}
             disabled={match.hasAlgae() && match.hasCoral()}
             onClick={() => {
@@ -295,17 +334,22 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                   depositLocation: null,
                   depositTime: null,
                 });
+              }else{
+                setAlgae({...algae, depositLocation: null});
               }
+
+              setHang({});
             }}
           ></FieldButton>
         )
       );
     }),
 
+    //go to tele
     createFieldLocalMatchComponent(
       "nextPhase",
       2150,
-      780,
+      850,
       300,
       200,
       (match) => (
@@ -314,7 +358,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           disabled={currentTime<15}
           onClick={() => {setPhase(PHASES.TELE)}}
         >
-          NEXT
+          TELE
         </FieldButton>
       )
     ),
@@ -343,17 +387,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               });
 
               if (!match.hasAlgae()){
-                match.setAlgae({});
-              }else{
-                match.setAlgae({
-                  ...algae,
-                  depositLocation: null,
-                  depositTime: null,
-                });
+                setAlgae({});
+              } else{
+                setAlgae({...algae, depositLocation: null});
               }
+              setHang({});
             }}
             sx={{
-              border: drawBorder ? "5px solid white" : "",
+              border: drawBorder ? scaleWidthToActual(50) + "px solid black" : "",
             }}
           >
             {index == 0 ? "Left" : "Right"} Coral Station
@@ -395,22 +436,20 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 });
               }
 
-                if (!match.hasAlgae()){
-                  setAlgae({
-                    attainedLocation: "reef" + index,
-                    attainedTime: null,
-                    depositLocation: null,
-                    depositTime: null,
-                  });
-                }
-
-              if (!match.hasAlgae()) {
-                
+              if (!match.hasAlgae()){
+                setAlgae({
+                  attainedLocation: "reef" + index,
+                  attainedTime: null,
+                  depositLocation: null,
+                  depositTime: null,
+                });
               }
+
+              setHang({});
             }}
             sx={{
               borderRadius: "50%",
-              border: drawBorder ? "15px solid black" : "",
+              border: drawBorder ? scaleWidthToActual(50) + "px solid black" : "",
             }}
           ></FieldButton>
         )
@@ -444,6 +483,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 depositLocation: null,
               });
             }
+
+            setHang({});
           }}
         >
           Score Processor
@@ -455,9 +496,9 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     createFieldLocalMatchComponent(
       "scoreNet", 
       2150, 
-      1250, 
+      375, 
       300, 
-      700, 
+      750, 
       (match) => (
       <FieldButton
         color={COLORS.ACTIVE}
@@ -478,6 +519,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               depositLocation: null,
             });
           }
+
+          setHang({});
         }}
         >
         Score Net
@@ -485,18 +528,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     )),
 
     //timer
-    createFieldLocalMatchComponent("timer", 2100, 50, 300, 100, (match) => (
+    createFieldLocalMatchComponent("timer", 2500, 50, 300, 100, (match) => (
       <p
-        sx={{
-          boxShadow: 'none',
-          '&:hover': {
-            boxShadow: 'none',
-        } ,
-        }}
         style={{
           fontSize: "2em",
           fontWeight: 1000,
-          color: "rgb(0, 0, 0)"
+          color: "rgb(0, 0, 0)",
+          backgroundColor: "rgb(255, 255, 255)"
         }}
       >
         {currentTime}
@@ -508,8 +546,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     //coral icon
     createFieldLocalMatchComponent(
       "coralIcon",
-      2000,
-      250,
+      2500,
+      300,
       400,
       200,
       (match) => (
@@ -539,8 +577,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     //algae icon
     createFieldLocalMatchComponent(
       "algaeIcon",
-      2000,
-      400,
+      2500,
+      450,
       400,
       200,
       (match) => (
@@ -568,7 +606,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     ),
   ]
 
-  // Check each location
+  // Check each on field click to draw a green box. TODO: make the green box small coral/algae images
   const markerPositions = [coral?.attainedLocation, coral?.depositLocation, algae?.attainedLocation, algae?.depositLocation];
   for (let index = 0; index < markerPositions.length; index++) {
     const location = markerPositions[index];
@@ -595,13 +633,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   
 
   const TeleChildren = [
-    //defense button
+    // defense button
     createFieldLocalMatchComponent(
       "defense", 
-      2200, 
-      500, 
+      2500, 
+      900, 
       300, 
-      500, 
+      280, 
       (match) => (
       <FieldButton
         color={COLORS.PRIMARY}
@@ -610,6 +648,46 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         {isDefending ? "Cycle" : "Defend"}
       </FieldButton>
     )),
+
+    // Hang buttons
+    ...[1000, 1225, 1450].map((y, index) => {
+      const drawBorder = hang.position===index;
+      return createFieldLocalMatchComponent(
+        `hang${index}`,
+        2150,
+        y,
+        250,
+        200,
+        (match) => (
+          <FieldButton
+            color={COLORS.PENDING}
+            sx={{
+              border: drawBorder ? scaleWidthToActual(30) + "px solid black" : scaleWidthToActual(15) + "px solid black"
+            }}
+            onClick={(match) => {
+              setHang({
+                ...hang,
+                position: index,
+              });
+
+              if (hasCoral()){
+                setCoral({...coral, depositLocation: null});
+              } else{
+                setCoral({});
+              }
+
+              if (hasAlgae()){
+                setAlgae({...algae, depositLocation: null});
+              } else{
+                setAlgae({});
+              }
+            }}
+          >
+            HANG {index + 1}
+          </FieldButton>
+        )
+      );
+    }),
   ]
 
   const renderFieldCanvas = () => {
@@ -666,6 +744,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
   const renderSideBar = () => {
     let buttonsList = [];
+
     if (phase === PHASES.PREMATCH) {
       buttonsList = [
         {
@@ -715,7 +794,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           ),
         },
       ];
-    } else if ((phase === PHASES.AUTO || phase === PHASES.TELE) && !isDefending) {
+    } else if ((phase === PHASES.AUTO || phase === PHASES.TELE) && !isDefending && hang.position==null) {
       let drawCancelButton = false;
       //REEF CORAL SCORE BUTTONS      
       if (hasCoral() && coral.depositLocation?.includes("reef")) {
@@ -1025,7 +1104,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           ),
         });
       }
-    }else if (phase==PHASES.AUTO || phase==PHASES.TELE){
+    } else if (phase==PHASES.AUTO || phase==PHASES.TELE && isDefending ){
       if (defense.defendingTeam==null){
         enemies.map((enemy, index) => {
           buttonsList.push(
@@ -1061,6 +1140,50 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           },
         );
       }
+    } else if (phase==PHASES.TELE && hang.position!=null){
+      //3 other buttons
+      ["park", "shallow", "deep", "fail"].map((height, index) => {
+        buttonsList.push({
+          id: index,
+          flexWeight: 1,
+          component: (
+            <Button
+              color={COLORS.PENDING}
+              variant="contained"
+              onClick={() => {
+                setHang({
+                  ...hang,
+                  time: currentTime,
+                  height: height
+                })
+              }}
+            >
+              {height}
+            </Button>
+          )
+
+        });
+      })
+      //CANCEL button
+      buttonsList.push({
+        id: 4,
+        flexWeight: 1,
+        component: (
+          <Button
+            variant="contained"
+            color={COLORS.PENDING}
+            onClick={() => {
+              setHang({
+                time: null,
+                position: null,
+                depth: null,
+              })
+            }}
+          >
+            CANCEL
+          </Button>
+        )
+      })
     }
 
     for (let i = 0; i < buttonsList.length; i++) {

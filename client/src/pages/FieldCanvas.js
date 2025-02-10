@@ -61,7 +61,7 @@ const FieldLocalComponent = ({
   );
 };
 
-const FieldCanvas = forwardRef(({ theme, fieldBoxRect, children, onClick }, ref) => {
+const FieldCanvas = forwardRef(({ theme, fieldBoxRect, children, onClick, phase }, ref) => {
   const CONTEXT_WRAPPER = {
     fieldBoxRect,
   };
@@ -95,13 +95,17 @@ const FieldCanvas = forwardRef(({ theme, fieldBoxRect, children, onClick }, ref)
 
       // Clear the canvas and draw the image
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(fieldImage, 0, 0, canvas.width, canvas.height);
+
+      console.log(phase);
+      if (phase!="postmatch"){
+        ctx.drawImage(fieldImage, 0, 0, canvas.width, canvas.height);
+      }
     };
   };
 
   useEffect(() => {
     drawFieldImage();
-  }, []);
+  }, [phase]);
 
   return (
     <FieldContext.Provider value={CONTEXT_WRAPPER}>

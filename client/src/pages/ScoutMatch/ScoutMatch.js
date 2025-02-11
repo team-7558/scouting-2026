@@ -929,8 +929,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     ),
   ]
 
-  console.log(endgame);
-
   const renderFieldCanvas = () => {
     const fieldChildren = [
       ...[phase === PHASES.PREMATCH && PrematchChildren],

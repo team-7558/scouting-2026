@@ -453,6 +453,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                   depositLocation: null,
                   depositTime: null,
                 });
+              }else if (algae.depositTime==null){
+                setAlgae({...algae, depositLocation: null});
               }
 
               setHang({});

@@ -919,7 +919,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             onChange={(event) => setEndgame({...endgame, comments: event.target.value})}
             style={{
               width: '100%',
-              height: '100%'
+              height: '100%',
+              fontSize: scaleWidthToActual(100) + "px",
             }}
           >
           </textarea>
@@ -927,8 +928,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       )
     ),
   ]
-
-  console.log(endgame);
 
   const renderFieldCanvas = () => {
     const fieldChildren = [
@@ -1047,12 +1046,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     } else if (
       (phase === PHASES.AUTO || phase === PHASES.TELE) && 
       !isDefending && 
-      hang.position==null) { //STANDARD AUTO/TELE
+      hang.position==null) //STANDARD AUTO/TELE
+    { 
       let drawCancelButton = false;
       //REEF CORAL SCORE BUTTONS
       if (hasCoral() && coral.depositLocation?.includes("reef")) {
         drawCancelButton = true;
-        [1, 2, 3, 4].map((level, index) => {
+        [4, 3, 2, 1].map((level, index) => {
           buttonsList.push({
             id: index,
             flexWeight: 1,
@@ -1453,6 +1453,64 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             CANCEL
           </Button>
         ),
+      });
+    } else if (phase==PHASES.POSTMATCH){
+      buttonsList.push({
+        id: 0,
+        flexWeight: 1,
+        component: (
+          <Button
+            variant="contained"
+            color={COLORS.PENDING}
+            onClick={() => {
+              setMatchStartTime(-1);
+              setCurrentTime(0);
+              setPhase(PHASES.PREMATCH);
+
+              // robot state
+              setIsDefending(false);
+              setStartingPosition(-1);
+
+              setCoral({
+                attainedLocation: null,
+                attainedTime: null,
+
+                depositLocation: null,
+                depositTime: null,
+              });
+
+              setAlgae({
+                attainedLocation: null, // if not null, pickup is pending
+                attainedTime: null, // if not null, holding gamepiece
+
+                depositLocation: null,
+                depositTime: null,
+              });
+
+              setDefense({
+                defendingTeam: null,
+                startTime: null,
+                endTime: null,
+              });
+
+              setHang({
+                time: null,
+                position: null,
+                height: null,
+              });
+
+              setEndgame({
+                disabled: false,
+                driverSkill: "N/A",
+                defenseSkill: "N/A",
+                role: "N/A",
+                comments: "",
+              });
+            }}
+          >
+            SUBMIT
+          </Button>
+        )
       });
     }
 

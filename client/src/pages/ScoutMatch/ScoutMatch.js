@@ -10,7 +10,6 @@ import { useCallback } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 import Slider from "@mui/material/Slider";
 import { BlueTheme } from "./themes/BlueTheme.js";
-import TextField from '@mui/material/TextField';
 
 import { Box, Button } from "@mui/material";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
@@ -646,7 +645,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     createFieldLocalMatchComponent("defense", 2500, 900, 300, 280, (match) => (
       <FieldButton
         color={COLORS.PRIMARY}
-        onClick={() => setIsDefending(!isDefending)}
+        onClick={() => {
+          if (isDefending && defense.endTime==null){
+            setDefense({...defense, endTime: currentTime})
+          }
+          setIsDefending(!isDefending);
+
+        }}
       >
         {isDefending ? "Cycle" : "Defend"}
       </FieldButton>

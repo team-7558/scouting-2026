@@ -203,6 +203,12 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     updateAlgae,
     hasCoral,
     hasAlgae,
+    setPhase,
+    setHang,
+    setEndgame,
+    setDefense,
+    currentTime,
+    setHang,
   };
 
   const fieldCanvasRef = useRef(null);
@@ -312,30 +318,30 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             disabled={match.hasAlgae() && match.hasCoral()}
             onClick={() => {
               if (!match.hasCoral()) {
-                setCoral({
+                match.setCoral({
                   attainedLocation: "coralMark" + index,
                   attainedTime: null,
                   depositLocation: null,
                   depositTime: null,
                 });
               } else if (coral.depositTime == null) {
-                setCoral({
-                  ...coral,
+                match.setCoral({
+                  ...match.coral,
                   depositLocation: null,
                 });
               }
               if (!match.hasAlgae()) {
-                setAlgae({
+                match.setAlgae({
                   attainedLocation: "coralMark" + index,
                   attainedTime: null,
                   depositLocation: null,
                   depositTime: null,
                 });
               } else {
-                setAlgae({ ...algae, depositLocation: null });
+                match.setAlgae({ ...match.algae, depositLocation: null });
               }
 
-              setHang({});
+              match.setHang({});
             }}
           ></FieldButton>
         )
@@ -353,7 +359,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         <FieldButton
           color={COLORS.ACTIVE}
           onClick={() => {
-            setPhase(PHASES.TELE);
+            match.setPhase(PHASES.TELE);
           }}
         >
           TELE
@@ -390,11 +396,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               });
 
               if (!match.hasAlgae()) {
-                setAlgae({});
+                match.setAlgae({});
               } else {
-                setAlgae({ ...algae, depositLocation: null });
+                match.setAlgae({ ...match.algae, depositLocation: null });
               }
-              setHang({});
+              match.setHang({});
             }}
             sx={{
               border: drawBorder
@@ -431,14 +437,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             disabled={!match.hasCoral() && match.hasAlgae()}
             onClick={() => {
               if (match.hasCoral()) {
-                setCoral({
-                  attainedLocation: coral.attainedLocation,
-                  attainedTime: coral.attainedTime,
+                match.setCoral({
+                  attainedLocation: match.coral.attainedLocation,
+                  attainedTime: match.coral.attainedTime,
                   depositLocation: "reef" + index,
                   depositTime: null,
                 });
               } else {
-                setCoral({
+                match.setCoral({
                   attainedLocation: null,
                   attainedTime: null,
                   depositLocation: "reef" + index,
@@ -447,17 +453,17 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               }
 
               if (!match.hasAlgae()) {
-                setAlgae({
+                match.setAlgae({
                   attainedLocation: "reef" + index,
                   attainedTime: null,
                   depositLocation: null,
                   depositTime: null,
                 });
-              }else if (algae.depositTime==null){
-                setAlgae({...algae, depositLocation: null});
+              }else if (match.algae.depositTime==null){
+                match.setAlgae({...match.algae, depositLocation: null});
               }
 
-              setHang({});
+              match.setHang({});
             }}
             sx={{
               borderRadius: "50%",
@@ -482,23 +488,23 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           color={COLORS.ACTIVE}
           disabled={!match.hasAlgae()}
           onClick={() => {
-            setAlgae({
-              attainedLocation: algae.attainedLocation,
-              attainedTime: algae.attainedTime,
+            match.setAlgae({
+              attainedLocation: match.algae.attainedLocation,
+              attainedTime: match.algae.attainedTime,
               depositLocation: "processor",
               depositTime: null,
             });
 
             if (!match.hasCoral()) {
-              setCoral({});
-            } else if (coral.depositTime == null) {
-              setCoral({
-                ...coral,
+              match.setCoral({});
+            } else if (match.coral.depositTime == null) {
+              match.setCoral({
+                ...match.coral,
                 depositLocation: null,
               });
             }
 
-            setHang({});
+            match.setHang({});
           }}
         >
           Score Processor
@@ -512,23 +518,23 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         color={COLORS.ACTIVE}
         disabled={!match.hasAlgae()}
         onClick={() => {
-          setAlgae({
-            attainedLocation: algae.attainedLocation,
-            attainedTime: algae.attainedTime,
+          match.setAlgae({
+            attainedLocation: match.algae.attainedLocation,
+            attainedTime: match.algae.attainedTime,
             depositLocation: "net",
             depositTime: null,
           });
 
           if (!match.hasCoral()) {
-            setCoral({});
-          } else if (coral.depositTime == null) {
-            setCoral({
-              ...coral,
+            match.setCoral({});
+          } else if (match.coral.depositTime == null) {
+            match.setCoral({
+              ...match.coral,
               depositLocation: null,
             });
           }
 
-          setHang({});
+          match.setHang({});
         }}
       >
         Score Net
@@ -545,7 +551,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           backgroundColor: "rgb(255, 255, 255)",
         }}
       >
-        {currentTime}
+        {match.currentTime}
       </p>
     )),
   ];
@@ -648,14 +654,14 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       <FieldButton
         color={COLORS.PRIMARY}
         onClick={() => {
-          if (isDefending && defense.endTime==null){
-            setDefense({...defense, endTime: currentTime})
+          if (match.isDefending && match.defense?.endTime==null){
+            match.setDefense({...match.defense, endTime: currentTime})
           }
-          setIsDefending(!isDefending);
+          match.setIsDefending(!isDefending);
 
         }}
       >
-        {isDefending ? "Cycle" : "Defend"}
+        {match.isDefending ? "Cycle" : "Defend"}
       </FieldButton>
     )),
 
@@ -676,22 +682,22 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
                 ? scaleWidthToActual(30) + "px solid black"
                 : scaleWidthToActual(15) + "px solid black",
             }}
-            onClick={(match) => {
-              setHang({
-                ...hang,
+            onClick={() => {
+              match.setHang({
+                ...match.hang,
                 position: index,
               });
 
-              if (hasCoral()) {
-                setCoral({ ...coral, depositLocation: null });
+              if (match.hasCoral()) {
+                match.setCoral({ ...match.coral, depositLocation: null });
               } else {
-                setCoral({});
+                match.setCoral({});
               }
 
               if (hasAlgae()) {
-                setAlgae({ ...algae, depositLocation: null });
+                match.setAlgae({ ...match.algae, depositLocation: null });
               } else {
-                setAlgae({});
+                match.setAlgae({});
               }
             }}
           >
@@ -711,7 +717,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       (match) => (
       <FieldButton
         color={COLORS.PRIMARY}
-        onClick={() => setPhase(PHASES.POSTMATCH)}
+        onClick={() => match.setPhase(PHASES.POSTMATCH)}
       >
         POST MATCH
       </FieldButton>
@@ -752,7 +758,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         (match) => (
           <FieldButton
             color={COLORS.PENDING}
-            onClick={() => {setEndgame({...endgame, disabled: value==="yes"});}}
+            onClick={() => {match.setEndgame({...match.endgame, disabled: value==="yes"});}}
             sx={{
               fontSize: scaleWidthToActual(70) + "px",
               border: drawBorder ? scaleWidthToActual(25) + "px solid black" : "",
@@ -796,7 +802,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         (match) => (
           <FieldButton
             color={COLORS.PENDING}
-            onClick={() => {setEndgame({...endgame, driverSkill: value});}}
+            onClick={() => {match.setEndgame({...match.endgame, driverSkill: value});}}
             sx={{
               fontSize: scaleWidthToActual(70) + "px",
               border: drawBorder ? scaleWidthToActual(25) + "px solid black" : "",
@@ -840,7 +846,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         (match) => (
           <FieldButton
             color={COLORS.PENDING}
-            onClick={() => {setEndgame({...endgame, defenseSkill: value});}}
+            onClick={() => {match.setEndgame({...match.endgame, defenseSkill: value});}}
             sx={{
               fontSize: scaleWidthToActual(70) + "px",
               border: drawBorder ? scaleWidthToActual(25) + "px solid black" : "",
@@ -884,7 +890,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         (match) => (
           <FieldButton
             color={COLORS.PENDING}
-            onClick={() => {setEndgame({...endgame, role: value});}}
+            onClick={() => {match.setEndgame({...match.endgame, role: value});}}
             sx={{
               fontSize: scaleWidthToActual(70) + "px",
               border: drawBorder ? scaleWidthToActual(25) + "px solid black" : "",
@@ -916,7 +922,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           </label>
           <textarea
             id="comments"
-            onChange={(event) => setEndgame({...endgame, comments: event.target.value})}
+            onChange={(event) => match.setEndgame({...match.endgame, comments: event.target.value})}
             style={{
               width: '100%',
               height: '100%',

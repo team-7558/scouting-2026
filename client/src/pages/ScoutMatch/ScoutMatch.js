@@ -253,6 +253,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           minHeight: 0,
           padding: 0,
           margin: 0,
+          fontSize: scaleWidthToActual(60) + "px", //
           border: drawBorder
             ? scaleWidthToActual(25) + "px solid black"
             : scaleWidthToActual(1) + "px solid black",
@@ -364,10 +365,10 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // Next phase (Tele) button
     createFieldLocalMatchComponent(
       "nextPhase",
-      2150,
+      2000,
       850,
-      300,
-      200,
+      250,
+      250,
       (match) => (
         <FieldButton
           color={COLORS.ACTIVE}
@@ -542,7 +543,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     createFieldLocalMatchComponent("timer", 2500, 50, 300, 100, (match) => (
       <p
         style={{
-          fontSize: "2em",
           fontWeight: 1000,
           color: "rgb(0, 0, 0)",
           backgroundColor: "rgb(255, 255, 255)",
@@ -625,7 +625,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
   const TeleChildren = [
     // Defense button remains unchanged
-    createFieldLocalMatchComponent("defense", 2050, 900, 325, 325, (match) => (
+    createFieldLocalMatchComponent("defense", 2000, 900, 250, 250, (match) => (
       <FieldButton
         color={COLORS.PRIMARY}
         onClick={() => {
@@ -687,14 +687,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
   const PostMatchChildren = [
     createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => (
-      <FieldButton
-        color={COLORS.PRIMARY}
-        sx={{
-          fontSize: scaleWidthToActual(80) + "px",
-        }}
-      >
-        DISABLED?
-      </FieldButton>
+      <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>
     )),
     ...[150, 600].map((x, index) => {
       const value = ["no", "yes"][index];
@@ -711,9 +704,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               match.setEndgame({ ...match.endgame, disabled: value === "yes" });
             }}
             drawBorder={match.endgame.disabled === (value === "yes")}
-            sx={{
-              fontSize: scaleWidthToActual(70) + "px",
-            }}
           >
             {value}
           </FieldButton>
@@ -726,16 +716,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       450,
       500,
       150,
-      (match) => (
-        <FieldButton
-          color={COLORS.PRIMARY}
-          sx={{
-            fontSize: scaleWidthToActual(80) + "px",
-          }}
-        >
-          Driver Skill
-        </FieldButton>
-      )
+      (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>
     ),
     ...[100, 350, 600, 850, 1100, 1350, 1600].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
@@ -752,9 +733,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               match.setEndgame({ ...match.endgame, driverSkill: value });
             }}
             drawBorder={match.endgame.driverSkill === value}
-            sx={{
-              fontSize: scaleWidthToActual(70) + "px",
-            }}
           >
             {value}
           </FieldButton>
@@ -767,16 +745,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       800,
       500,
       150,
-      (match) => (
-        <FieldButton
-          color={COLORS.PRIMARY}
-          sx={{
-            fontSize: scaleWidthToActual(80) + "px",
-          }}
-        >
-          Defense Skill
-        </FieldButton>
-      )
+      (match) => <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
     ),
     ...[100, 350, 600, 850, 1100, 1350, 1600].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
@@ -793,9 +762,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               match.setEndgame({ ...match.endgame, defenseSkill: value });
             }}
             drawBorder={match.endgame.defenseSkill === value}
-            sx={{
-              fontSize: scaleWidthToActual(70) + "px",
-            }}
           >
             {value}
           </FieldButton>
@@ -803,14 +769,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       );
     }),
     createFieldLocalMatchComponent("role", 250, 1150, 500, 150, (match) => (
-      <FieldButton
-        color={COLORS.PRIMARY}
-        sx={{
-          fontSize: scaleWidthToActual(80) + "px",
-        }}
-      >
-        Role
-      </FieldButton>
+      <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>
     )),
     ...[225, 685, 1145, 1605].map((x, index) => {
       const value = ["N/A", "Defense", "Coral Cycle", "Algae Cycle"][index];
@@ -827,9 +786,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               match.setEndgame({ ...match.endgame, role: value });
             }}
             drawBorder={match.endgame.role === value}
-            sx={{
-              fontSize: scaleWidthToActual(70) + "px",
-            }}
           >
             {value}
           </FieldButton>
@@ -848,7 +804,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             htmlFor="comments"
             style={{
               color: "black",
-              fontSize: scaleWidthToActual(100) + "px",
             }}
           >
             COMMENTS:
@@ -864,7 +819,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             style={{
               width: "100%",
               height: "100%",
-              fontSize: scaleWidthToActual(100) + "px",
             }}
           ></textarea>
         </>

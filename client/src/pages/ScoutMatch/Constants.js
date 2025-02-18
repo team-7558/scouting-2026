@@ -1,3 +1,6 @@
+export const ACTIONS = { ACQUIRE: "acquire", DEPOSIT: "deposit", HANG: "hang" };
+export const GAME_PIECES = { CORAL: "coral", ALGAE: "algae" };
+
 export const MATCH_BUTTONS = {
   TELE: "TELE",
   DEFENCE: "DEFENCE",
@@ -22,10 +25,10 @@ export const GAME_LOCATIONS = {
     KL: "REEF_KL",
   },
   REEF_LEVEL: {
-    4: "4",
-    3: "3",
-    2: "2",
     1: "1",
+    2: "2",
+    3: "3",
+    4: "4",
   },
   NET: "NET",
   PROCESSOR: "PROCESSOR",

@@ -22,10 +22,10 @@ export const BlueTheme = createTheme({
       main: "#81C784",
     },
     algaeDropoff: {
-      main: "#388E3C"
+      main: "#388E3C",
     },
     cancel: {
-      main: "#9E9E9E"
-    }
+      main: "#9E9E9E",
+    },
   },
 });

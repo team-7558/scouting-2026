@@ -19,7 +19,14 @@ import AlgaeIcon from "../../assets/scouting-2025/algaeIcon.png";
 import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
 
 // Import locations and positions from Constants.js
-import { GAME_LOCATIONS, POSITIONS } from "./Constants.js";
+import {
+  GAME_LOCATIONS,
+  POSITIONS,
+  ACTIONS,
+  GAME_PIECES,
+} from "./Constants.js";
+const { ACQUIRE, DEPOSIT, HANG } = ACTIONS;
+const { CORAL, ALGAE } = GAME_PIECES;
 
 const COLORS = {
   PENDING: "info",
@@ -27,10 +34,11 @@ const COLORS = {
   DISABLED: "disabled",
   ACTIVE: "primary",
   CORALPICKUP: "coralPickup",
-  CORALDROPOFF: "coralDropoff",
   ALGAEPICKUP: "algaePickup",
+  CORALDROPOFF: "coralDropoff",
   ALGAEDROPOFF: "algaeDropoff",
-  CANCEL: "cancel",
+  DROP: "warning",
+  CANCEL: "error",
 };
 
 // Canvas Helpers
@@ -142,6 +150,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       // TODO Update cycles when scored
       // Note: updateCoral re-writes the entire state intentionally.
       updateCoral({});
+      clearUnfinished();
     }
   }, [coral.depositTime]);
 
@@ -151,8 +160,29 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       console.log("algae cycle: " + JSON.stringify(algae));
       // TODO Update cycles when scored
       setAlgae({});
+      clearUnfinished();
     }
   }, [algae.depositTime]);
+
+  useEffect(() => {
+    if (coral.attainedTime != null) {
+      console.log("coral cycle: " + JSON.stringify(coral));
+      // TODO Update cycles when scored
+      // Note: updateCoral re-writes the entire state intentionally.
+      updateCoral({});
+      clearUnfinished();
+    }
+  }, [coral.attainedTime]);
+
+  // Only run when algae.depositTime changes
+  useEffect(() => {
+    if (algae.attainedTime != null) {
+      console.log("algae cycle: " + JSON.stringify(algae));
+      // TODO Update cycles when scored
+      setAlgae({});
+      clearUnfinished();
+    }
+  }, [algae.attainedTime]);
 
   // Only run when defense.endTime changes
   useEffect(() => {
@@ -265,6 +295,119 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     );
   };
 
+  const createTask = (action, gamepiece = null) => ({
+    action: action,
+    gamepiece: gamepiece,
+  });
+
+  const clearUnfinishedGamepiece = (gamepieceState, setter) => {
+    if (gamepieceState?.attainedTime == null) {
+      setter({});
+      return;
+    }
+    if (gamepieceState?.depositTime == null) {
+      setter({ ...gamepieceState, depositLocation: null });
+      return;
+    }
+  };
+
+  const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
+    // console.log(matchContext);
+    clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
+    clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
+    matchContext.setHang({});
+  };
+
+  const isUnfinished = (location, time) => location != null && time == null;
+  const hasUnfinished = (matchContext = CONTEXT_WRAPPER) => {
+    return (
+      isUnfinished(
+        matchContext.coral.attainedLocation,
+        matchContext.coral.attainedTime
+      ) ||
+      isUnfinished(
+        matchContext.coral.depositLocation,
+        matchContext.coral.depositTime
+      ) ||
+      isUnfinished(
+        matchContext.algae.attainedLocation,
+        matchContext.algae.attainedTime
+      ) ||
+      isUnfinished(
+        matchContext.algae.depositLocation,
+        matchContext.algae.depositTime
+      ) ||
+      isUnfinished(matchContext.hang.position, matchContext.hang.time)
+    );
+  };
+
+  // don't add default matchContext here
+  const startAcquireGamepiece = (location, gamepiece, matchContext) => {
+    console.log("acquiring: ", gamepiece, location);
+    switch (gamepiece) {
+      case GAME_PIECES.CORAL:
+        if (!matchContext.hasCoral()) {
+          matchContext.setCoral({ attainedLocation: location });
+        }
+        break;
+      case GAME_PIECES.ALGAE:
+        if (!matchContext.hasAlgae()) {
+          matchContext.setAlgae({ attainedLocation: location });
+        }
+        break;
+    }
+  };
+
+  // don't add default matchContext here
+  const startDepositGamepiece = (location, gamepiece, matchContext) => {
+    console.log("depositing: ", gamepiece, location);
+    switch (gamepiece) {
+      case GAME_PIECES.CORAL:
+        matchContext.setCoral({
+          ...matchContext.coral,
+          depositLocation: location,
+        });
+        break;
+      case GAME_PIECES.ALGAE:
+        matchContext.setAlgae({
+          ...matchContext.algae,
+          depositLocation: location,
+        });
+        break;
+    }
+  };
+
+  const startHang = (location, matchContext) => {
+    console.log("starting hang", location);
+    matchContext.setHang(location);
+  };
+
+  // actions is a map of gamepiece transformations to be executed
+  const startPendingTasks = (
+    location,
+    tasks,
+    matchContext = CONTEXT_WRAPPER
+  ) => {
+    clearUnfinished();
+
+    // console.log("executing: ", actions);
+    for (let i in tasks) {
+      console.log(tasks[i]);
+      let task = tasks[i];
+      switch (task.action) {
+        case ACQUIRE:
+          startAcquireGamepiece(location, task.gamepiece, matchContext);
+          break;
+        case DEPOSIT:
+          startDepositGamepiece(location, task.gamepiece, matchContext);
+          break;
+        case HANG:
+          startHang(location, matchContext);
+          break;
+      }
+    }
+  };
+
   const StartingPositionSlider = (match) => {
     const leftIsOnTop = true;
     const flipSlider = -1 * leftIsOnTop;
@@ -334,30 +477,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           sx={{ borderRadius: "50%" }}
           disabled={match.hasAlgae() && match.hasCoral()}
           onClick={() => {
-            if (!match.hasCoral()) {
-              match.setCoral({
-                attainedLocation: key,
-                attainedTime: null,
-                depositLocation: null,
-                depositTime: null,
-              });
-            } else if (match.coral.depositTime == null) {
-              match.setCoral({
-                ...match.coral,
-                depositLocation: null,
-              });
-            }
-            if (!match.hasAlgae()) {
-              match.setAlgae({
-                attainedLocation: key,
-                attainedTime: null,
-                depositLocation: null,
-                depositTime: null,
-              });
-            } else {
-              match.setAlgae({ ...match.algae, depositLocation: null });
-            }
-            match.setHang({});
+            startPendingTasks(
+              key,
+              [createTask(ACQUIRE, CORAL), createTask(ACQUIRE, ALGAE)],
+              match
+            );
           }}
         ></FieldButton>
       ));
@@ -403,18 +527,16 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             color={COLORS.ACTIVE}
             disabled={match.hasCoral()}
             onClick={() => {
-              match.setCoral({
-                attainedLocation: coralKey,
-                attainedTime: null,
-                depositLocation: null,
-                depositTime: null,
-              });
-              if (!match.hasAlgae()) {
-                match.setAlgae({});
-              } else {
-                match.setAlgae({ ...match.algae, depositLocation: null });
-              }
-              match.setHang({});
+              startPendingTasks(
+                coralKey,
+                [
+                  {
+                    action: ACQUIRE,
+                    gamepiece: GAME_PIECES.CORAL,
+                  },
+                ],
+                match
+              );
             }}
             drawBorder={
               !match.hasCoral() && match.coral.attainedLocation === coralKey
@@ -440,32 +562,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             color={COLORS.PENDING}
             disabled={!match.hasCoral() && match.hasAlgae()}
             onClick={() => {
-              if (match.hasCoral()) {
-                match.setCoral({
-                  attainedLocation: match.coral.attainedLocation,
-                  attainedTime: match.coral.attainedTime,
-                  depositLocation: reefKey,
-                  depositTime: null,
-                });
-              } else {
-                match.setCoral({
-                  attainedLocation: null,
-                  attainedTime: null,
-                  depositLocation: reefKey,
-                  depositTime: null,
-                });
-              }
-              if (!match.hasAlgae()) {
-                match.setAlgae({
-                  attainedLocation: reefKey,
-                  attainedTime: null,
-                  depositLocation: null,
-                  depositTime: null,
-                });
-              } else if (match.algae.depositTime == null) {
-                match.setAlgae({ ...match.algae, depositLocation: null });
-              }
-              match.setHang({});
+              startPendingTasks(
+                reefKey,
+                [createTask(DEPOSIT, CORAL), createTask(ACQUIRE, ALGAE)],
+                match
+              );
             }}
             drawBorder={
               (match.coral.depositLocation === reefKey &&
@@ -491,18 +592,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           color={COLORS.ACTIVE}
           disabled={!match.hasAlgae()}
           onClick={() => {
-            match.setAlgae({
-              attainedLocation: match.algae.attainedLocation,
-              attainedTime: match.algae.attainedTime,
-              depositLocation: GAME_LOCATIONS.PROCESSOR,
-              depositTime: null,
-            });
-            if (!match.hasCoral()) {
-              match.setCoral({});
-            } else if (match.coral.depositTime == null) {
-              match.setCoral({ ...match.coral, depositLocation: null });
-            }
-            match.setHang({});
+            startPendingTasks(
+              GAME_LOCATIONS.PROCESSOR,
+              [createTask(DEPOSIT, ALGAE)],
+              match
+            );
           }}
         >
           Score Processor
@@ -521,18 +615,11 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           color={COLORS.ACTIVE}
           disabled={!match.hasAlgae()}
           onClick={() => {
-            match.setAlgae({
-              attainedLocation: match.algae.attainedLocation,
-              attainedTime: match.algae.attainedTime,
-              depositLocation: GAME_LOCATIONS.NET,
-              depositTime: null,
-            });
-            if (!match.hasCoral()) {
-              match.setCoral({});
-            } else if (match.coral.depositTime == null) {
-              match.setCoral({ ...match.coral, depositLocation: null });
-            }
-            match.setHang({});
+            startPendingTasks(
+              GAME_LOCATIONS.NET,
+              [createTask(DEPOSIT, ALGAE)],
+              match
+            );
           }}
         >
           Score Net
@@ -557,8 +644,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // Coral icon component
     createFieldLocalMatchComponent(
       "coralIcon",
-      2500,
-      300,
+      2000,
+      200,
       400,
       200,
       (match) => (
@@ -587,7 +674,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // Algae icon component
     createFieldLocalMatchComponent(
       "algaeIcon",
-      2500,
+      2000,
       450,
       400,
       200,
@@ -646,6 +733,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           color={COLORS.PENDING}
           drawBorder={match.hang.position === index}
           onClick={() => {
+            // TODO Update to startPendingTasks
             match.setHang({
               ...match.hang,
               position: index,
@@ -857,29 +945,17 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
             height={scaledBoxRect.height}
             children={fieldChildren}
             onClick={(x, y) => {
-              if (!hasCoral()) {
-                setCoral({
-                  ...coral,
-                  attainedLocation: [x, y],
-                });
-              } else {
-                setCoral({
-                  ...coral,
-                  depositLocation: [x, y],
-                });
-              }
-
-              if (!hasAlgae()) {
-                setAlgae({
-                  ...algae,
-                  attainedLocation: [x, y],
-                });
-              } else {
-                setAlgae({
-                  ...algae,
-                  depositLocation: [x, y],
-                });
-              }
+              startPendingTasks(
+                [x, y],
+                [
+                  hasCoral()
+                    ? createTask(DEPOSIT, CORAL)
+                    : createTask(ACQUIRE, CORAL),
+                  hasAlgae()
+                    ? createTask(DEPOSIT, ALGAE)
+                    : createTask(ACQUIRE, ALGAE),
+                ]
+              );
             }}
             phase={phase}
           />
@@ -954,62 +1030,39 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         Object.values(GAME_LOCATIONS.REEF).includes(coral.depositLocation)
       ) {
         drawCancelButton = true;
-        Object.values(GAME_LOCATIONS.REEF_LEVEL).forEach((level) => {
-          buttonsList.push({
-            id: `reefLevel_${level}`,
-            flexWeight: 1,
-            component: (
-              <Button
-                variant="contained"
-                color={COLORS.CORALDROPOFF}
-                onClick={() => {
-                  updateCoral({
-                    ...coral,
-                    depositLocation: coral.depositLocation + `L${level}`,
-                    depositTime: currentTime,
-                  });
-                  if (!hasAlgae()) {
-                    updateAlgae({});
-                  }
-                }}
-              >
-                L{level}
-              </Button>
-            ),
+        Object.keys(GAME_LOCATIONS.REEF_LEVEL)
+          .sort()
+          .reverse()
+          .forEach((level) => {
+            buttonsList.push({
+              id: `reefLevel_${level}`,
+              flexWeight: 1,
+              component: (
+                <Button
+                  variant="contained"
+                  color={COLORS.CORALDROPOFF}
+                  onClick={() => {
+                    updateCoral({
+                      ...coral,
+                      depositLocation: coral.depositLocation + `L${level}`,
+                      depositTime: currentTime,
+                    });
+                    if (!hasAlgae()) {
+                      updateAlgae({});
+                    }
+                  }}
+                >
+                  L{level}
+                </Button>
+              ),
+            });
           });
-        });
-        buttonsList.push({
-          id: "reefDrop",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.CORALDROPOFF}
-              onClick={() => {
-                updateCoral({
-                  ...coral,
-                  depositLocation: "DROP",
-                  depositTime: currentTime,
-                });
-                if (!hasAlgae()) {
-                  updateAlgae({});
-                }
-              }}
-            >
-              DROP CORAL
-            </Button>
-          ),
-        });
       }
 
-      // --- REEF ALGAE PICKUP BUTTON ---
-      if (
-        !hasAlgae() &&
-        Object.values(GAME_LOCATIONS.REEF).includes(algae.attainedLocation)
-      ) {
+      if (isUnfinished(algae.attainedLocation, algae.attainedTime)) {
         drawCancelButton = true;
         buttonsList.push({
-          id: "algaePickupReef",
+          id: "PICKUP_ALGAE",
           flexWeight: 1,
           component: (
             <Button
@@ -1017,7 +1070,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               color={COLORS.ALGAEPICKUP}
               onClick={() => {
                 updateAlgae({ ...algae, attainedTime: currentTime });
-                updateCoral({ ...coral, depositLocation: null });
               }}
             >
               PICKUP ALGAE
@@ -1026,16 +1078,9 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         });
       }
 
-      // --- CORAL_MARK BUTTONS ---
-      if (
-        !hasCoral() &&
-        Object.values(GAME_LOCATIONS.CORAL_MARK).includes(
-          coral.attainedLocation
-        )
-      ) {
-        drawCancelButton = true;
+      if (isUnfinished(coral.attainedLocation, coral.attainedTime)) {
         buttonsList.push({
-          id: `coralPickupMark_${coral.attainedLocation}`,
+          id: "PICKUP_CORAL",
           flexWeight: 1,
           component: (
             <Button
@@ -1043,90 +1088,12 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               color={COLORS.CORALPICKUP}
               onClick={() => {
                 updateCoral({ ...coral, attainedTime: currentTime });
-                if (!hasAlgae()) {
-                  updateAlgae({});
-                }
               }}
             >
               PICKUP CORAL
             </Button>
           ),
         });
-      }
-
-      if (
-        !hasAlgae() &&
-        Object.values(GAME_LOCATIONS.CORAL_MARK).includes(
-          algae.attainedLocation
-        )
-      ) {
-        drawCancelButton = true;
-        buttonsList.push({
-          id: `coralPickupMark_${coral.attainedLocation}`,
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.CORALPICKUP}
-              onClick={() => {
-                updateAlgae({ ...algae, attainedTime: currentTime });
-                if (!hasCoral()) {
-                  updateCoral({});
-                }
-              }}
-            >
-              PICKUP AlGAE
-            </Button>
-          ),
-        });
-      }
-
-      // --- CORAL_STATION BUTTONS ---
-      // Similarly, iterate over coral station keys.
-      if (
-        !hasCoral() &&
-        Object.values(GAME_LOCATIONS.CORAL_STATION).includes(
-          coral.attainedLocation
-        )
-      ) {
-        drawCancelButton = true;
-        buttonsList.push(
-          {
-            id: `coralPickupStation_${coral.attainedLocation}`,
-            flexWeight: 1,
-            component: (
-              <Button
-                variant="contained"
-                color={COLORS.CORALPICKUP}
-                onClick={() => {
-                  updateCoral({ ...coral, attainedTime: currentTime });
-                }}
-              >
-                CORAL PICKUP
-              </Button>
-            ),
-          },
-          {
-            id: `coralDropoffStation_${coral.attainedLocation}`,
-            flexWeight: 1,
-            component: (
-              <Button
-                variant="contained"
-                color={COLORS.CORALDROPOFF}
-                onClick={() => {
-                  updateCoral({
-                    ...coral,
-                    attainedTime: currentTime,
-                    depositLocation: "DROP",
-                    depositTime: currentTime,
-                  });
-                }}
-              >
-                DROP CORAL
-              </Button>
-            ),
-          }
-        );
       }
 
       // --- PROCESSOR/NET SCORE MENU ---
@@ -1152,89 +1119,55 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         });
       }
 
-      // Ground pickup/dropoff for coral:
-      if (
-        (Array.isArray(coral.attainedLocation) && coral.attainedTime == null) ||
-        (Array.isArray(coral.depositLocation) && coral.depositTime == null)
-      ) {
-        drawCancelButton = true;
+      if (isUnfinished(coral.depositLocation, coral.depositTime)) {
         buttonsList.push({
-          id: "groundCoral",
+          id: "DROP_CORAL",
           flexWeight: 1,
           component: (
             <Button
               variant="contained"
-              color={hasCoral() ? COLORS.CORALDROPOFF : COLORS.CORALPICKUP}
+              color={COLORS.DROP}
               onClick={() => {
-                if (hasCoral()) {
-                  setCoral({ ...coral, depositTime: currentTime });
-                } else {
-                  setCoral({ ...coral, attainedTime: currentTime });
-                }
-                if (algae.attainedTime == null) {
-                  setAlgae({});
-                } else if (algae.depositTime == null) {
-                  setAlgae({ ...algae, depositLocation: null });
-                }
+                updateCoral({ ...coral, depositTime: currentTime });
               }}
             >
-              CORAL {hasCoral() ? "DROPOFF" : "PICKUP"}
+              DROP CORAL
             </Button>
           ),
         });
       }
 
-      // Ground pickup/dropoff for algae:
-      if (
-        (Array.isArray(algae.attainedLocation) && algae.attainedTime == null) ||
-        (Array.isArray(algae.depositLocation) && algae.depositTime == null)
-      ) {
-        drawCancelButton = true;
+      if (isUnfinished(algae.depositLocation, algae.depositTime)) {
         buttonsList.push({
-          id: "groundAlgae",
+          id: "DROP_CORAL",
           flexWeight: 1,
           component: (
             <Button
               variant="contained"
-              color={hasAlgae() ? COLORS.CORALDROPOFF : COLORS.CORALPICKUP}
+              color={COLORS.DROP}
               onClick={() => {
-                if (hasAlgae()) {
-                  setAlgae({ ...algae, depositTime: currentTime });
-                } else {
-                  setAlgae({ ...algae, attainedTime: currentTime });
-                }
-                if (coral.attainedTime == null) {
-                  setCoral({});
-                } else if (coral.depositTime == null) {
-                  setCoral({ ...coral, depositLocation: null });
-                }
+                updateAlgae({ ...algae, depositTime: currentTime });
+                // clearUnfinished();
               }}
             >
-              ALGAE {hasAlgae() ? "DROPOFF" : "PICKUP"}
+              DROP ALGAE
             </Button>
           ),
         });
       }
 
-      // Cancel Button:
-      const cancel = () => {
-        if (!hasCoral()) {
-          setCoral({});
-        } else if (coral.depositTime == null) {
-          setCoral({ ...coral, depositLocation: null });
-        }
-        if (!hasAlgae()) {
-          setAlgae({});
-        } else if (coral.depositTime == null) {
-          setAlgae({ ...algae, depositLocation: null });
-        }
-      };
-      if (drawCancelButton) {
+      if (hasUnfinished()) {
         buttonsList.push({
           id: "cancel",
           flexWeight: 1,
           component: (
-            <Button variant="contained" color={COLORS.PENDING} onClick={cancel}>
+            <Button
+              variant="contained"
+              color={COLORS.PENDING}
+              onClick={(e) => {
+                clearUnfinished();
+              }}
+            >
               cancel
             </Button>
           ),

@@ -846,7 +846,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       <Box
         sx={{
           transform: `translateX(${
-            isDefending && !phase === PHASES.POSTMATCH ? -56 : 0
+            isDefending && phase != PHASES.POSTMATCH ? -56 : 0
           }%)`,
         }}
       >

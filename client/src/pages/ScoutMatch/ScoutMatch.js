@@ -300,6 +300,43 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     gamepiece: gamepiece,
   });
 
+  // New helper function for creating sidebar buttons.
+  // Now the common styling logic is included via React.cloneElement.
+  const createSidebarButton = ({
+    id,
+    flexWeight = 1,
+    label,
+    onClick,
+    color,
+    disabled = false,
+    extraSx = {},
+    show = true,
+  }) => {
+    if (!show) return null;
+    const defaultSx = {
+      width: "90%",
+      height: "90%",
+      fontSize: scaleWidthToActual(100) + "px",
+      borderRadius: scaleWidthToActual(150) + "px",
+    };
+    return {
+      id,
+      flexWeight,
+      component: React.cloneElement(
+        <Button
+          variant="contained"
+          color={color}
+          disabled={disabled}
+          onClick={onClick}
+          sx={{ ...extraSx }}
+        >
+          {label}
+        </Button>,
+        { sx: { ...defaultSx, ...extraSx } }
+      ),
+    };
+  };
+
   const clearUnfinishedGamepiece = (gamepieceState, setter) => {
     if (gamepieceState?.attainedTime == null) {
       setter({});
@@ -513,7 +550,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
   ];
   const AutoTeleChildren = [
     // Coral Stations
-    Object.keys(GAME_LOCATIONS.CORAL_STATION).map((position, index) => {
+    ...Object.keys(GAME_LOCATIONS.CORAL_STATION).map((position, index) => {
       const coralKey = GAME_LOCATIONS.CORAL_STATION[position];
       const [x, y] = POSITIONS[coralKey];
       return createFieldLocalMatchComponent(
@@ -548,7 +585,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       );
     }),
     // Reef Buttons
-    Object.keys(GAME_LOCATIONS.REEF).map((position, index) => {
+    ...Object.keys(GAME_LOCATIONS.REEF).map((position, index) => {
       const reefKey = GAME_LOCATIONS.REEF[position];
       const [x, y] = POSITIONS[reefKey];
       return createFieldLocalMatchComponent(
@@ -725,7 +762,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         {match.isDefending ? "Cycle" : "Defend"}
       </FieldButton>
     )),
-    Object.keys(GAME_LOCATIONS.HANG).map((position, index) => {
+    ...Object.keys(GAME_LOCATIONS.HANG).map((position, index) => {
       const key = GAME_LOCATIONS.HANG[position];
       const [x, y] = POSITIONS[key];
       return createFieldLocalMatchComponent(key, x, y, 250, 200, (match) => (
@@ -754,7 +791,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         </FieldButton>
       ));
     }),
-
     // post-match button
     createFieldLocalMatchComponent(
       "postMatch",
@@ -969,354 +1005,248 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
     if (phase === PHASES.PREMATCH) {
       buttonsList = [
-        {
-          id: 0,
+        createSidebarButton({
+          id: "startMatch",
           flexWeight: 2,
-          component: (
-            <Button
-              variant="contained"
-              color={startingPosition < 0 ? "disabled" : COLORS.ACTIVE}
-              disabled={startingPosition < 0}
-              onClick={() => {
-                setMatchStartTime(Date.now());
-                setPhase(PHASES.AUTO);
-              }}
-              sx={{
-                width: "100%",
-                height: "100%",
-                fontSize: "1.5rem",
-              }}
-            >
-              Start Match
-            </Button>
-          ),
-        },
-        {
-          id: 1,
+          label: "Start Match",
+          onClick: () => {
+            setMatchStartTime(Date.now());
+            setPhase(PHASES.AUTO);
+          },
+          color: startingPosition < 0 ? "disabled" : COLORS.ACTIVE,
+          disabled: startingPosition < 0,
+          extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
+          show: startingPosition >= 0,
+        }),
+        createSidebarButton({
+          id: "preload",
           flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={hasCoral() ? COLORS.SUCCESS : COLORS.PENDING}
-              onClick={() => {
-                setCoral(
-                  hasCoral()
-                    ? {}
-                    : { attainedLocation: "preload", attainedTime: 0 }
-                );
-              }}
-              sx={{
-                width: "100%",
-                height: "100%",
-                fontSize: "1.5rem",
-              }}
-            >
-              {hasCoral() ? "Preload Coral" : "No Preload"}
-            </Button>
-          ),
-        },
-      ];
+          label: hasCoral() ? "Preload Coral" : "No Preload",
+          onClick: () => {
+            setCoral(
+              hasCoral() ? {} : { attainedLocation: "preload", attainedTime: 0 }
+            );
+          },
+          color: hasCoral() ? COLORS.SUCCESS : COLORS.PENDING,
+          extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
+          show: true,
+        }),
+      ].filter(Boolean);
     } else if (
       (phase === PHASES.AUTO || phase === PHASES.TELE) &&
       !isDefending &&
       hang.position == null
     ) {
-      // STANDARD AUTO/TELE
-      let drawCancelButton = false;
-
-      // --- REEF SCORE BUTTONS
-      if (
-        hasCoral() &&
-        Object.values(GAME_LOCATIONS.REEF).includes(coral.depositLocation)
-      ) {
-        drawCancelButton = true;
-        Object.keys(GAME_LOCATIONS.REEF_LEVEL)
-          .sort()
-          .reverse()
-          .forEach((level) => {
-            buttonsList.push({
+      // REEF SCORE BUTTONS
+      Object.keys(GAME_LOCATIONS.REEF_LEVEL)
+        .sort()
+        .reverse()
+        .forEach((level) => {
+          buttonsList.push(
+            createSidebarButton({
               id: `reefLevel_${level}`,
-              flexWeight: 1,
-              component: (
-                <Button
-                  variant="contained"
-                  color={COLORS.CORALDROPOFF}
-                  onClick={() => {
-                    updateCoral({
-                      ...coral,
-                      depositLocation: coral.depositLocation + `L${level}`,
-                      depositTime: currentTime,
-                    });
-                    if (!hasAlgae()) {
-                      updateAlgae({});
-                    }
-                  }}
-                >
-                  L{level}
-                </Button>
-              ),
-            });
-          });
-      }
+              label: `L${level}`,
+              onClick: () => {
+                updateCoral({
+                  ...coral,
+                  depositLocation: coral.depositLocation + `L${level}`,
+                  depositTime: currentTime,
+                });
+                if (!hasAlgae()) {
+                  updateAlgae({});
+                }
+              },
+              color: COLORS.CORALDROPOFF,
+              show:
+                hasCoral() &&
+                Object.values(GAME_LOCATIONS.REEF).includes(
+                  coral.depositLocation
+                ),
+            })
+          );
+        });
 
-      if (isUnfinished(algae.attainedLocation, algae.attainedTime)) {
-        drawCancelButton = true;
-        buttonsList.push({
+      buttonsList.push(
+        createSidebarButton({
           id: "PICKUP_ALGAE",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.ALGAEPICKUP}
-              onClick={() => {
-                updateAlgae({ ...algae, attainedTime: currentTime });
-              }}
-            >
-              PICKUP ALGAE
-            </Button>
-          ),
-        });
-      }
+          label: "PICKUP ALGAE",
+          onClick: () => {
+            updateAlgae({ ...algae, attainedTime: currentTime });
+          },
+          color: COLORS.ALGAEPICKUP,
+          show: isUnfinished(algae.attainedLocation, algae.attainedTime),
+        })
+      );
 
-      if (isUnfinished(coral.attainedLocation, coral.attainedTime)) {
-        buttonsList.push({
+      buttonsList.push(
+        createSidebarButton({
           id: "PICKUP_CORAL",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.CORALPICKUP}
-              onClick={() => {
-                updateCoral({ ...coral, attainedTime: currentTime });
-              }}
-            >
-              PICKUP CORAL
-            </Button>
-          ),
-        });
-      }
+          label: "PICKUP CORAL",
+          onClick: () => {
+            updateCoral({ ...coral, attainedTime: currentTime });
+          },
+          color: COLORS.CORALPICKUP,
+          show: isUnfinished(coral.attainedLocation, coral.attainedTime),
+        })
+      );
 
-      // --- PROCESSOR/NET SCORE MENU ---
+      // PROCESSOR/NET SCORE MENU
       if (
         algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
         algae.depositLocation === GAME_LOCATIONS.NET
       ) {
-        drawCancelButton = true;
-        buttonsList.push({
-          id: "scoreProcessor",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.ALGAEDROPOFF}
-              onClick={() => {
-                updateAlgae({ ...algae, depositTime: currentTime });
-              }}
-            >
-              Score {algae.depositLocation}
-            </Button>
-          ),
-        });
+        buttonsList.push(
+          createSidebarButton({
+            id: "scoreProcessor",
+            label: `Score ${algae.depositLocation}`,
+            onClick: () => {
+              updateAlgae({ ...algae, depositTime: currentTime });
+            },
+            color: COLORS.ALGAEDROPOFF,
+            show: true,
+          })
+        );
       }
 
-      if (isUnfinished(coral.depositLocation, coral.depositTime)) {
-        buttonsList.push({
+      buttonsList.push(
+        createSidebarButton({
           id: "DROP_CORAL",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.DROP}
-              onClick={() => {
-                updateCoral({ ...coral, depositTime: currentTime });
-              }}
-            >
-              DROP CORAL
-            </Button>
-          ),
-        });
-      }
+          label: "DROP CORAL",
+          onClick: () => {
+            updateCoral({ ...coral, depositTime: currentTime });
+          },
+          color: COLORS.DROP,
+          show: isUnfinished(coral.depositLocation, coral.depositTime),
+        })
+      );
 
-      if (isUnfinished(algae.depositLocation, algae.depositTime)) {
-        buttonsList.push({
-          id: "DROP_CORAL",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.DROP}
-              onClick={() => {
-                updateAlgae({ ...algae, depositTime: currentTime });
-                // clearUnfinished();
-              }}
-            >
-              DROP ALGAE
-            </Button>
-          ),
-        });
-      }
+      buttonsList.push(
+        createSidebarButton({
+          id: "DROP_ALGAE",
+          label: "DROP ALGAE",
+          onClick: () => {
+            updateAlgae({ ...algae, depositTime: currentTime });
+          },
+          color: COLORS.DROP,
+          show: isUnfinished(algae.depositLocation, algae.depositTime),
+        })
+      );
 
-      if (hasUnfinished()) {
-        buttonsList.push({
+      buttonsList.push(
+        createSidebarButton({
           id: "cancel",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.PENDING}
-              onClick={(e) => {
-                clearUnfinished();
-              }}
-            >
-              cancel
-            </Button>
-          ),
-        });
-      }
+          label: "cancel",
+          onClick: () => {
+            clearUnfinished();
+          },
+          color: COLORS.PENDING,
+          show: hasUnfinished(),
+        })
+      );
     } else if (
       phase === PHASES.AUTO ||
       (phase === PHASES.TELE && isDefending)
     ) {
-      if (defense.defendingTeam == null) {
-        enemies.forEach((enemy, index) => {
-          buttonsList.push({
+      enemies.forEach((enemy, index) => {
+        buttonsList.push(
+          createSidebarButton({
             id: `defense_${index}`,
-            flexWeight: 1,
-            component: (
-              <Button
-                variant="contained"
-                color={COLORS.PENDING}
-                onClick={() => {
-                  setDefense({
-                    startTime: currentTime,
-                    defendingTeam: enemy,
-                    endTime: null,
-                  });
-                }}
-              >
-                {enemy}
-              </Button>
-            ),
-          });
-        });
-      } else {
-        buttonsList.push({
-          id: "stopDefending",
-          flexWeight: 1,
-          component: (
-            <Button
-              variant="contained"
-              color={COLORS.PENDING}
-              onClick={() => {
-                setDefense({ ...defense, endTime: currentTime });
-              }}
-            >
-              STOP DEFENDING
-            </Button>
-          ),
-        });
-      }
-    } else if (phase === PHASES.TELE && hang.position != null) {
-      Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
-        buttonsList.push({
-          id: `hangDepth_${index}`,
-          flexWeight: 1,
-          component: (
-            <Button
-              color={COLORS.PENDING}
-              variant="contained"
-              onClick={() => {
-                setHang({ ...hang, time: currentTime, height });
-              }}
-            >
-              {height}
-            </Button>
-          ),
-        });
-      });
-      buttonsList.push({
-        id: "cancelHang",
-        flexWeight: 1,
-        component: (
-          <Button
-            variant="contained"
-            color={COLORS.PENDING}
-            onClick={() => {
-              setHang({ time: null, position: null, depth: null });
-            }}
-          >
-            CANCEL
-          </Button>
-        ),
-      });
-    } else if (phase === PHASES.POSTMATCH) {
-      buttonsList.push({
-        id: "submit",
-        flexWeight: 1,
-        component: (
-          <Button
-            variant="contained"
-            color={COLORS.PENDING}
-            onClick={() => {
-              setMatchStartTime(-1);
-              setCurrentTime(0);
-              setPhase(PHASES.PREMATCH);
-
-              // robot state
-              setIsDefending(false);
-              setStartingPosition(-1);
-              setCoral({
-                attainedLocation: null,
-                attainedTime: null,
-                depositLocation: null,
-                depositTime: null,
-              });
-              setAlgae({
-                attainedLocation: null,
-                attainedTime: null,
-                depositLocation: null,
-                depositTime: null,
-              });
+            label: `${enemy}`,
+            onClick: () => {
               setDefense({
-                defendingTeam: null,
-                startTime: null,
+                startTime: currentTime,
+                defendingTeam: enemy,
                 endTime: null,
               });
-              setHang({
-                time: null,
-                position: null,
-                height: null,
-              });
-              setEndgame({
-                disabled: false,
-                driverSkill: "N/A",
-                defenseSkill: "N/A",
-                role: "N/A",
-                comments: "",
-              });
-            }}
-          >
-            SUBMIT
-          </Button>
-        ),
+            },
+            color: COLORS.PENDING,
+            show: defense.defendingTeam == null,
+          })
+        );
       });
-    }
-
-    // Clone components to add common styling
-    for (let i = 0; i < buttonsList.length; i++) {
-      const button = buttonsList[i];
-      buttonsList[i] = {
-        ...button,
-        component: React.cloneElement(button.component, {
-          sx: {
-            width: "90%",
-            height: "90%",
-            fontSize: scaleWidthToActual(100) + "px",
-            borderRadius: scaleWidthToActual(150) + "px",
-            ...button.component.sx,
+      buttonsList.push(
+        createSidebarButton({
+          id: "stopDefending",
+          label: "STOP DEFENDING",
+          onClick: () => {
+            setDefense({ ...defense, endTime: currentTime });
           },
-        }),
-      };
+          color: COLORS.PENDING,
+          show: defense.defendingTeam != null,
+        })
+      );
+    } else if (phase === PHASES.TELE && hang.position != null) {
+      Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
+        buttonsList.push(
+          createSidebarButton({
+            id: `hangDepth_${index}`,
+            label: `${height}`,
+            onClick: () => {
+              setHang({ ...hang, time: currentTime, height });
+            },
+            color: COLORS.PENDING,
+            show: true,
+          })
+        );
+      });
+      buttonsList.push(
+        createSidebarButton({
+          id: "cancelHang",
+          label: "CANCEL",
+          onClick: () => {
+            setHang({ time: null, position: null, depth: null });
+          },
+          color: COLORS.PENDING,
+          show: true,
+        })
+      );
+    } else if (phase === PHASES.POSTMATCH) {
+      buttonsList.push(
+        createSidebarButton({
+          id: "submit",
+          label: "SUBMIT",
+          onClick: () => {
+            setMatchStartTime(-1);
+            setCurrentTime(0);
+            setPhase(PHASES.PREMATCH);
+
+            // robot state
+            setIsDefending(false);
+            setStartingPosition(-1);
+            setCoral({
+              attainedLocation: null,
+              attainedTime: null,
+              depositLocation: null,
+              depositTime: null,
+            });
+            setAlgae({
+              attainedLocation: null,
+              attainedTime: null,
+              depositLocation: null,
+              depositTime: null,
+            });
+            setDefense({
+              defendingTeam: null,
+              startTime: null,
+              endTime: null,
+            });
+            setHang({
+              time: null,
+              position: null,
+              height: null,
+            });
+            setEndgame({
+              disabled: false,
+              driverSkill: "N/A",
+              defenseSkill: "N/A",
+              role: "N/A",
+              comments: "",
+            });
+          },
+          color: COLORS.PENDING,
+          show: true,
+        })
+      );
     }
 
     return (
@@ -1330,7 +1260,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           overflowY: "auto",
         }}
       >
-        {buttonsList.map((button, index) => (
+        {buttonsList.filter(Boolean).map((button, index) => (
           <Box
             key={index}
             sx={{

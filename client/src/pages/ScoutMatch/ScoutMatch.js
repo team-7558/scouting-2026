@@ -502,6 +502,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     GAME_LOCATIONS.CORAL_MARK.RIGHT,
   ];
   const AutoChildren = [
+    //coral marks
     ...coralMarkKeys.map((key) => {
       const [x, y] = POSITIONS[key];
       return createFieldLocalMatchComponent(key, x, y, 200, 200, (match) => (
@@ -526,7 +527,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // Next phase (Tele) button
     createFieldLocalMatchComponent(
       "nextPhase",
-      2000,
+      2050,
       850,
       250,
       250,
@@ -664,7 +665,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       )
     ),
     // Timer remains unchanged
-    createFieldLocalMatchComponent("timer", 2500, 50, 300, 100, (match) => (
+    createFieldLocalMatchComponent("timer", 2100, 50, 300, 100, (match) => (
       <p
         style={{
           fontWeight: 1000,
@@ -681,9 +682,9 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // Coral icon component
     createFieldLocalMatchComponent(
       "coralIcon",
-      2000,
+      2050,
       200,
-      400,
+      200,
       200,
       (match) => (
         <span
@@ -711,9 +712,9 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // Algae icon component
     createFieldLocalMatchComponent(
       "algaeIcon",
-      2000,
-      450,
-      400,
+      2050,
+      350,
+      200,
       200,
       (match) => (
         <span
@@ -749,7 +750,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
   const TeleChildren = [
     // Defense button remains unchanged
-    createFieldLocalMatchComponent("defense", 2000, 900, 250, 250, (match) => (
+    createFieldLocalMatchComponent("defense", 2050, 900, 250, 250, (match) => (
       <FieldButton
         color={COLORS.PRIMARY}
         onClick={() => {
@@ -762,6 +763,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         {match.isDefending ? "Cycle" : "Defend"}
       </FieldButton>
     )),
+
     ...Object.keys(GAME_LOCATIONS.HANG).map((position, index) => {
       const key = GAME_LOCATIONS.HANG[position];
       const [x, y] = POSITIONS[key];
@@ -794,10 +796,10 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // post-match button
     createFieldLocalMatchComponent(
       "postMatch",
-      2500,
+      2050,
       1300,
-      300,
-      280,
+      250,
+      250,
       (match) => (
         <FieldButton
           color={COLORS.PRIMARY}
@@ -834,6 +836,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         )
       );
     }),
+
+    //driver skill
     createFieldLocalMatchComponent(
       "driverSkill",
       250,
@@ -842,13 +846,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>
     ),
-    ...[100, 350, 600, 850, 1100, 1350, 1600].map((x, index) => {
+    ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
       return createFieldLocalMatchComponent(
         `${index}DriverSkill`,
         x,
         600,
-        200,
+        150,
         100,
         (match) => (
           <FieldButton
@@ -863,6 +867,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         )
       );
     }),
+
+    //defense skill
     createFieldLocalMatchComponent(
       "defenseSkill",
       250,
@@ -871,13 +877,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
     ),
-    ...[100, 350, 600, 850, 1100, 1350, 1600].map((x, index) => {
+    ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
       return createFieldLocalMatchComponent(
         `${index}DefenseSkill`,
         x,
         950,
-        200,
+        150,
         100,
         (match) => (
           <FieldButton
@@ -892,16 +898,18 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         )
       );
     }),
+
+    //role
     createFieldLocalMatchComponent("role", 250, 1150, 500, 150, (match) => (
       <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>
     )),
-    ...[225, 685, 1145, 1605].map((x, index) => {
+    ...[200, 575, 950, 1325].map((x, index) => {
       const value = ["N/A", "Defense", "Coral Cycle", "Algae Cycle"][index];
       return createFieldLocalMatchComponent(
         `${index}Role`,
         x,
         1300,
-        450,
+        350,
         100,
         (match) => (
           <FieldButton
@@ -916,11 +924,13 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
         )
       );
     }),
+
+    //comments
     createFieldLocalMatchComponent(
       "comments",
-      2250,
+      1850,
       750,
-      750,
+      600,
       1400,
       (match) => (
         <>
@@ -1066,6 +1076,21 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           );
         });
 
+        buttonsList.push(
+          createSidebarButton({
+            id: "DROP_CORAL",
+            label: "DROP CORAL",
+            onClick: () => {
+              updateCoral({ ...coral, depositTime: currentTime });
+            },
+            color: COLORS.DROP,
+            show: hasCoral() &&
+            Object.values(GAME_LOCATIONS.REEF).includes(
+              coral.depositLocation
+            ),
+          })
+        );
+
       buttonsList.push(
         createSidebarButton({
           id: "PICKUP_ALGAE",
@@ -1107,18 +1132,6 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           })
         );
       }
-
-      buttonsList.push(
-        createSidebarButton({
-          id: "DROP_CORAL",
-          label: "DROP CORAL",
-          onClick: () => {
-            updateCoral({ ...coral, depositTime: currentTime });
-          },
-          color: COLORS.DROP,
-          show: isUnfinished(coral.depositLocation, coral.depositTime),
-        })
-      );
 
       buttonsList.push(
         createSidebarButton({

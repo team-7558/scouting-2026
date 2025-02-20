@@ -1,5 +1,31 @@
-export const ACTIONS = { ACQUIRE: "acquire", DEPOSIT: "deposit", HANG: "hang" };
+export const COLORS = {
+  PENDING: "info",
+  SUCCESS: "success",
+  DISABLED: "disabled",
+  ACTIVE: "primary",
+  CORALPICKUP: "coralPickup",
+  ALGAEPICKUP: "algaePickup",
+  CORALDROPOFF: "coralDropoff",
+  ALGAEDROPOFF: "algaeDropoff",
+  DROP: "warning",
+  CANCEL: "error",
+};
+
+export const ACTIONS = {
+  ACQUIRE: "acquire",
+  DEPOSIT: "deposit",
+  HANG: "hang",
+  GO_TELE: "go_tele",
+  GO_DEFENSE: "go_defense",
+  GO_POST_MATCH: "go_post_match",
+};
 export const GAME_PIECES = { CORAL: "coral", ALGAE: "algae" };
+export const PHASES = {
+  PRE_MATCH: "pre_match",
+  AUTO: "auto",
+  TELE: "tele",
+  POST_MATCH: "post_match",
+};
 
 export const MATCH_BUTTONS = {
   TELE: "TELE",
@@ -44,31 +70,4 @@ export const GAME_LOCATIONS = {
     FAIL: "FAIL",
   },
   STARTING_LINE: "STARTING_LINE",
-};
-
-// hard coded for the blue-zero, scoring table perspective
-// encoding is: [x, y]
-export const POSITIONS = {
-  [GAME_LOCATIONS.CORAL_MARK.LEFT]: [250, 450],
-  [GAME_LOCATIONS.CORAL_MARK.MIDDLE]: [250, 800],
-  [GAME_LOCATIONS.CORAL_MARK.RIGHT]: [250, 1175],
-
-  [GAME_LOCATIONS.CORAL_STATION.LEFT]: [225, 125],
-  [GAME_LOCATIONS.CORAL_STATION.RIGHT]: [225, 1475],
-
-  [GAME_LOCATIONS.REEF.AB]: [665, 800],
-  [GAME_LOCATIONS.REEF.CD]: [780, 1000],
-  [GAME_LOCATIONS.REEF.EF]: [1020, 1000],
-  [GAME_LOCATIONS.REEF.GH]: [1135, 800],
-  [GAME_LOCATIONS.REEF.IJ]: [1020, 600],
-  [GAME_LOCATIONS.REEF.KL]: [780, 600],
-
-  [GAME_LOCATIONS.NET]: [1755, 375],
-  [GAME_LOCATIONS.PROCESSOR]: [1200, 1500],
-
-  [GAME_LOCATIONS.HANG.LEFT]: [1755, 1000],
-  [GAME_LOCATIONS.HANG.MIDDLE]: [1755, 1225],
-  [GAME_LOCATIONS.HANG.RIGHT]: [1755, 1450],
-
-  [GAME_LOCATIONS.STARTING_LINE]: [1515, 655],
 };

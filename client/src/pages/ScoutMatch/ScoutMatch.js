@@ -11,9 +11,13 @@ import { BlueTheme } from "./themes/BlueTheme.js";
 import { RedTheme } from "./themes/RedTheme.js";
 import { useSearchParams } from "react-router-dom";
 
-import { Box, Button } from "@mui/material";
+import { Box, Button, Drawer } from "@mui/material";
+import MenuIcon from '@mui/icons-material/Menu';
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
+
+import AlgaeIcon from "../../assets/scouting-2025/algaeIcon.png";
+import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
 
 import {
   GAME_LOCATIONS,
@@ -58,6 +62,8 @@ const ScoutMatch = () => {
   const [currentTime, setCurrentTime] = useState(0);
 
   const [phase, setPhase] = useState(PHASES.PRE_MATCH);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // robot state
   const [isDefending, setIsDefending] = useState(false);
@@ -986,13 +992,112 @@ const ScoutMatch = () => {
       );
     }
 
-    return (
+    console.log("sidebarOpen: " + sidebarOpen)
+    return (<>
+      <Drawer open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
+        {[
+          <center>
+            <h3>STATION</h3>
+          </center>,
+          <Box>
+            {["R1", "R2", "R3"].map((position) => (
+              <Button 
+                sx={{
+                  width: scaleWidthToActual(500) + "px", 
+                  height: scaleHeightToActual(100) + "px",
+                  color: 'red',
+                }}
+                onClick={() => {
+                  let url = new URL(window.location);
+                  url.searchParams.set('station', position.toLowerCase());
+                  window.location = url;
+                }}
+              >
+                {position}
+              </Button>
+            ))}
+          </Box>, 
+          <Box>
+            {["B1", "B2", "B3"].map((position) => (
+              <Button 
+              sx={{
+                width: scaleWidthToActual(500) + "px", 
+                height: scaleHeightToActual(100) + "px",
+                color: 'blue',
+              }}
+              onClick={() => {
+                let url = new URL(window.location);
+                url.searchParams.set('station', position.toLowerCase());
+                window.location = url;
+              }}
+            >
+              {position}
+            </Button>
+            ))}
+          </Box>,  
+          
+          <center>
+            <h3>PRESPECTIVE</h3>
+          </center>,
+          <Box>
+           {["near", "far"].map((side) => (
+            <Button 
+              sx={{
+                width: scaleWidthToActual(750) + "px", 
+                height: scaleHeightToActual(100) + "px",
+                color: 'blue',
+              }}
+              onClick={() => {
+                let url = new URL(window.location);
+                url.searchParams.set('perspective', side.toLowerCase());
+                window.location = url;
+              }}
+            >
+              {side}
+          </Button>
+           ))}
+          </Box>
+        ]}
+      </Drawer>
+      <Box
+        sx={{
+          display: "flex",
+          width: "100%",
+          height: "10%",
+          backgroundColor: getTheme().palette.background.paper,
+          overflowY: "auto",
+        }}
+      >
+        <Button
+          color={COLORS.ACTIVE}
+          sx={{
+            margin: '5%',
+            height: '50%',
+            width: '5%',
+            borderRadius: '20rem',
+          }}
+          onClick={() => {setSidebarOpen(true)}}
+        >
+          <MenuIcon />
+        </Button>
+
+        <img 
+          src={AlgaeIcon} 
+          alt="Algae Image" 
+          style={{marginBottom: '0px', visibility: hasAlgae() ? 'visible' : 'hidden' }} 
+        ></img>
+        <img 
+          src={CoralIcon} 
+          alt="Coral Image" 
+          style={{marginBottom: '0px', visibility: hasCoral() ? 'visible' : 'hidden'}}
+        ></img>
+      </Box>
       <Box
         sx={{
           display: "flex",
           flexDirection: "column",
           width: "100%",
-          height: "100%",
+          height: "90%",
           backgroundColor: getTheme().palette.background.paper,
           overflowY: "auto",
         }}
@@ -1012,7 +1117,7 @@ const ScoutMatch = () => {
           </Box>
         ))}
       </Box>
-    );
+    </>);
   };
 
   const createFieldButton = ({ props }) => {};

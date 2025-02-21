@@ -10,7 +10,10 @@ export const RedTheme = createTheme({
       main: "#FF0000",
     },
     secondary: {
-      main: "#00AA55",
+      main: "#AA0055",
+    },
+    info: {
+      main: "#FF7799"
     },
     coralPickup: {
       main: "#64B5F6",

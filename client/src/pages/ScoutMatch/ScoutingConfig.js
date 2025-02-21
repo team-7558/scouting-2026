@@ -147,33 +147,33 @@ export const SCOUTING_CONFIG = {
     textFunction: (match, key) => key,
   },
 
-  CORAL_ICON: {
-    phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
-    showFunction: (match, key) => match.hasCoral(),
-    positions: {
-      TELE: [2050, 200],
-    },
-    dimensions: {
-      width: 200,
-      height: 200,
-    },
-    tasks: [createTask(ACTIONS.GO_TELE)],
-    componentFunction: (match, key) => ImageIcon(CoralIcon),
-  },
+  // CORAL_ICON: {
+  //   phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
+  //   showFunction: (match, key) => match.hasCoral(),
+  //   positions: {
+  //     TELE: [2050, 200],
+  //   },
+  //   dimensions: {
+  //     width: 200,
+  //     height: 200,
+  //   },
+  //   tasks: [createTask(ACTIONS.GO_TELE)],
+  //   componentFunction: (match, key) => ImageIcon(CoralIcon),
+  // },
 
-  ALGAE_ICON: {
-    phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
-    showFunction: (match, key) => match.hasAlgae(),
-    positions: {
-      TELE: [2050, 350],
-    },
-    dimensions: {
-      width: 200,
-      height: 200,
-    },
-    tasks: [createTask(ACTIONS.GO_TELE)],
-    componentFunction: (match, key) => ImageIcon(AlgaeIcon),
-  },
+  // ALGAE_ICON: {
+  //   phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
+  //   showFunction: (match, key) => match.hasAlgae(),
+  //   positions: {
+  //     TELE: [2050, 350],
+  //   },
+  //   dimensions: {
+  //     width: 200,
+  //     height: 200,
+  //   },
+  //   tasks: [createTask(ACTIONS.GO_TELE)],
+  //   componentFunction: (match, key) => ImageIcon(AlgaeIcon),
+  // },
 
   STARTING_LINE: {
     phases: [PHASES.PRE_MATCH],

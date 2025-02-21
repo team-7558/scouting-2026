@@ -30,11 +30,7 @@ const App = () => {
             path="/scoutMatch"
             element={
               // <ProtectedRoute>
-              <ScoutMatch
-                driverStation="b1"
-                teamNumber="7558"
-                scoutPerspective="scoringTable"
-              />
+              <ScoutMatch />
               // </ProtectedRoute>
             }
           />

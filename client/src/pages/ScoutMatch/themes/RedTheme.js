@@ -1,10 +1,10 @@
 import { createTheme } from "@mui/material/styles";
 
-export const BlueTheme = createTheme({
+export const RedTheme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#3f51b5",
+      main: "#b30202",
     },
     error: {
       main: "#FF0000",

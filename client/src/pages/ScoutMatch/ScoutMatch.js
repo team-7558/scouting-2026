@@ -8,6 +8,8 @@ import React, {
 } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 import { BlueTheme } from "./themes/BlueTheme.js";
+import { RedTheme } from "./themes/RedTheme.js";
+import { useSearchParams } from "react-router-dom";
 
 import { Box, Button } from "@mui/material";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
@@ -19,21 +21,37 @@ import {
   GAME_PIECES,
   PHASES,
   COLORS,
+  DRIVER_STATIONS,
+  FIELD_VIRTUAL_WIDTH,
+  FIELD_VIRTUAL_HEIGHT,
+  FIELD_ASPECT_RATIO,
+  PERSPECTIVE,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
+
+const { B1, R1, R2, R3 } = DRIVER_STATIONS;
+const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
+
 const { ACQUIRE, DEPOSIT, HANG, GO_TELE, GO_DEFENSE, GO_POST_MATCH } = ACTIONS;
 const { CORAL, ALGAE } = GAME_PIECES;
 
 // Canvas Helpers
 const sidebarVirtualWidth = 1100;
-const virtualWidth = 3510 + sidebarVirtualWidth;
-const virtualHeight = 1610;
+const virtualWidth = FIELD_VIRTUAL_WIDTH + sidebarVirtualWidth;
+const virtualHeight = FIELD_VIRTUAL_HEIGHT;
 const aspectRatio = 16 / 9;
 
 const MatchContext = createContext();
 
 // Scout Match Component
-const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
+const ScoutMatch = () => {
+  const [searchParams] = useSearchParams();
+  // console.log("Query Params:", searchParams.toString());
+  const driverStation = searchParams.get("station") || B1;
+  const teamNumber = searchParams.get("teamNumber");
+  const scoutPerspective =
+    searchParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_NEAR;
+  // console.log(driverStation, scoutPerspective);
   const context = useContext(MatchContext);
   // match state
   const [matchStartTime, setMatchStartTime] = useState(-1);
@@ -197,7 +215,18 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     // the caller of this method should decide if it wants to include prior state
     setAlgae(updates);
   };
-
+  const isScoutingRed = () => [R1, R2, R3].includes(driverStation);
+  const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
+  const flipX = () => isScoutingRed();
+  const flipY = () => isScoutingRed();
+  console.log(
+    flipX(),
+    flipY(),
+    isScoutingRed(),
+    isScoringTableFar(),
+    driverStation,
+    scoutPerspective
+  );
   const CONTEXT_WRAPPER = {
     fieldCanvasRef,
     matchStartTime,
@@ -223,6 +252,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     defense,
     setDefense,
     currentTime,
+    isScoutingRed: isScoutingRed(),
+    isScoringTableFar: isScoringTableFar(),
   };
 
   const createTask = (action, gamepiece = null) => ({
@@ -373,6 +404,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     }
   };
 
+  const getTheme = () => (isScoutingRed() ? RedTheme : BlueTheme);
   const createFieldLocalMatchComponent = (
     id,
     fieldX,
@@ -381,14 +413,17 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     fieldHeight,
     componentFunction
   ) => {
+    fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
+    fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
     return (
       <MatchContext.Consumer key={id}>
         {(match) => (
           <FieldLocalComponent
-            fieldX={fieldX - fieldWidth / 2}
-            fieldY={fieldY - fieldHeight / 2}
+            fieldX={fieldX}
+            fieldY={fieldY}
             fieldWidth={fieldWidth}
             fieldHeight={fieldHeight}
+            perspective={scoutPerspective}
           >
             {componentFunction(match)}
           </FieldLocalComponent>
@@ -645,36 +680,39 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     ),
   ];
 
+  const getFieldCanvasOffset = () => {
+    const shift =
+      scaledBoxRect.height * FIELD_ASPECT_RATIO -
+      scaleWidthToActual(FIELD_VIRTUAL_WIDTH);
+
+    const defenseShift =
+      isDefending && phase != PHASES.POST_MATCH ? shift / 2 : 0;
+    const offset =
+      isScoutingRed() != isScoringTableFar()
+        ? -shift + defenseShift
+        : -defenseShift;
+
+    return offset;
+  };
+  //700, 532, 168, 336, -300, 36
+  //600, 456, 144, 288, -278 10
   const renderFieldCanvas = () => {
     const fieldChildren = [
-      // ...(phase === PHASES.PRE_MATCH ? PRE_MATCHChildren : []),
       ...ScoutingConfigChildren,
       ...(phase === PHASES.POST_MATCH ? POST_MATCHChildren : []),
-      // ...(phase === PHASES.PRE_MATCH ||
-      // phase === PHASES.AUTO ||
-      // phase === PHASES.TELE
-      //   ? AlgaeCoralIcons
-      //   : []),
-      // ...(phase === PHASES.AUTO ? AutoChildren : []),
-      // ...(phase === PHASES.AUTO || phase === PHASES.TELE
-      //   ? AutoTeleChildren
-      //   : []),
-      // ...(phase === PHASES.TELE ? TeleChildren : []),
     ];
-
     return (
       <Box
         sx={{
-          transform: `translateX(${
-            isDefending && phase != PHASES.POST_MATCH ? -56 : 0
-          }%)`,
+          transform: `translateX(${getFieldCanvasOffset()}px)`,
         }}
       >
         {scaledBoxRect.width > 0 && (
           <FieldCanvas
             ref={fieldCanvasRef}
-            theme={BlueTheme}
+            theme={getTheme()}
             height={scaledBoxRect.height}
+            perspective={scoutPerspective}
             children={fieldChildren}
             onClick={(x, y) => {
               startPendingTasks(
@@ -955,7 +993,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           flexDirection: "column",
           width: "100%",
           height: "100%",
-          backgroundColor: BlueTheme.palette.background.paper,
+          backgroundColor: getTheme().palette.background.paper,
           overflowY: "auto",
         }}
       >
@@ -1004,7 +1042,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
 
   return (
     <MatchContext.Provider value={CONTEXT_WRAPPER}>
-      <ThemeProvider theme={BlueTheme}>
+      <ThemeProvider theme={getTheme()}>
         <Box
           sx={{
             position: "relative",
@@ -1022,7 +1060,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
               width: scaledBoxRect.width,
               height: scaledBoxRect.height,
               transform: "translate(-50%, -50%)",
-              background: BlueTheme.palette.background.default,
+              background: getTheme().palette.background.default,
             }}
           >
             <Box

@@ -1,3 +1,21 @@
+export const FIELD_VIRTUAL_HEIGHT = 1610;
+export const FIELD_VIRTUAL_WIDTH = 3510;
+export const FIELD_ASPECT_RATIO = FIELD_VIRTUAL_WIDTH / FIELD_VIRTUAL_HEIGHT;
+
+export const DRIVER_STATIONS = {
+  R1: "r1",
+  R2: "r2",
+  R3: "r3",
+  B1: "b1",
+  B2: "b2",
+  B3: "b3",
+};
+
+export const PERSPECTIVE = {
+  SCORING_TABLE_NEAR: "near",
+  SCORING_TABLE_FAR: "far",
+};
+
 export const COLORS = {
   PENDING: "info",
   SUCCESS: "success",

@@ -23,20 +23,24 @@ export const ImageIcon = (imageSrc) => (
 );
 
 export const StartingPositionSlider = (match) => {
-  const leftIsOnTop = true;
-  const flipSlider = -1 * leftIsOnTop;
+  const flipSlider = match.isScoutingRed == match.isScoringTableFar;
 
   return (
     <Slider
       orientation="vertical"
-      value={match.startingPosition * flipSlider}
+      value={match.startingPosition * (flipSlider ? -1 : 1)}
       onChange={(event, value) => match.setStartingPosition(Math.abs(value))}
-      min={13 * flipSlider}
-      max={1 * flipSlider}
+      min={flipSlider ? -13 : 1}
+      max={flipSlider ? -1 : 13}
       step={1}
       valueLabelDisplay="auto"
       valueLabelFormat={(value) => <div>{Math.abs(value)}</div>}
       sx={{
+        transform: flipSlider
+          ? ""
+          : `translateY(${match.fieldCanvasRef.current?.scaleHeightToActual(
+              -300
+            )}px)`,
         "margin-top": match.fieldCanvasRef.current?.scaleHeightToActual(150),
         "margin-bottom": match.fieldCanvasRef.current?.scaleHeightToActual(150),
         padding: 0,

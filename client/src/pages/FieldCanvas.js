@@ -8,12 +8,16 @@ import React, {
 } from "react";
 import { Box } from "@mui/material";
 import fullField from "../assets/scouting-2025/field/full_field.png";
+import {
+  FIELD_VIRTUAL_HEIGHT,
+  FIELD_VIRTUAL_WIDTH,
+  FIELD_ASPECT_RATIO,
+  PERSPECTIVE,
+} from "./ScoutMatch/Constants";
 
-// Virtual field dimensions
-const fieldVirtualWidth = 3510;
-const fieldVirtualHeight = 1610;
-const fieldAspectRatio = fieldVirtualWidth / fieldVirtualHeight;
+const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
 
+const isScoringTableFar = (perspective) => perspective == SCORING_TABLE_FAR;
 /**
  * Converts virtual field coordinates and dimensions into actual screen coordinates,
  * considering aspect ratio adjustments.
@@ -31,15 +35,22 @@ const scaleCoordinates = (
   width,
   height,
   actualWidth,
-  actualHeight
+  actualHeight,
+  perspective = SCORING_TABLE_NEAR
 ) => {
-  const expectedWidth = actualHeight * fieldAspectRatio;
+  if (isScoringTableFar(perspective)) {
+    fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
+    fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
+  }
+  fieldX = fieldX - width / 2;
+  fieldY = fieldY - height / 2;
+  const expectedWidth = actualHeight * FIELD_ASPECT_RATIO;
   const offsetX = Math.max((actualWidth - expectedWidth) / 2, 0);
 
-  const scaledX = (fieldX / fieldVirtualWidth) * expectedWidth + offsetX;
-  const scaledY = (fieldY / fieldVirtualHeight) * actualHeight;
-  const scaledWidth = (width / fieldVirtualWidth) * expectedWidth;
-  const scaledHeight = (height / fieldVirtualHeight) * actualHeight;
+  const scaledX = (fieldX / FIELD_VIRTUAL_WIDTH) * expectedWidth - offsetX;
+  const scaledY = (fieldY / FIELD_VIRTUAL_HEIGHT) * actualHeight;
+  const scaledWidth = (width / FIELD_VIRTUAL_WIDTH) * expectedWidth;
+  const scaledHeight = (height / FIELD_VIRTUAL_HEIGHT) * actualHeight;
 
   return { scaledX, scaledY, scaledWidth, scaledHeight };
 };
@@ -48,18 +59,27 @@ const scaleCoordinates = (
  * Converts screen (x, y) coordinates into virtual field coordinates,
  * considering aspect ratio adjustments.
  */
-const scaleToFieldCoordinates = (x, y, actualWidth, actualHeight) => {
-  const expectedWidth = actualHeight * fieldAspectRatio;
+const scaleToFieldCoordinates = (
+  x,
+  y,
+  actualWidth,
+  actualHeight,
+  perspective = SCORING_TABLE_NEAR
+) => {
+  const expectedWidth = actualHeight * FIELD_ASPECT_RATIO;
   const offsetX = Math.max((actualWidth - expectedWidth) / 2, 0);
 
-  const fieldX = Math.round(
-    ((x - offsetX) / expectedWidth) * fieldVirtualWidth
+  let fieldX = Math.round(
+    ((x - offsetX) / expectedWidth) * FIELD_VIRTUAL_WIDTH
   );
-  const fieldY = Math.round((y / actualHeight) * fieldVirtualHeight);
+  let fieldY = Math.round((y / actualHeight) * FIELD_VIRTUAL_HEIGHT);
 
+  if (isScoringTableFar(perspective)) {
+    fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
+    fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
+  }
   return { fieldX, fieldY };
 };
-
 /**
  * FieldLocalComponent positions its children based on virtual field coordinates.
  * It waits for its parent's dimensions (with a fallback default) before rendering.
@@ -69,6 +89,7 @@ const FieldLocalComponent = ({
   fieldY,
   fieldWidth,
   fieldHeight,
+  perspective,
   children,
 }) => {
   const localRef = useRef(null);
@@ -94,7 +115,8 @@ const FieldLocalComponent = ({
     fieldWidth,
     fieldHeight,
     parentSize.width,
-    parentSize.height
+    parentSize.height,
+    perspective
   );
 
   return (
@@ -108,6 +130,7 @@ const FieldLocalComponent = ({
         height: scaledHeight,
       }}
     >
+      {/* {fieldX + ", " + fieldY} */}
       {children}
     </Box>
   );
@@ -117,108 +140,135 @@ const FieldLocalComponent = ({
  * FieldCanvas renders a canvas with the field image and provides a container
  * for FieldLocalComponent children. It handles mouse interactions and resizing.
  */
-const FieldCanvas = forwardRef(({ theme, children, onClick, height }, ref) => {
-  // Use a default size based on the provided height and the field's aspect ratio.
-  const initialSize = { width: height * fieldAspectRatio, height: height };
-  const [canvasSize, setCanvasSize] = useState(initialSize);
-  const [cursorCoordinates, setCursorCoordinates] = useState(null);
+const FieldCanvas = forwardRef(
+  ({ theme, children, onClick, height, perspective }, ref) => {
+    // Use a default size based on the provided height and the field's aspect ratio.
+    const initialSize = { width: height * FIELD_ASPECT_RATIO, height: height };
+    const [canvasSize, setCanvasSize] = useState(initialSize);
+    const [cursorCoordinates, setCursorCoordinates] = useState(null);
 
-  const canvasRef = useRef(null);
+    const canvasRef = useRef(null);
 
-  useImperativeHandle(ref, () => ({
-    scaleWidthToActual: (virtualWidth) =>
-      (virtualWidth * canvasSize.width) / fieldVirtualWidth,
-    scaleHeightToActual: (virtualHeight) =>
-      (virtualHeight * canvasSize.height) / fieldVirtualHeight,
-  }));
+    useImperativeHandle(ref, () => ({
+      scaleWidthToActual: (virtualWidth) =>
+        (virtualWidth * canvasSize.width) / FIELD_VIRTUAL_WIDTH,
+      scaleHeightToActual: (virtualHeight) =>
+        (virtualHeight * canvasSize.height) / FIELD_VIRTUAL_HEIGHT,
+    }));
 
-  // Update canvas dimensions whenever the 'height' prop changes.
-  useLayoutEffect(() => {
-    const newSize = { width: height * fieldAspectRatio, height: height };
-    setCanvasSize(newSize);
-  }, [height]);
+    // Update canvas dimensions whenever the 'height' prop changes.
+    useLayoutEffect(() => {
+      const newSize = { width: height * FIELD_ASPECT_RATIO, height: height };
+      setCanvasSize(newSize);
+    }, [height]);
 
-  // Draw the field image on the canvas.
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const image = new Image();
-    image.src = fullField;
-    image.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    // Draw the field image on the canvas.
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const image = new Image();
+      image.src = fullField;
+      const flipX = isScoringTableFar(perspective);
+      const flipY = isScoringTableFar(perspective);
+      image.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Save the current context state.
+        ctx.save();
+
+        // If flipX is true, translate horizontally by the canvas width.
+        // If flipY is true, translate vertically by the canvas height.
+        ctx.translate(flipX ? canvas.width : 0, flipY ? canvas.height : 0);
+
+        // Scale the context to flip the image.
+        // A scale factor of -1 flips the image.
+        ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+
+        // Draw the image onto the canvas.
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        // Restore the context to its original state.
+        ctx.restore();
+      };
+    }, [canvasSize]);
+
+    const handleMouseInteraction = (event, isClick = false) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const coords = scaleToFieldCoordinates(
+        x,
+        y,
+        canvas.width,
+        canvas.height,
+        perspective
+      );
+      if (isClick) {
+        onClick(coords.fieldX, coords.fieldY);
+      } else {
+        setCursorCoordinates({ canvasX: x, canvasY: y, ...coords });
+      }
     };
-  }, [canvasSize]);
 
-  const handleMouseInteraction = (event, isClick = false) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const coords = scaleToFieldCoordinates(x, y, canvas.width, canvas.height);
-    if (isClick) {
-      onClick(coords.fieldX, coords.fieldY);
-    } else {
-      setCursorCoordinates({ canvasX: x, canvasY: y, ...coords });
-    }
-  };
+    const keepInside = (coord, boundary, safety) =>
+      boundary - coord < safety ? coord - safety : coord;
 
-  const keepInside = (coord, boundary, safety) =>
-    boundary - coord < safety ? coord - safety : coord;
-
-  return (
-    <Box
-      style={{
-        position: "relative",
-        width: canvasSize.width,
-        height: canvasSize.height,
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        width={canvasSize.width}
-        height={canvasSize.height}
+    return (
+      <Box
         style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          background: theme.palette.background.default,
+          position: "relative",
+          width: canvasSize.width,
+          height: canvasSize.height,
         }}
-        onClick={(e) => handleMouseInteraction(e, true)}
-        onMouseMove={(e) => handleMouseInteraction(e)}
-        onMouseLeave={() => setCursorCoordinates(null)}
-      />
-      {children}
-      {cursorCoordinates && (
-        <Box
+      >
+        <canvas
+          ref={canvasRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
           style={{
             position: "absolute",
-            left: keepInside(
-              cursorCoordinates.canvasX + 10,
-              canvasSize.width,
-              200
-            ),
-            top: keepInside(
-              cursorCoordinates.canvasY + 10,
-              canvasSize.height,
-              30
-            ),
-            background: "rgba(0,0,0,0.7)",
-            color: "#fff",
-            padding: "2px 4px",
-            borderRadius: "2px",
-            fontSize: "12px",
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
+            top: 0,
+            left: 0,
+            background: theme.palette.background.default,
           }}
-        >
-          FieldX: {cursorCoordinates.fieldX}, FieldY: {cursorCoordinates.fieldY}
-        </Box>
-      )}
-    </Box>
-  );
-});
+          onClick={(e) => handleMouseInteraction(e, true)}
+          onMouseMove={(e) => handleMouseInteraction(e)}
+          onMouseLeave={() => setCursorCoordinates(null)}
+        />
+        {children}
+        {cursorCoordinates && (
+          <Box
+            style={{
+              position: "absolute",
+              left: keepInside(
+                cursorCoordinates.canvasX + 10,
+                canvasSize.width,
+                200
+              ),
+              top: keepInside(
+                cursorCoordinates.canvasY + 10,
+                canvasSize.height,
+                30
+              ),
+              background: "rgba(0,0,0,0.7)",
+              color: "#fff",
+              padding: "2px 4px",
+              borderRadius: "2px",
+              fontSize: "12px",
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            FieldX: {cursorCoordinates.fieldX}, FieldY:{" "}
+            {cursorCoordinates.fieldY}
+          </Box>
+        )}
+      </Box>
+    );
+  }
+);
 
 export { FieldCanvas, FieldLocalComponent };

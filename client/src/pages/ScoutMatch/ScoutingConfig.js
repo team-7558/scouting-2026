@@ -119,7 +119,8 @@ export const SCOUTING_CONFIG = {
 
   // Hang: three positions; task is to hang.
   HANG: {
-    phases: [PHASES.AUTO, PHASES.TELE],
+    phases: [PHASES.TELE],
+    drawBorder: (match, key) => match.hang==key,
     positions: {
       [GAME_LOCATIONS.HANG.LEFT]: [1755, 1000],
       [GAME_LOCATIONS.HANG.MIDDLE]: [1755, 1225],

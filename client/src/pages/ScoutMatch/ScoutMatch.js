@@ -733,7 +733,7 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
     } else if (
       (phase === PHASES.AUTO || phase === PHASES.TELE) &&
       !isDefending &&
-      hang.position == null
+      typeof hang != "string"
     ) {
       // REEF SCORE BUTTONS
       Object.keys(GAME_LOCATIONS.REEF_LEVEL)
@@ -873,7 +873,8 @@ const ScoutMatch = ({ driverStation, teamNumber, scoutPerspective }) => {
           show: defense.defendingTeam != null,
         })
       );
-    } else if (phase === PHASES.TELE && hang.position != null) {
+    } else if (phase === PHASES.TELE && typeof hang == "string") {
+      console.log("herehere");
       Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
         buttonsList.push(
           createSidebarButton({

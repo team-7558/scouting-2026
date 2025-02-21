@@ -148,7 +148,7 @@ export const SCOUTING_CONFIG = {
   },
 
   CORAL_ICON: {
-    phases: [PHASES.PRE_MATCH, PHASES.AUTO],
+    phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
     showFunction: (match, key) => match.hasCoral(),
     positions: {
       TELE: [2050, 200],
@@ -162,7 +162,7 @@ export const SCOUTING_CONFIG = {
   },
 
   ALGAE_ICON: {
-    phases: [PHASES.PRE_MATCH, PHASES.AUTO],
+    phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
     showFunction: (match, key) => match.hasAlgae(),
     positions: {
       TELE: [2050, 350],

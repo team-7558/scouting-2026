@@ -18,6 +18,7 @@ import FullscreenDialog from "./FullScreenDialog.js";
 
 import AlgaeIcon from "../../assets/scouting-2025/algaeIcon.png";
 import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
+import Sidebar from "../Sidebar.js";
 
 import {
   GAME_LOCATIONS,
@@ -90,9 +91,11 @@ const ScoutMatch = () => {
   });
 
   const [hang, setHang] = useState({
-    time: null,
+    startTime: null,
+    endTime: null,
     position: null,
     height: null,
+    succeeded: false,
   });
 
   const [endgame, setEndgame] = useState({
@@ -194,11 +197,11 @@ const ScoutMatch = () => {
 
   // Only run when hang.time changes
   useEffect(() => {
-    if (hang.time != null) {
+    if (hang.endTime != null) {
       console.log("Hang: " + JSON.stringify(hang));
       setHang({});
     }
-  }, [hang.time]);
+  }, [hang.endTime]);
 
   // TODO add sanity checks here
   const updateCoral = (updates) => {
@@ -225,14 +228,14 @@ const ScoutMatch = () => {
   const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
   const flipX = () => isScoutingRed();
   const flipY = () => isScoutingRed();
-  console.log(
-    flipX(),
-    flipY(),
-    isScoutingRed(),
-    isScoringTableFar(),
-    driverStation,
-    scoutPerspective
-  );
+  // console.log(
+  //   flipX(),
+  //   flipY(),
+  //   isScoutingRed(),
+  //   isScoringTableFar(),
+  //   driverStation,
+  //   scoutPerspective
+  // );
   const CONTEXT_WRAPPER = {
     fieldCanvasRef,
     matchStartTime,
@@ -304,7 +307,7 @@ const ScoutMatch = () => {
         matchContext.algae.depositLocation,
         matchContext.algae.depositTime
       ) ||
-      isUnfinished(matchContext.hang.position, matchContext.hang.time)
+      isUnfinished(matchContext.hang.position, matchContext.hang.endTime)
     );
   };
 
@@ -352,7 +355,7 @@ const ScoutMatch = () => {
 
   const startHang = (location, matchContext) => {
     console.log("starting hang", location);
-    matchContext.setHang(location);
+    matchContext.setHang({...hang, position: location, startTime: currentTime});
   };
 
   // actions is a map of gamepiece transformations to be executed
@@ -743,6 +746,8 @@ const ScoutMatch = () => {
   const renderSideBar = () => {
     let buttonsList = [];
 
+    console.log("hang: " + JSON.stringify(hang));
+
     if (phase === PHASES.PRE_MATCH) {
       buttonsList = [
         createSidebarButton({
@@ -777,7 +782,7 @@ const ScoutMatch = () => {
     } else if (
       (phase === PHASES.AUTO || phase === PHASES.TELE) &&
       !isDefending &&
-      typeof hang != "string"
+      hang?.startTime==null
     ) {
       // REEF SCORE BUTTONS
       Object.keys(GAME_LOCATIONS.REEF_LEVEL)
@@ -917,32 +922,59 @@ const ScoutMatch = () => {
           show: defense.defendingTeam != null,
         })
       );
-    } else if (phase === PHASES.TELE && typeof hang == "string") {
-      console.log("herehere");
-      Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
+    } else if (phase === PHASES.TELE && hang?.startTime!=null) {
+      if (hang.height==null){
+        Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
+          buttonsList.push(
+            createSidebarButton({
+              id: `hangDepth_${index}`,
+              label: `${height}`,
+              onClick: () => {
+                setHang({ ...hang, height });
+              },
+              color: COLORS.PENDING,
+              show: true,
+            })
+          );
+        });
         buttonsList.push(
           createSidebarButton({
-            id: `hangDepth_${index}`,
-            label: `${height}`,
+            id: "cancelHang",
+            label: "CANCEL",
             onClick: () => {
-              setHang({ ...hang, time: currentTime, height });
+              setHang({ startTime: null, endTime: null, position: null, depth: null, succeeded: false, });
             },
             color: COLORS.PENDING,
             show: true,
           })
         );
-      });
-      buttonsList.push(
-        createSidebarButton({
-          id: "cancelHang",
-          label: "CANCEL",
-          onClick: () => {
-            setHang({ time: null, position: null, depth: null });
-          },
-          color: COLORS.PENDING,
-          show: true,
-        })
-      );
+      }
+      else {
+        Object.values(GAME_LOCATIONS.HANG_STATE).forEach((state, index) => {
+          buttonsList.push(
+            createSidebarButton({
+              id: `hangState_${index}`,
+              label: `${state}`,
+              onClick: () => {
+                setHang({ ...hang, succeeded: state==GAME_LOCATIONS.HANG_STATE.SUCCEED, endTime: currentTime });
+              },
+              color: COLORS.PENDING,
+              show: true,
+            })
+          );
+        });
+        buttonsList.push(
+          createSidebarButton({
+            id: "cancelHangState",
+            label: "CANCEL",
+            onClick: () => {
+              setHang({ startTime: null, endTime: null, position: null, depth: null, succeeded: false, });
+            },
+            color: COLORS.PENDING,
+            show: true,
+          })
+        );
+      }
     } else if (phase === PHASES.POST_MATCH) {
       buttonsList.push(
         createSidebarButton({
@@ -974,9 +1006,11 @@ const ScoutMatch = () => {
               endTime: null,
             });
             setHang({
-              time: null,
+              startTime: null,
+              endTime: null,
               position: null,
               height: null,
+              succeeded: false,
             });
             setEndgame({
               disabled: false,
@@ -992,73 +1026,8 @@ const ScoutMatch = () => {
       );
     }
 
-    console.log("sidebarOpen: " + sidebarOpen)
     return (<>
-      <Drawer open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
-        {[
-          <center>
-            <h3>STATION</h3>
-          </center>,
-          <Box>
-            {["R1", "R2", "R3"].map((position) => (
-              <Button 
-                sx={{
-                  width: scaleWidthToActual(500) + "px", 
-                  height: scaleHeightToActual(100) + "px",
-                  color: 'red',
-                }}
-                onClick={() => {
-                  let url = new URL(window.location);
-                  url.searchParams.set('station', position.toLowerCase());
-                  window.location = url;
-                }}
-              >
-                {position}
-              </Button>
-            ))}
-          </Box>, 
-          <Box>
-            {["B1", "B2", "B3"].map((position) => (
-              <Button 
-              sx={{
-                width: scaleWidthToActual(500) + "px", 
-                height: scaleHeightToActual(100) + "px",
-                color: 'blue',
-              }}
-              onClick={() => {
-                let url = new URL(window.location);
-                url.searchParams.set('station', position.toLowerCase());
-                window.location = url;
-              }}
-            >
-              {position}
-            </Button>
-            ))}
-          </Box>,  
-          
-          <center>
-            <h3>PRESPECTIVE</h3>
-          </center>,
-          <Box>
-           {["near", "far"].map((side) => (
-            <Button 
-              sx={{
-                width: scaleWidthToActual(750) + "px", 
-                height: scaleHeightToActual(100) + "px",
-                color: 'blue',
-              }}
-              onClick={() => {
-                let url = new URL(window.location);
-                url.searchParams.set('perspective', side.toLowerCase());
-                window.location = url;
-              }}
-            >
-              {side}
-          </Button>
-           ))}
-          </Box>
-        ]}
-      </Drawer>
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} scaleWidthToActual={scaleWidthToActual} scaleHeightToActual={scaleHeightToActual}/>
       <Box
         sx={{
           display: "flex",

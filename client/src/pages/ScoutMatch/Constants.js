@@ -85,7 +85,10 @@ export const GAME_LOCATIONS = {
     PARK: "PARK",
     DEEP: "DEEP",
     SHALLOW: "SHALLOW",
+  },
+  HANG_STATE: {
     FAIL: "FAIL",
+    SUCCEED: "SUCCEED",
   },
   STARTING_LINE: "STARTING_LINE",
 };

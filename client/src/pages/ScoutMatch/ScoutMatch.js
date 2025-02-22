@@ -11,7 +11,7 @@ import { BlueTheme } from "./themes/BlueTheme.js";
 import { RedTheme } from "./themes/RedTheme.js";
 import { useSearchParams } from "react-router-dom";
 
-import { Box, Button, Drawer } from "@mui/material";
+import { Box, Button } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
@@ -540,6 +540,24 @@ const ScoutMatch = () => {
     })
   );
 
+  const GROUND_PICKUPIcon = [
+  ]
+
+  let looping = true;
+  [[coral.attainedLocation, coral.attainedTime], 
+    [coral.depositLocation, coral.depositTime], 
+    [algae.attainedLocation, algae.attainedTime], 
+    [algae.depositLocation, algae.depositTime]].map((values) => {
+      if (looping && isUnfinished(values[0], values[1]) && Array.isArray(values[0])){
+        GROUND_PICKUPIcon.push(
+          createFieldLocalMatchComponent("disabled", values[0][0], values[0][1], 100, 100, (match) => (
+            <FieldButton color={COLORS.PRIMARY}></FieldButton>
+          ))
+        );
+        looping = false;
+      }
+    })
+
   const POST_MATCHChildren = [
     createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => (
       <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>
@@ -709,6 +727,7 @@ const ScoutMatch = () => {
     const fieldChildren = [
       ...ScoutingConfigChildren,
       ...(phase === PHASES.POST_MATCH ? POST_MATCHChildren : []),
+      ...GROUND_PICKUPIcon,
     ];
     return (
       <Box
@@ -745,8 +764,6 @@ const ScoutMatch = () => {
 
   const renderSideBar = () => {
     let buttonsList = [];
-
-    console.log("hang: " + JSON.stringify(hang));
 
     if (phase === PHASES.PRE_MATCH) {
       buttonsList = [
@@ -1033,34 +1050,48 @@ const ScoutMatch = () => {
           display: "flex",
           width: "100%",
           height: "10%",
-          backgroundColor: getTheme().palette.background.paper,
-          overflowY: "auto",
+          overflowX: "auto",
         }}
       >
         <Button
-          color={COLORS.ACTIVE}
           sx={{
-            margin: '5%',
-            height: '50%',
-            width: '5%',
-            borderRadius: '20rem',
+            width: "90%",
+            height: "90%",
           }}
-          onClick={() => {setSidebarOpen(true)}}
+          onClick={() => setSidebarOpen(true)}
         >
           <MenuIcon />
         </Button>
-
-        <img 
-          src={AlgaeIcon} 
-          alt="Algae Image" 
-          style={{marginBottom: '0px', visibility: hasAlgae() ? 'visible' : 'hidden' }} 
-        ></img>
-        <img 
-          src={CoralIcon} 
-          alt="Coral Image" 
-          style={{marginBottom: '0px', visibility: hasCoral() ? 'visible' : 'hidden'}}
-        ></img>
+        <Box
+          sx={{
+            width: "90%",
+            height: "90%",
+          }}
+        >
+          <img 
+            src={AlgaeIcon} 
+              style={{
+                width: "auto%", 
+                height: "90%",
+                visibility: hasAlgae() ? "visible" : "hidden"
+              }}></img>
+        </Box>
+        <Box
+          sx={{
+            width: "90%",
+            height: "90%",
+          }}
+        >
+          <img 
+            src={CoralIcon} 
+            style={{
+              width: "auto%", 
+              height: "90%",
+              visibility: hasCoral() ? "visible" : "hidden"
+            }}></img>
+        </Box>
       </Box>
+
       <Box
         sx={{
           display: "flex",

@@ -10,7 +10,7 @@ const CREATE_USER_ROUTE = SERVER_URL + "/createUser";
 const UPDATE_PASSWORD_ROUTE = SERVER_URL + "/updatePassword"; // New API endpoint
 
 // Function to get the token from localStorage
-const getAuthHeaders = () => {
+export const getAuthHeaders = () => {
   const token = localStorage.getItem("token");
   return token ? { authorization: token } : {};
 };

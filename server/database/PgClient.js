@@ -31,10 +31,12 @@ export const protectOperation =
     try {
       if (
         !allowedroles ||
+        allowedroles.length == 0 ||
         allowedroles.includes(await extractRoleFromRequest(req))
       ) {
         return await operation(...args);
       }
+      throw new Error("Not authorized to used this route.");
     } catch (err) {
       console.log(err);
       throw err;

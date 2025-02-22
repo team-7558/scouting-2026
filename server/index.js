@@ -28,7 +28,7 @@ const app = express();
 app.use(logRequest);
 app.use(express.json());
 app.use(cors());
-console.log(app);
+// console.log(app);
 
 // Have Node serve the files for our built React app
 app.use(express.static(path.resolve(__dirname, "../client/build")));

@@ -37,7 +37,8 @@ export const extractRoleFromRequest = (req) => {
 
 // Sign-in endpoint
 router.post("/signin", async (req, res) => {
-  const { username, password } = req.body;
+  let { username, password } = req.body;
+  username = username.toLowerCase();
 
   try {
     const user = await authenticateUser(req, username, password);

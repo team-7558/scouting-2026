@@ -66,6 +66,17 @@ const ScoutMatch = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [data, setData] = useState({
+    prematch: {
+      scoutName: "Name",
+      driverStation,
+      teamNumber,
+    },
+    cycles: [],
+    hang: {},
+    endgame: {}
+  });
+
   // robot state
   const [isDefending, setIsDefending] = useState(false);
   const [startingPosition, setStartingPosition] = useState(-1);
@@ -149,6 +160,16 @@ const ScoutMatch = () => {
   // Only run when coral.depositTime changes
   useEffect(() => {
     if (coral.depositTime != null) {
+      setData({...data, 
+        cycles: [
+          ...data.cycles,
+          {
+            type: "coral",
+            ...coral
+          }
+        ]
+      });
+
       console.log("coral cycle: " + JSON.stringify(coral));
       // TODO Update cycles when scored
       // Note: updateCoral re-writes the entire state intentionally.
@@ -159,7 +180,17 @@ const ScoutMatch = () => {
 
   // Only run when algae.depositTime changes
   useEffect(() => {
-    if (algae.depositTime != null) {
+    if (algae.depositTime != null) {      
+      setData({...data, 
+        cycles: [
+          ...data.cycles,
+          {
+            type: "algae",
+            ...algae
+          }
+        ]
+      });
+
       console.log("algae cycle: " + JSON.stringify(algae));
       // TODO Update cycles when scored
       setAlgae({});
@@ -168,7 +199,7 @@ const ScoutMatch = () => {
   }, [algae.depositTime]);
 
   useEffect(() => {
-    if (coral.attainedTime != null) {
+    if (coral.attainedTime != null) {      
       console.log("coral cycle: " + JSON.stringify(coral));
       // TODO Update cycles when scored
       // Note: updateCoral re-writes the entire state intentionally.
@@ -190,6 +221,19 @@ const ScoutMatch = () => {
   // Only run when defense.endTime changes
   useEffect(() => {
     if (defense.endTime != null) {
+      setData({
+        ...data, 
+        cycles: [
+          ...data.cycles, 
+          {
+            type: "defense", 
+            startTime: defense.startTime, 
+            endTime: defense.endTime,
+            defendingTeam: defense.defendingTeam,
+          }
+        ]
+      });
+
       console.log("defense cycle: " + JSON.stringify(defense));
       setDefense({});
     }
@@ -198,6 +242,10 @@ const ScoutMatch = () => {
   // Only run when hang.time changes
   useEffect(() => {
     if (hang.endTime != null) {
+      setData({
+        ...data,
+        hang
+      })
       console.log("Hang: " + JSON.stringify(hang));
       setHang({});
     }
@@ -998,6 +1046,16 @@ const ScoutMatch = () => {
           id: "submit",
           label: "SUBMIT",
           onClick: () => {
+            setData({
+              ...data,
+              endgame
+            });
+
+            console.log({
+              ...data,
+              endgame
+            });
+
             setMatchStartTime(-1);
             setCurrentTime(0);
             setPhase(PHASES.PRE_MATCH);

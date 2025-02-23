@@ -1,8 +1,11 @@
-import React from "react";
-import { Box, Button, Drawer } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Button, Drawer, TextField } from "@mui/material";
 import { DRIVER_STATIONS, PERSPECTIVE } from "./ScoutMatch/Constants.js";
+import { useNavigate } from "react-router-dom";
 
 const Sidebar = ({sidebarOpen, setSidebarOpen, scaleWidthToActual, scaleHeightToActual}) => {
+    const navigate = useNavigate();
+    const [teamNumber, setTeamNumber] = useState(0);
     const createButtonsFromList = (list, width, paramName, color) => {
         return (
             <Box key={JSON.stringify(list)}>
@@ -31,6 +34,12 @@ const Sidebar = ({sidebarOpen, setSidebarOpen, scaleWidthToActual, scaleHeightTo
     return (
         <Drawer open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
             {[
+                <center key="sidebarNameHeader">
+                    <h3>NAME</h3>
+                </center>,
+                <center key="sidebarNameValue">
+                    <Button variant="contained" onClick={() => navigate("/signIn")}>SIGN OUT</Button>
+                </center>,
                 <center key="sidebarStation">
                     <h3 key="sidebarStationHeading">STATION</h3>
                 </center>,
@@ -42,6 +51,29 @@ const Sidebar = ({sidebarOpen, setSidebarOpen, scaleWidthToActual, scaleHeightTo
                 </center>,
 
                 createButtonsFromList(PERSPECTIVE, 750, 'perspective', 'blue'),
+
+                <center key="teamNumber">
+                    <h3 key="teamNumberHeading">TEAM NUMBER</h3>
+                </center>,
+                <center key="sidebarTeamNumberCenter">
+                    <TextField 
+                        onChange={(e) => setTeamNumber(e.target.value)} 
+                        label="Team Number" 
+                        variant="outlined" 
+                    />
+                    <br />
+                    <br />
+                    <Button 
+                        variant="contained" 
+                        onClick={() => {
+                            let url = new URL(window.location);
+                            url.searchParams.set("teamNumber", teamNumber);
+                            window.location = url;
+                        }}
+                    >
+                        SUBMIT
+                    </Button>
+                </center>
         ]}
         </Drawer>
     )

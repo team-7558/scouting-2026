@@ -142,7 +142,7 @@ const ScoutMatch = () => {
 
   //TODO: replace with real teams.
   const allies = [7558, 188, 1325];
-  const enemies = [2056, 4039, 9785];
+  const enemies = [1, 2, 3];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -596,7 +596,7 @@ const ScoutMatch = () => {
     [coral.depositLocation, coral.depositTime], 
     [algae.attainedLocation, algae.attainedTime], 
     [algae.depositLocation, algae.depositTime]].map((values) => {
-      if (looping && isUnfinished(values[0], values[1]) && Array.isArray(values[0])){
+      if ([PHASES.AUTO, PHASES.TELE].includes(phase) && looping && isUnfinished(values[0], values[1]) && Array.isArray(values[0])){
         GROUND_PICKUPIcon.push(
           createFieldLocalMatchComponent("disabled", values[0][0], values[0][1], 100, 100, (match) => (
             <FieldButton color={COLORS.PRIMARY}></FieldButton>
@@ -636,7 +636,7 @@ const ScoutMatch = () => {
     createFieldLocalMatchComponent(
       "driverSkill",
       250,
-      450,
+      500,
       500,
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>
@@ -646,7 +646,7 @@ const ScoutMatch = () => {
       return createFieldLocalMatchComponent(
         `${index}DriverSkill`,
         x,
-        600,
+        650,
         150,
         100,
         (match) => (
@@ -667,7 +667,7 @@ const ScoutMatch = () => {
     createFieldLocalMatchComponent(
       "defenseSkill",
       250,
-      800,
+      900,
       500,
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
@@ -677,7 +677,7 @@ const ScoutMatch = () => {
       return createFieldLocalMatchComponent(
         `${index}DefenseSkill`,
         x,
-        950,
+        1050,
         150,
         100,
         (match) => (
@@ -695,7 +695,7 @@ const ScoutMatch = () => {
     }),
 
     //role
-    createFieldLocalMatchComponent("role", 250, 1150, 500, 150, (match) => (
+    createFieldLocalMatchComponent("role", 250, 1300, 500, 150, (match) => (
       <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>
     )),
     ...[200, 575, 950, 1325].map((x, index) => {
@@ -703,7 +703,7 @@ const ScoutMatch = () => {
       return createFieldLocalMatchComponent(
         `${index}Role`,
         x,
-        1300,
+        1450,
         350,
         100,
         (match) => (
@@ -802,7 +802,7 @@ const ScoutMatch = () => {
                     : createTask(ACQUIRE, ALGAE),
                 ]
               );
-            }}
+            }} 
             phase={phase}
           />
         )}
@@ -825,6 +825,7 @@ const ScoutMatch = () => {
           onClick: () => {
             setMatchStartTime(Date.now());
             setPhase(PHASES.AUTO);
+            clearUnfinished();
           },
           color: startingPosition < 0 ? "disabled" : COLORS.ACTIVE,
           disabled: startingPosition < 0,
@@ -1147,6 +1148,14 @@ const ScoutMatch = () => {
               height: "90%",
               visibility: hasCoral() ? "visible" : "hidden"
             }}></img>
+        </Box>
+        <Box
+          sx={{
+            width: "90%",
+            height: "90%",
+          }}
+        >
+          <h2 style={{color: 'black', marginTop: '30%'}}>{currentTime}</h2>
         </Box>
       </Box>
 

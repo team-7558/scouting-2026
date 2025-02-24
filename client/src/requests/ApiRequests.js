@@ -12,3 +12,10 @@ export const postImportMatches = async (event_code) => {
     { headers: getAuthHeaders() }
   );
 };
+
+export const getScoutMatch = async ({ eventKey, station, matchCode }) => {
+  return axios.get(`${SERVER_URL}/getScoutMatch`, {
+    params: { eventKey, station, matchCode },
+    headers: getAuthHeaders(),
+  });
+};

@@ -12,7 +12,7 @@ import { RedTheme } from "./themes/RedTheme.js";
 import { useSearchParams } from "react-router-dom";
 
 import { Box, Button } from "@mui/material";
-import MenuIcon from '@mui/icons-material/Menu';
+import MenuIcon from "@mui/icons-material/Menu";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
 
@@ -33,6 +33,8 @@ import {
   PERSPECTIVE,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
+import { getScoutMatch } from "../../requests/ApiRequests.js";
+import { ImageIcon } from "./CustomFieldComponents.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -50,15 +52,18 @@ const MatchContext = createContext();
 
 // Scout Match Component
 const ScoutMatch = () => {
+  const context = useContext(MatchContext);
   const [searchParams] = useSearchParams();
-  // console.log("Query Params:", searchParams.toString());
+
+  const eventKey = searchParams.get("eventKey");
+  const matchCode = searchParams.get("matchCode");
   const driverStation = searchParams.get("station") || B1;
-  const teamNumber = searchParams.get("teamNumber");
+
   const scoutPerspective =
     searchParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_NEAR;
-  // console.log(driverStation, scoutPerspective);
-  const context = useContext(MatchContext);
-  // match state
+
+  const [scoutData, setScoutData] = useState(null);
+
   const [matchStartTime, setMatchStartTime] = useState(-1);
   const [currentTime, setCurrentTime] = useState(0);
 
@@ -67,14 +72,9 @@ const ScoutMatch = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [data, setData] = useState({
-    prematch: {
-      scoutName: "Name",
-      driverStation,
-      teamNumber,
-    },
     cycles: [],
     hang: {},
-    endgame: {}
+    endgame: {},
   });
 
   const [cycles, setCycles] = useState([]);
@@ -146,6 +146,32 @@ const ScoutMatch = () => {
   const allies = [7558, 188, 1325];
   const enemies = [1, 2, 3];
 
+  const fetchScoutMatchData = async () => {
+    if (!eventKey || !driverStation || !matchCode) {
+      console.error("Missing eventKey, station, or matchCode in URL.");
+      return;
+    }
+    try {
+      const response = await getScoutMatch({
+        eventKey,
+        station: driverStation,
+        matchCode,
+      });
+      setScoutData(response.data);
+      console.log("Fetched scout match data:", response.data);
+    } catch (err) {
+      console.error("Error fetching scout match data:", err);
+    }
+  };
+
+  // Automatically fetch scout match data on component mount
+  useEffect(() => {
+    if (!scoutData) {
+      fetchScoutMatchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (
@@ -167,7 +193,7 @@ const ScoutMatch = () => {
         ...coral
       }]);
 
-      console.log("coral cycle: " + JSON.stringify(coral));
+      console.log("coral cycle: submit " + JSON.stringify(coral));
       // TODO Update cycles when scored
       // Note: updateCoral re-writes the entire state intentionally.
       updateCoral({});
@@ -183,28 +209,23 @@ const ScoutMatch = () => {
         ...algae
       }]);
 
-      console.log("algae cycle: " + JSON.stringify(algae));
-      // TODO Update cycles when scored
+      console.log("algae cycle submit: " + JSON.stringify(algae));
       setAlgae({});
       clearUnfinished();
     }
   }, [algae.depositTime]);
 
   useEffect(() => {
-    if (coral.attainedTime != null) {      
-      console.log("coral cycle: " + JSON.stringify(coral));
-      // TODO Update cycles when scored
-      // Note: updateCoral re-writes the entire state intentionally.
+    if (coral.attainedTime != null) {
+      console.log("coral cycle progress: " + JSON.stringify(coral));
       updateCoral({});
       clearUnfinished();
     }
   }, [coral.attainedTime]);
 
-  // Only run when algae.depositTime changes
   useEffect(() => {
     if (algae.attainedTime != null) {
-      console.log("algae cycle: " + JSON.stringify(algae));
-      // TODO Update cycles when scored
+      console.log("algae cycle progress: " + JSON.stringify(algae));
       setAlgae({});
       clearUnfinished();
     }
@@ -228,8 +249,8 @@ const ScoutMatch = () => {
     if (hang.endTime != null) {
       setData({
         ...data,
-        hang
-      })
+        hang,
+      });
       console.log("Hang: " + JSON.stringify(hang));
       setHang({});
     }
@@ -387,7 +408,11 @@ const ScoutMatch = () => {
 
   const startHang = (location, matchContext) => {
     console.log("starting hang", location);
-    matchContext.setHang({...hang, position: location, startTime: currentTime});
+    matchContext.setHang({
+      ...hang,
+      position: location,
+      startTime: currentTime,
+    });
   };
 
   // actions is a map of gamepiece transformations to be executed
@@ -452,10 +477,13 @@ const ScoutMatch = () => {
     fieldY,
     fieldWidth,
     fieldHeight,
-    componentFunction
+    componentFunction,
+    dontFlip = false
   ) => {
-    fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
-    fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
+    if (!dontFlip) {
+      fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
+      fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
+    }
     return (
       <MatchContext.Consumer key={id}>
         {(match) => (
@@ -532,6 +560,37 @@ const ScoutMatch = () => {
       : null;
   };
 
+  const renderDynamicGamePiece = (gamePiecePosition, icon, name) => {
+    if (gamePiecePosition) {
+      return createFieldLocalMatchComponent(
+        "Dynamic:" + name,
+        gamePiecePosition[0][0],
+        gamePiecePosition[0][1],
+        100,
+        100,
+        (match) => ImageIcon(icon),
+        /* dontFlip= */ gamePiecePosition[1]
+      );
+    }
+  };
+  const getDynamicPosition = (key) => {
+    if (!key) {
+      return null;
+    }
+    if (Array.isArray(key)) {
+      return [key, true];
+    }
+
+    for (const config of Object.values(SCOUTING_CONFIG)) {
+      console.log(config);
+      for (const positionKey of Object.keys(config.positions)) {
+        if (positionKey == key) {
+          return [config.positions[positionKey], false];
+        }
+      }
+    }
+  };
+
   const createSidebarButton = ({
     id,
     flexWeight = 1,
@@ -572,30 +631,65 @@ const ScoutMatch = () => {
     })
   );
 
-  const GROUND_PICKUPIcon = [
-  ]
+  const GROUND_PICKUPIcon = [];
 
-  let looping = true;
-  [[coral.attainedLocation, coral.attainedTime], 
-    [coral.depositLocation, coral.depositTime], 
-    [algae.attainedLocation, algae.attainedTime], 
-    [algae.depositLocation, algae.depositTime]].map((values) => {
-      if ([PHASES.AUTO, PHASES.TELE].includes(phase) && looping && isUnfinished(values[0], values[1]) && Array.isArray(values[0])){
-        GROUND_PICKUPIcon.push(
-          createFieldLocalMatchComponent(
-           "disabled", 
-           driverStation.includes("b") ? values[0][0] : 3500 - values[0][0], 
-           driverStation.includes("b") ? values[0][1] : 1600 - values[0][1], 
-           100, 
-           100, 
-           (match) => (
-            <FieldButton color={COLORS.PRIMARY}></FieldButton>
-          ))
-        );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(coral.attainedLocation),
+      CoralIcon,
+      GAME_PIECES.CORAL
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(algae.attainedLocation),
+      AlgaeIcon,
+      GAME_PIECES.ALGAE
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(coral.depositLocation),
+      CoralIcon,
+      "dropoff-coral"
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(algae.depositLocation),
+      AlgaeIcon,
+      "dropoff-algae"
+    )
+  );
 
-        looping = false;
-      }
-    })
+  // let looping = true;
+  // [
+  //   [coral.attainedLocation, coral.attainedTime],
+  //   [coral.depositLocation, coral.depositTime],
+  //   [algae.attainedLocation, algae.attainedTime],
+  //   [algae.depositLocation, algae.depositTime],
+  // ].map((values) => {
+  //   if (
+  //     [PHASES.AUTO, PHASES.TELE].includes(phase) &&
+  //     looping &&
+  //     isUnfinished(values[0], values[1]) &&
+  //     Array.isArray(values[0])
+  //   ) {
+  //     GROUND_PICKUPIcon.push(
+  //       createFieldLocalMatchComponent(
+  //         "disabled",
+  //         values[0][0],
+  //         values[0][1],
+  //         100,
+  //         100,
+  //         (match) => <FieldButton color={COLORS.PRIMARY}></FieldButton>,
+  //         /* dontFlip= */ true
+  //       )
+  //     );
+
+  //     looping = false;
+  //   }
+  // });
 
   const POST_MATCHChildren = [
     createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => (
@@ -793,7 +887,7 @@ const ScoutMatch = () => {
                     : createTask(ACQUIRE, ALGAE),
                 ]
               );
-            }} 
+            }}
             phase={phase}
           />
         )}
@@ -839,7 +933,7 @@ const ScoutMatch = () => {
     } else if (
       (phase === PHASES.AUTO || phase === PHASES.TELE) &&
       !isDefending &&
-      hang?.startTime==null
+      hang?.startTime == null
     ) {
       // REEF SCORE BUTTONS
       Object.keys(GAME_LOCATIONS.REEF_LEVEL)
@@ -951,7 +1045,7 @@ const ScoutMatch = () => {
       phase === PHASES.AUTO ||
       (phase === PHASES.TELE && isDefending)
     ) {
-      enemies.forEach((enemy, index) => {
+      Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach((enemy, index) => {
         buttonsList.push(
           createSidebarButton({
             id: `defense_${index}`,
@@ -979,8 +1073,8 @@ const ScoutMatch = () => {
           show: defense.defendingTeam != null,
         })
       );
-    } else if (phase === PHASES.TELE && hang?.startTime!=null) {
-      if (hang.height==null){
+    } else if (phase === PHASES.TELE && hang?.startTime != null) {
+      if (hang.height == null) {
         Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
           buttonsList.push(
             createSidebarButton({
@@ -999,21 +1093,30 @@ const ScoutMatch = () => {
             id: "cancelHang",
             label: "CANCEL",
             onClick: () => {
-              setHang({ startTime: null, endTime: null, position: null, depth: null, succeeded: false, });
+              setHang({
+                startTime: null,
+                endTime: null,
+                position: null,
+                depth: null,
+                succeeded: false,
+              });
             },
             color: COLORS.PENDING,
             show: true,
           })
         );
-      }
-      else {
+      } else {
         Object.values(GAME_LOCATIONS.HANG_STATE).forEach((state, index) => {
           buttonsList.push(
             createSidebarButton({
               id: `hangState_${index}`,
               label: `${state}`,
               onClick: () => {
-                setHang({ ...hang, succeeded: state==GAME_LOCATIONS.HANG_STATE.SUCCEED, endTime: currentTime });
+                setHang({
+                  ...hang,
+                  succeeded: state == GAME_LOCATIONS.HANG_STATE.SUCCEED,
+                  endTime: currentTime,
+                });
               },
               color: COLORS.PENDING,
               show: true,
@@ -1025,7 +1128,13 @@ const ScoutMatch = () => {
             id: "cancelHangState",
             label: "CANCEL",
             onClick: () => {
-              setHang({ startTime: null, endTime: null, position: null, depth: null, succeeded: false, });
+              setHang({
+                startTime: null,
+                endTime: null,
+                position: null,
+                depth: null,
+                succeeded: false,
+              });
             },
             color: COLORS.PENDING,
             show: true,
@@ -1096,89 +1205,99 @@ const ScoutMatch = () => {
       );
     }
 
-    return (<>
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} scaleWidthToActual={scaleWidthToActual} scaleHeightToActual={scaleHeightToActual}/>
-      <Box
-        sx={{
-          display: "flex",
-          width: "100%",
-          height: "10%",
-          overflowX: "auto",
-        }}
-      >
-        <Button
-          sx={{
-            width: "90%",
-            height: "90%",
-          }}
-          onClick={() => setSidebarOpen(true)}
-        >
-          <MenuIcon />
-        </Button>
+    return (
+      <>
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          scaleWidthToActual={scaleWidthToActual}
+          scaleHeightToActual={scaleHeightToActual}
+        />
         <Box
           sx={{
-            width: "90%",
-            height: "90%",
+            display: "flex",
+            width: "100%",
+            height: "10%",
+            overflowX: "auto",
           }}
         >
-          <img 
-            src={AlgaeIcon} 
-              style={{
-                width: "auto%", 
-                height: "90%",
-                visibility: hasAlgae() ? "visible" : "hidden"
-              }}></img>
-        </Box>
-        <Box
-          sx={{
-            width: "90%",
-            height: "90%",
-          }}
-        >
-          <img 
-            src={CoralIcon} 
-            style={{
-              width: "auto%", 
-              height: "90%",
-              visibility: hasCoral() ? "visible" : "hidden"
-            }}></img>
-        </Box>
-        <Box
-          sx={{
-            width: "90%",
-            height: "90%",
-          }}
-        >
-          <h2 style={{color: 'black', marginTop: '30%'}}>{currentTime}</h2>
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          height: "90%",
-          backgroundColor: getTheme().palette.background.paper,
-          overflowY: "auto",
-        }}
-      >
-        {buttonsList.filter(Boolean).map((button, index) => (
-          <Box
-            key={index}
+          <Button
             sx={{
-              flex: button.flexWeight || 1,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: 0,
+              width: "90%",
+              height: "90%",
+            }}
+            onClick={() => setSidebarOpen(true)}
+          >
+            <MenuIcon />
+          </Button>
+          <Box
+            sx={{
+              width: "90%",
+              height: "90%",
             }}
           >
-            {button.component}
+            <img
+              src={AlgaeIcon}
+              style={{
+                width: "auto%",
+                height: "90%",
+                visibility: hasAlgae() ? "visible" : "hidden",
+              }}
+            ></img>
           </Box>
-        ))}
-      </Box>
-    </>);
+          <Box
+            sx={{
+              width: "90%",
+              height: "90%",
+            }}
+          >
+            <img
+              src={CoralIcon}
+              style={{
+                width: "auto%",
+                height: "90%",
+                visibility: hasCoral() ? "visible" : "hidden",
+              }}
+            ></img>
+          </Box>
+          <Box
+            sx={{
+              width: "90%",
+              height: "90%",
+            }}
+          >
+            <h2 style={{ color: "black", marginTop: "30%" }}>{currentTime}</h2>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            height: "90%",
+            backgroundColor: getTheme().palette.background.paper,
+            overflowY: "auto",
+          }}
+        >
+          {renderScoutDataLabel()}
+          {buttonsList.filter(Boolean).map((button, index) => (
+            <Box
+              key={index}
+              sx={{
+                flex: button.flexWeight || 1,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                padding: 0,
+              }}
+            >
+              {button.component}
+            </Box>
+          ))}
+        </Box>
+      </>
+    );
   };
 
   const createFieldButton = ({ props }) => {};
@@ -1206,6 +1325,36 @@ const ScoutMatch = () => {
     return () => window.removeEventListener("resize", resizeScaledBox);
   }, []);
 
+  const getMatchCode = () => {
+    if (scoutData) {
+      return (
+        scoutData.comp_level +
+        scoutData.match_number +
+        (scoutData.comp_level !== "qm" ? scoutData.set_number : "")
+      );
+    }
+  };
+
+  const renderScoutDataLabel = () => {
+    return (
+      <Box
+        sx={{
+          backgroundColor: getTheme().palette.primary.main,
+          color: getTheme().palette.primary.contrastText,
+          padding: 1,
+        }}
+      >
+        {scoutData ? (
+          <div>
+            Team: {scoutData.teamNumber}, Match: {getMatchCode()}
+          </div>
+        ) : (
+          <div>No scout data</div>
+        )}
+      </Box>
+    );
+  };
+
   return (
     <MatchContext.Provider value={CONTEXT_WRAPPER}>
       <ThemeProvider theme={getTheme()}>
@@ -1231,6 +1380,10 @@ const ScoutMatch = () => {
           >
             <Box
               sx={{
+                background:
+                  phase == PHASES.AUTO
+                    ? getTheme().palette.autoBackground.main
+                    : "",
                 position: "absolute",
                 left: scaleWidthToActual(sidebarVirtualWidth),
                 width:

@@ -8,7 +8,9 @@ const HomePage = () => {
 
   return (
     <div>
-      <h1>HOME PAGE</h1>
+      <center>
+        <h1>HOME PAGE</h1>
+      </center>
       <div style={{ display: "flex", justifyContent: "space-around" }}>
         <Button variant="contained" onClick={() => navigate("/admin")}>
           Admin

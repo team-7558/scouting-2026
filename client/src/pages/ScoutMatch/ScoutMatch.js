@@ -12,8 +12,13 @@ import { RedTheme } from "./themes/RedTheme.js";
 import { useSearchParams } from "react-router-dom";
 
 import { Box, Button } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
+
+import AlgaeIcon from "../../assets/scouting-2025/algaeIcon.png";
+import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
+import Sidebar from "../Sidebar.js";
 
 import {
   GAME_LOCATIONS,
@@ -28,6 +33,8 @@ import {
   PERSPECTIVE,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
+import { getScoutMatch } from "../../requests/ApiRequests.js";
+import { ImageIcon } from "./CustomFieldComponents.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -45,19 +52,32 @@ const MatchContext = createContext();
 
 // Scout Match Component
 const ScoutMatch = () => {
+  const context = useContext(MatchContext);
   const [searchParams] = useSearchParams();
-  // console.log("Query Params:", searchParams.toString());
+
+  const eventKey = searchParams.get("eventKey");
+  const matchCode = searchParams.get("matchCode");
   const driverStation = searchParams.get("station") || B1;
-  const teamNumber = searchParams.get("teamNumber");
+
   const scoutPerspective =
     searchParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_NEAR;
-  // console.log(driverStation, scoutPerspective);
-  const context = useContext(MatchContext);
-  // match state
+
+  const [scoutData, setScoutData] = useState(null);
+
   const [matchStartTime, setMatchStartTime] = useState(-1);
   const [currentTime, setCurrentTime] = useState(0);
 
   const [phase, setPhase] = useState(PHASES.PRE_MATCH);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [data, setData] = useState({
+    cycles: [],
+    hang: {},
+    endgame: {},
+  });
+
+  const [cycles, setCycles] = useState([]);
 
   // robot state
   const [isDefending, setIsDefending] = useState(false);
@@ -84,9 +104,11 @@ const ScoutMatch = () => {
   });
 
   const [hang, setHang] = useState({
-    time: null,
+    startTime: null,
+    endTime: null,
     position: null,
     height: null,
+    succeeded: false,
   });
 
   const [endgame, setEndgame] = useState({
@@ -122,7 +144,33 @@ const ScoutMatch = () => {
 
   //TODO: replace with real teams.
   const allies = [7558, 188, 1325];
-  const enemies = [2056, 4039, 9785];
+  const enemies = [1, 2, 3];
+
+  const fetchScoutMatchData = async () => {
+    if (!eventKey || !driverStation || !matchCode) {
+      console.error("Missing eventKey, station, or matchCode in URL.");
+      return;
+    }
+    try {
+      const response = await getScoutMatch({
+        eventKey,
+        station: driverStation,
+        matchCode,
+      });
+      setScoutData(response.data);
+      console.log("Fetched scout match data:", response.data);
+    } catch (err) {
+      console.error("Error fetching scout match data:", err);
+    }
+  };
+
+  // Automatically fetch scout match data on component mount
+  useEffect(() => {
+    if (!scoutData) {
+      fetchScoutMatchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -140,7 +188,12 @@ const ScoutMatch = () => {
   // Only run when coral.depositTime changes
   useEffect(() => {
     if (coral.depositTime != null) {
-      console.log("coral cycle: " + JSON.stringify(coral));
+      setCycles([...cycles, {
+        type: "coral",
+        ...coral
+      }]);
+
+      console.log("coral cycle: submit " + JSON.stringify(coral));
       // TODO Update cycles when scored
       // Note: updateCoral re-writes the entire state intentionally.
       updateCoral({});
@@ -150,9 +203,13 @@ const ScoutMatch = () => {
 
   // Only run when algae.depositTime changes
   useEffect(() => {
-    if (algae.depositTime != null) {
-      console.log("algae cycle: " + JSON.stringify(algae));
-      // TODO Update cycles when scored
+    if (algae.depositTime != null) {      
+      setCycles([...cycles, {
+        type: "algae",
+        ...algae
+      }]);
+
+      console.log("algae cycle submit: " + JSON.stringify(algae));
       setAlgae({});
       clearUnfinished();
     }
@@ -160,19 +217,15 @@ const ScoutMatch = () => {
 
   useEffect(() => {
     if (coral.attainedTime != null) {
-      console.log("coral cycle: " + JSON.stringify(coral));
-      // TODO Update cycles when scored
-      // Note: updateCoral re-writes the entire state intentionally.
+      console.log("coral cycle progress: " + JSON.stringify(coral));
       updateCoral({});
       clearUnfinished();
     }
   }, [coral.attainedTime]);
 
-  // Only run when algae.depositTime changes
   useEffect(() => {
     if (algae.attainedTime != null) {
-      console.log("algae cycle: " + JSON.stringify(algae));
-      // TODO Update cycles when scored
+      console.log("algae cycle progress: " + JSON.stringify(algae));
       setAlgae({});
       clearUnfinished();
     }
@@ -181,6 +234,11 @@ const ScoutMatch = () => {
   // Only run when defense.endTime changes
   useEffect(() => {
     if (defense.endTime != null) {
+      setCycles([...cycles, {
+        type: "defense",
+        ...defense,
+      }]);
+
       console.log("defense cycle: " + JSON.stringify(defense));
       setDefense({});
     }
@@ -188,11 +246,15 @@ const ScoutMatch = () => {
 
   // Only run when hang.time changes
   useEffect(() => {
-    if (hang.time != null) {
+    if (hang.endTime != null) {
+      setData({
+        ...data,
+        hang,
+      });
       console.log("Hang: " + JSON.stringify(hang));
       setHang({});
     }
-  }, [hang.time]);
+  }, [hang.endTime]);
 
   // TODO add sanity checks here
   const updateCoral = (updates) => {
@@ -219,14 +281,14 @@ const ScoutMatch = () => {
   const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
   const flipX = () => isScoutingRed();
   const flipY = () => isScoutingRed();
-  console.log(
-    flipX(),
-    flipY(),
-    isScoutingRed(),
-    isScoringTableFar(),
-    driverStation,
-    scoutPerspective
-  );
+  // console.log(
+  //   flipX(),
+  //   flipY(),
+  //   isScoutingRed(),
+  //   isScoringTableFar(),
+  //   driverStation,
+  //   scoutPerspective
+  // );
   const CONTEXT_WRAPPER = {
     fieldCanvasRef,
     matchStartTime,
@@ -298,7 +360,7 @@ const ScoutMatch = () => {
         matchContext.algae.depositLocation,
         matchContext.algae.depositTime
       ) ||
-      isUnfinished(matchContext.hang.position, matchContext.hang.time)
+      isUnfinished(matchContext.hang.position, matchContext.hang.endTime)
     );
   };
 
@@ -346,7 +408,11 @@ const ScoutMatch = () => {
 
   const startHang = (location, matchContext) => {
     console.log("starting hang", location);
-    matchContext.setHang(location);
+    matchContext.setHang({
+      ...hang,
+      position: location,
+      startTime: currentTime,
+    });
   };
 
   // actions is a map of gamepiece transformations to be executed
@@ -411,10 +477,13 @@ const ScoutMatch = () => {
     fieldY,
     fieldWidth,
     fieldHeight,
-    componentFunction
+    componentFunction,
+    dontFlip = false
   ) => {
-    fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
-    fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
+    if (!dontFlip) {
+      fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
+      fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
+    }
     return (
       <MatchContext.Consumer key={id}>
         {(match) => (
@@ -491,6 +560,37 @@ const ScoutMatch = () => {
       : null;
   };
 
+  const renderDynamicGamePiece = (gamePiecePosition, icon, name) => {
+    if (gamePiecePosition) {
+      return createFieldLocalMatchComponent(
+        "Dynamic:" + name,
+        gamePiecePosition[0][0],
+        gamePiecePosition[0][1],
+        100,
+        100,
+        (match) => ImageIcon(icon),
+        /* dontFlip= */ gamePiecePosition[1]
+      );
+    }
+  };
+  const getDynamicPosition = (key) => {
+    if (!key) {
+      return null;
+    }
+    if (Array.isArray(key)) {
+      return [key, true];
+    }
+
+    for (const config of Object.values(SCOUTING_CONFIG)) {
+      console.log(config);
+      for (const positionKey of Object.keys(config.positions)) {
+        if (positionKey == key) {
+          return [config.positions[positionKey], false];
+        }
+      }
+    }
+  };
+
   const createSidebarButton = ({
     id,
     flexWeight = 1,
@@ -531,6 +631,66 @@ const ScoutMatch = () => {
     })
   );
 
+  const GROUND_PICKUPIcon = [];
+
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(coral.attainedLocation),
+      CoralIcon,
+      GAME_PIECES.CORAL
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(algae.attainedLocation),
+      AlgaeIcon,
+      GAME_PIECES.ALGAE
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(coral.depositLocation),
+      CoralIcon,
+      "dropoff-coral"
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(algae.depositLocation),
+      AlgaeIcon,
+      "dropoff-algae"
+    )
+  );
+
+  // let looping = true;
+  // [
+  //   [coral.attainedLocation, coral.attainedTime],
+  //   [coral.depositLocation, coral.depositTime],
+  //   [algae.attainedLocation, algae.attainedTime],
+  //   [algae.depositLocation, algae.depositTime],
+  // ].map((values) => {
+  //   if (
+  //     [PHASES.AUTO, PHASES.TELE].includes(phase) &&
+  //     looping &&
+  //     isUnfinished(values[0], values[1]) &&
+  //     Array.isArray(values[0])
+  //   ) {
+  //     GROUND_PICKUPIcon.push(
+  //       createFieldLocalMatchComponent(
+  //         "disabled",
+  //         values[0][0],
+  //         values[0][1],
+  //         100,
+  //         100,
+  //         (match) => <FieldButton color={COLORS.PRIMARY}></FieldButton>,
+  //         /* dontFlip= */ true
+  //       )
+  //     );
+
+  //     looping = false;
+  //   }
+  // });
+
   const POST_MATCHChildren = [
     createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => (
       <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>
@@ -561,7 +721,7 @@ const ScoutMatch = () => {
     createFieldLocalMatchComponent(
       "driverSkill",
       250,
-      450,
+      500,
       500,
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>
@@ -571,7 +731,7 @@ const ScoutMatch = () => {
       return createFieldLocalMatchComponent(
         `${index}DriverSkill`,
         x,
-        600,
+        650,
         150,
         100,
         (match) => (
@@ -592,7 +752,7 @@ const ScoutMatch = () => {
     createFieldLocalMatchComponent(
       "defenseSkill",
       250,
-      800,
+      900,
       500,
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
@@ -602,7 +762,7 @@ const ScoutMatch = () => {
       return createFieldLocalMatchComponent(
         `${index}DefenseSkill`,
         x,
-        950,
+        1050,
         150,
         100,
         (match) => (
@@ -620,7 +780,7 @@ const ScoutMatch = () => {
     }),
 
     //role
-    createFieldLocalMatchComponent("role", 250, 1150, 500, 150, (match) => (
+    createFieldLocalMatchComponent("role", 250, 1300, 500, 150, (match) => (
       <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>
     )),
     ...[200, 575, 950, 1325].map((x, index) => {
@@ -628,7 +788,7 @@ const ScoutMatch = () => {
       return createFieldLocalMatchComponent(
         `${index}Role`,
         x,
-        1300,
+        1450,
         350,
         100,
         (match) => (
@@ -700,6 +860,7 @@ const ScoutMatch = () => {
     const fieldChildren = [
       ...ScoutingConfigChildren,
       ...(phase === PHASES.POST_MATCH ? POST_MATCHChildren : []),
+      ...GROUND_PICKUPIcon,
     ];
     return (
       <Box
@@ -749,6 +910,7 @@ const ScoutMatch = () => {
           onClick: () => {
             setMatchStartTime(Date.now());
             setPhase(PHASES.AUTO);
+            clearUnfinished();
           },
           color: startingPosition < 0 ? "disabled" : COLORS.ACTIVE,
           disabled: startingPosition < 0,
@@ -771,7 +933,7 @@ const ScoutMatch = () => {
     } else if (
       (phase === PHASES.AUTO || phase === PHASES.TELE) &&
       !isDefending &&
-      typeof hang != "string"
+      hang?.startTime == null
     ) {
       // REEF SCORE BUTTONS
       Object.keys(GAME_LOCATIONS.REEF_LEVEL)
@@ -883,7 +1045,7 @@ const ScoutMatch = () => {
       phase === PHASES.AUTO ||
       (phase === PHASES.TELE && isDefending)
     ) {
-      enemies.forEach((enemy, index) => {
+      Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach((enemy, index) => {
         buttonsList.push(
           createSidebarButton({
             id: `defense_${index}`,
@@ -911,38 +1073,93 @@ const ScoutMatch = () => {
           show: defense.defendingTeam != null,
         })
       );
-    } else if (phase === PHASES.TELE && typeof hang == "string") {
-      console.log("herehere");
-      Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
+    } else if (phase === PHASES.TELE && hang?.startTime != null) {
+      if (hang.height == null) {
+        Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
+          buttonsList.push(
+            createSidebarButton({
+              id: `hangDepth_${index}`,
+              label: `${height}`,
+              onClick: () => {
+                setHang({ ...hang, height });
+              },
+              color: COLORS.PENDING,
+              show: true,
+            })
+          );
+        });
         buttonsList.push(
           createSidebarButton({
-            id: `hangDepth_${index}`,
-            label: `${height}`,
+            id: "cancelHang",
+            label: "CANCEL",
             onClick: () => {
-              setHang({ ...hang, time: currentTime, height });
+              setHang({
+                startTime: null,
+                endTime: null,
+                position: null,
+                depth: null,
+                succeeded: false,
+              });
             },
             color: COLORS.PENDING,
             show: true,
           })
         );
-      });
-      buttonsList.push(
-        createSidebarButton({
-          id: "cancelHang",
-          label: "CANCEL",
-          onClick: () => {
-            setHang({ time: null, position: null, depth: null });
-          },
-          color: COLORS.PENDING,
-          show: true,
-        })
-      );
+      } else {
+        Object.values(GAME_LOCATIONS.HANG_STATE).forEach((state, index) => {
+          buttonsList.push(
+            createSidebarButton({
+              id: `hangState_${index}`,
+              label: `${state}`,
+              onClick: () => {
+                setHang({
+                  ...hang,
+                  succeeded: state == GAME_LOCATIONS.HANG_STATE.SUCCEED,
+                  endTime: currentTime,
+                });
+              },
+              color: COLORS.PENDING,
+              show: true,
+            })
+          );
+        });
+        buttonsList.push(
+          createSidebarButton({
+            id: "cancelHangState",
+            label: "CANCEL",
+            onClick: () => {
+              setHang({
+                startTime: null,
+                endTime: null,
+                position: null,
+                depth: null,
+                succeeded: false,
+              });
+            },
+            color: COLORS.PENDING,
+            show: true,
+          })
+        );
+      }
     } else if (phase === PHASES.POST_MATCH) {
       buttonsList.push(
         createSidebarButton({
           id: "submit",
           label: "SUBMIT",
           onClick: () => {
+            console.log("cycles: ", cycles)
+            setData({
+              ...data,
+              endgame,
+              cycles,
+            });
+
+            console.log({
+              ...data,
+              endgame,
+              cycles,
+            });
+
             setMatchStartTime(-1);
             setCurrentTime(0);
             setPhase(PHASES.PRE_MATCH);
@@ -968,9 +1185,11 @@ const ScoutMatch = () => {
               endTime: null,
             });
             setHang({
-              time: null,
+              startTime: null,
+              endTime: null,
               position: null,
               height: null,
+              succeeded: false,
             });
             setEndgame({
               disabled: false,
@@ -987,31 +1206,97 @@ const ScoutMatch = () => {
     }
 
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          height: "100%",
-          backgroundColor: getTheme().palette.background.paper,
-          overflowY: "auto",
-        }}
-      >
-        {buttonsList.filter(Boolean).map((button, index) => (
-          <Box
-            key={index}
+      <>
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          scaleWidthToActual={scaleWidthToActual}
+          scaleHeightToActual={scaleHeightToActual}
+        />
+        <Box
+          sx={{
+            display: "flex",
+            width: "100%",
+            height: "10%",
+            overflowX: "auto",
+          }}
+        >
+          <Button
             sx={{
-              flex: button.flexWeight || 1,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: 0,
+              width: "90%",
+              height: "90%",
+            }}
+            onClick={() => setSidebarOpen(true)}
+          >
+            <MenuIcon />
+          </Button>
+          <Box
+            sx={{
+              width: "90%",
+              height: "90%",
             }}
           >
-            {button.component}
+            <img
+              src={AlgaeIcon}
+              style={{
+                width: "auto%",
+                height: "90%",
+                visibility: hasAlgae() ? "visible" : "hidden",
+              }}
+            ></img>
           </Box>
-        ))}
-      </Box>
+          <Box
+            sx={{
+              width: "90%",
+              height: "90%",
+            }}
+          >
+            <img
+              src={CoralIcon}
+              style={{
+                width: "auto%",
+                height: "90%",
+                visibility: hasCoral() ? "visible" : "hidden",
+              }}
+            ></img>
+          </Box>
+          <Box
+            sx={{
+              width: "90%",
+              height: "90%",
+            }}
+          >
+            <h2 style={{ color: "black", marginTop: "30%" }}>{currentTime}</h2>
+          </Box>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            height: "90%",
+            backgroundColor: getTheme().palette.background.paper,
+            overflowY: "auto",
+          }}
+        >
+          {renderScoutDataLabel()}
+          {buttonsList.filter(Boolean).map((button, index) => (
+            <Box
+              key={index}
+              sx={{
+                flex: button.flexWeight || 1,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                padding: 0,
+              }}
+            >
+              {button.component}
+            </Box>
+          ))}
+        </Box>
+      </>
     );
   };
 
@@ -1040,6 +1325,36 @@ const ScoutMatch = () => {
     return () => window.removeEventListener("resize", resizeScaledBox);
   }, []);
 
+  const getMatchCode = () => {
+    if (scoutData) {
+      return (
+        scoutData.comp_level +
+        scoutData.match_number +
+        (scoutData.comp_level !== "qm" ? scoutData.set_number : "")
+      );
+    }
+  };
+
+  const renderScoutDataLabel = () => {
+    return (
+      <Box
+        sx={{
+          backgroundColor: getTheme().palette.primary.main,
+          color: getTheme().palette.primary.contrastText,
+          padding: 1,
+        }}
+      >
+        {scoutData ? (
+          <div>
+            Team: {scoutData.teamNumber}, Match: {getMatchCode()}
+          </div>
+        ) : (
+          <div>No scout data</div>
+        )}
+      </Box>
+    );
+  };
+
   return (
     <MatchContext.Provider value={CONTEXT_WRAPPER}>
       <ThemeProvider theme={getTheme()}>
@@ -1065,6 +1380,10 @@ const ScoutMatch = () => {
           >
             <Box
               sx={{
+                background:
+                  phase == PHASES.AUTO
+                    ? getTheme().palette.autoBackground.main
+                    : "",
                 position: "absolute",
                 left: scaleWidthToActual(sidebarVirtualWidth),
                 width:

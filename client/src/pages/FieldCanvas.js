@@ -232,7 +232,7 @@ const FieldCanvas = forwardRef(
             position: "absolute",
             top: 0,
             left: 0,
-            background: theme.palette.background.default,
+            // background: theme.palette.background.default,
           }}
           onClick={(e) => handleMouseInteraction(e, true)}
           onMouseMove={(e) => handleMouseInteraction(e)}

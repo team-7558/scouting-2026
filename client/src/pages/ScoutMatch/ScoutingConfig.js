@@ -120,7 +120,8 @@ export const SCOUTING_CONFIG = {
   // Hang: three positions; task is to hang.
   HANG: {
     phases: [PHASES.TELE],
-    drawBorder: (match, key) => match.hang==key,
+    drawBorder: (match, key) =>
+      match.hang?.position != null && match.hang.position == key,
     positions: {
       [GAME_LOCATIONS.HANG.LEFT]: [1755, 1000],
       [GAME_LOCATIONS.HANG.MIDDLE]: [1755, 1225],
@@ -144,41 +145,42 @@ export const SCOUTING_CONFIG = {
       height: 250,
     },
     tasks: [createTask(ACTIONS.GO_TELE)],
-    textFunction: (match, key) => key,
+    textFunction: (match, key) => "FINISH AUTO",
   },
 
-  CORAL_ICON: {
-    phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
-    showFunction: (match, key) => match.hasCoral(),
-    positions: {
-      TELE: [2050, 200],
-    },
-    dimensions: {
-      width: 200,
-      height: 200,
-    },
-    tasks: [createTask(ACTIONS.GO_TELE)],
-    componentFunction: (match, key) => ImageIcon(CoralIcon),
-  },
+  // CORAL_ICON: {
+  //   phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
+  //   showFunction: (match, key) => match.coral.attainedLocation != null,
+  //   positions: {
+  //     dynamic: true,
+  //     CORAL_DYNAMIC: (match) => {},
+  //   },
+  //   dimensions: {
+  //     width: 100,
+  //     height: 100,
+  //   },
+  //   tasks: [createTask(ACTIONS.GO_TELE)],
+  //   componentFunction: (match, key) => ImageIcon(CoralIcon),
+  // },
 
-  ALGAE_ICON: {
-    phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
-    showFunction: (match, key) => match.hasAlgae(),
-    positions: {
-      TELE: [2050, 350],
-    },
-    dimensions: {
-      width: 200,
-      height: 200,
-    },
-    tasks: [createTask(ACTIONS.GO_TELE)],
-    componentFunction: (match, key) => ImageIcon(AlgaeIcon),
-  },
+  // ALGAE_ICON: {
+  //   phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
+  //   showFunction: (match, key) => match.hasAlgae(),
+  //   positions: {
+  //     TELE: [2050, 350],
+  //   },
+  //   dimensions: {
+  //     width: 200,
+  //     height: 200,
+  //   },
+  //   tasks: [createTask(ACTIONS.GO_TELE)],
+  //   componentFunction: (match, key) => ImageIcon(AlgaeIcon),
+  // },
 
   STARTING_LINE: {
     phases: [PHASES.PRE_MATCH],
     positions: {
-      0: [1515, 655],
+      PRELOAD: [1515, 655],
     },
     dimensions: {
       width: 0,

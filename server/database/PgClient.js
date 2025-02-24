@@ -29,10 +29,12 @@ export const protectOperation =
   async (req, ...args) => {
     // return await operation(...args);
     try {
+      const role = await extractRoleFromRequest(req);
       if (
+        role == USER_ROLES.ADMIN ||
         !allowedroles ||
         allowedroles.length == 0 ||
-        allowedroles.includes(await extractRoleFromRequest(req))
+        allowedroles.includes(role)
       ) {
         return await operation(...args);
       }

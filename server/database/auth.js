@@ -143,4 +143,6 @@ export const createUser = protectOperation(createUserInternal, [
   USER_ROLES.ADMIN,
 ]);
 export const authenticateUser = protectOperation(authenticateUserInternal);
-export const updatePassword = protectOperation(updatePasswordInternal);
+export const updatePassword = protectOperation(updatePasswordInternal, [
+  USER_ROLES.USER,
+]);

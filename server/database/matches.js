@@ -1,4 +1,5 @@
 // database/matches.js
+import { USER_ROLES } from "./auth.js";
 import { pgClient, protectOperation } from "./PgClient.js";
 
 export const storeMatchesInternal = async (event_code, matches) => {
@@ -62,7 +63,39 @@ export const storeMatchesInternal = async (event_code, matches) => {
     await client.release();
   }
 };
+export const getScoutMatchInternal = async (eventKey, station, matchCode) => {
+  // Validate station
+  const allowedStations = ["r1", "r2", "r3", "b1", "b2", "b3"];
+  if (!allowedStations.includes(station)) {
+    throw new Error("Invalid station parameter");
+  }
+  if (!/^[a-zA-Z0-9_]+$/.test(eventKey)) {
+    throw new Error("Invalid eventKey");
+  }
+  // Dynamically build the table name
+  const tableName = `matches_${eventKey}`;
+  const client = await pgClient();
+  try {
+    // Note: table name and column name cannot be parameterized, so we've validated them above.
+    const query = `
+      SELECT match_number, comp_level, event_key, set_number, ${station} AS team
+      FROM ${tableName}
+      WHERE key = $1
+    `;
+    const result = await client.query(query, [`${eventKey}_${matchCode}`]);
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return result.rows[0];
+  } finally {
+    await client.release();
+  }
+};
 
-// Wrap the internal function with protectOperation if you want to restrict usage (for example to admins).
-// If no role restriction is needed, you can leave the allowed roles array empty.
-export const storeMatches = protectOperation(storeMatchesInternal, []);
+export const getScoutMatch = protectOperation(getScoutMatchInternal, [
+  USER_ROLES.USER,
+]);
+
+export const storeMatches = protectOperation(storeMatchesInternal, [
+  USER_ROLES.ADMIN,
+]);

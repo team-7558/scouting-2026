@@ -30,16 +30,16 @@ app.use(express.json());
 app.use(cors());
 // console.log(app);
 
+// Use the auth routes
+app.use("/api", apiRoutes);
+app.use("/auth", authRoutes);
+// app.use("/admin", adminRoutes);
+
 // Have Node serve the files for our built React app
 app.use(express.static(path.resolve(__dirname, "../client/build")));
 app.get("*", (req, res) => {
   res.sendFile(path.resolve(__dirname, "../client/build", "index.html"));
 });
-
-// Use the auth routes
-app.use("/api", apiRoutes);
-app.use("/auth", authRoutes);
-// app.use("/admin", adminRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

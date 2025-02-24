@@ -1,5 +1,5 @@
 import express from "express";
-import { storeMatches } from "../database/matches.js";
+import { getScoutMatch, storeMatches } from "../database/matches.js";
 
 const router = express.Router();
 
@@ -44,6 +44,39 @@ router.post("/matches", async (req, res) => {
   } catch (error) {
     console.error("Error processing match data:", error);
     res.status(500).json({ message: "Server error: " + error.message });
+  }
+});
+
+router.get("/getScoutMatch", async (req, res) => {
+  const { eventKey, station, matchCode } = req.query;
+  if (!eventKey || !station || !matchCode) {
+    return res.status(400).json({
+      message: "Missing required parameters: eventKey, station, matchCode",
+    });
+  }
+
+  try {
+    const matchData = await getScoutMatch(req, eventKey, station, matchCode);
+    if (!matchData) {
+      return res.status(404).json({ message: "Match not found" });
+    }
+
+    // Strip "frc" prefix from the team string (if present)
+    let teamNumber = matchData.team;
+    if (teamNumber && teamNumber.startsWith("frc")) {
+      teamNumber = teamNumber.substring(3);
+    }
+
+    res.json({
+      teamNumber,
+      match_number: matchData.match_number,
+      comp_level: matchData.comp_level,
+      eventKey: matchData.eventKey,
+      set_number: matchData.set_number,
+    });
+  } catch (error) {
+    console.error("Error querying scoutMatch:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 

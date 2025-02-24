@@ -598,10 +598,17 @@ const ScoutMatch = () => {
     [algae.depositLocation, algae.depositTime]].map((values) => {
       if ([PHASES.AUTO, PHASES.TELE].includes(phase) && looping && isUnfinished(values[0], values[1]) && Array.isArray(values[0])){
         GROUND_PICKUPIcon.push(
-          createFieldLocalMatchComponent("disabled", values[0][0], values[0][1], 100, 100, (match) => (
+          createFieldLocalMatchComponent(
+           "disabled", 
+           driverStation.includes("b") ? values[0][0] : 3500 - values[0][0], 
+           driverStation.includes("b") ? values[0][1] : 1600 - values[0][1], 
+           100, 
+           100, 
+           (match) => (
             <FieldButton color={COLORS.PRIMARY}></FieldButton>
           ))
         );
+
         looping = false;
       }
     })

@@ -120,7 +120,8 @@ export const SCOUTING_CONFIG = {
   // Hang: three positions; task is to hang.
   HANG: {
     phases: [PHASES.TELE],
-    drawBorder: (match, key) => match.hang?.position!=null && match.hang.position==key,
+    drawBorder: (match, key) =>
+      match.hang?.position != null && match.hang.position == key,
     positions: {
       [GAME_LOCATIONS.HANG.LEFT]: [1755, 1000],
       [GAME_LOCATIONS.HANG.MIDDLE]: [1755, 1225],
@@ -149,13 +150,14 @@ export const SCOUTING_CONFIG = {
 
   // CORAL_ICON: {
   //   phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
-  //   showFunction: (match, key) => match.hasCoral(),
+  //   showFunction: (match, key) => match.coral.attainedLocation != null,
   //   positions: {
-  //     TELE: [2050, 200],
+  //     dynamic: true,
+  //     CORAL_DYNAMIC: (match) => {},
   //   },
   //   dimensions: {
-  //     width: 200,
-  //     height: 200,
+  //     width: 100,
+  //     height: 100,
   //   },
   //   tasks: [createTask(ACTIONS.GO_TELE)],
   //   componentFunction: (match, key) => ImageIcon(CoralIcon),
@@ -178,7 +180,7 @@ export const SCOUTING_CONFIG = {
   STARTING_LINE: {
     phases: [PHASES.PRE_MATCH],
     positions: {
-      0: [1515, 655],
+      PRELOAD: [1515, 655],
     },
     dimensions: {
       width: 0,

@@ -34,6 +34,7 @@ import {
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
+import { ImageIcon } from "./CustomFieldComponents.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -499,10 +500,13 @@ const ScoutMatch = () => {
     fieldY,
     fieldWidth,
     fieldHeight,
-    componentFunction
+    componentFunction,
+    dontFlip = false
   ) => {
-    fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
-    fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
+    if (!dontFlip) {
+      fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
+      fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
+    }
     return (
       <MatchContext.Consumer key={id}>
         {(match) => (
@@ -579,6 +583,37 @@ const ScoutMatch = () => {
       : null;
   };
 
+  const renderDynamicGamePiece = (gamePiecePosition, icon, name) => {
+    if (gamePiecePosition) {
+      return createFieldLocalMatchComponent(
+        "Dynamic:" + name,
+        gamePiecePosition[0][0],
+        gamePiecePosition[0][1],
+        100,
+        100,
+        (match) => ImageIcon(icon),
+        /* dontFlip= */ gamePiecePosition[1]
+      );
+    }
+  };
+  const getDynamicPosition = (key) => {
+    if (!key) {
+      return null;
+    }
+    if (Array.isArray(key)) {
+      return [key, true];
+    }
+
+    for (const config of Object.values(SCOUTING_CONFIG)) {
+      console.log(config);
+      for (const positionKey of Object.keys(config.positions)) {
+        if (positionKey == key) {
+          return [config.positions[positionKey], false];
+        }
+      }
+    }
+  };
+
   const createSidebarButton = ({
     id,
     flexWeight = 1,
@@ -621,38 +656,63 @@ const ScoutMatch = () => {
 
   const GROUND_PICKUPIcon = [];
 
-  let looping = true;
-  [
-    [coral.attainedLocation, coral.attainedTime],
-    [coral.depositLocation, coral.depositTime],
-    [algae.attainedLocation, algae.attainedTime],
-    [algae.depositLocation, algae.depositTime],
-  ].map((values) => {
-    if (
-      [PHASES.AUTO, PHASES.TELE].includes(phase) &&
-      looping &&
-      isUnfinished(values[0], values[1]) &&
-      Array.isArray(values[0])
-    ) {
-      GROUND_PICKUPIcon.push(
-        createFieldLocalMatchComponent(
-          "disabled",
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(coral.attainedLocation),
+      CoralIcon,
+      GAME_PIECES.CORAL
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(algae.attainedLocation),
+      AlgaeIcon,
+      GAME_PIECES.ALGAE
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(coral.depositLocation),
+      CoralIcon,
+      "dropoff-coral"
+    )
+  );
+  GROUND_PICKUPIcon.push(
+    renderDynamicGamePiece(
+      getDynamicPosition(algae.depositLocation),
+      AlgaeIcon,
+      "dropoff-algae"
+    )
+  );
 
-          driverStation.includes("b") ? values[0][0] : 3500 - values[0][0],
+  // let looping = true;
+  // [
+  //   [coral.attainedLocation, coral.attainedTime],
+  //   [coral.depositLocation, coral.depositTime],
+  //   [algae.attainedLocation, algae.attainedTime],
+  //   [algae.depositLocation, algae.depositTime],
+  // ].map((values) => {
+  //   if (
+  //     [PHASES.AUTO, PHASES.TELE].includes(phase) &&
+  //     looping &&
+  //     isUnfinished(values[0], values[1]) &&
+  //     Array.isArray(values[0])
+  //   ) {
+  //     GROUND_PICKUPIcon.push(
+  //       createFieldLocalMatchComponent(
+  //         "disabled",
+  //         values[0][0],
+  //         values[0][1],
+  //         100,
+  //         100,
+  //         (match) => <FieldButton color={COLORS.PRIMARY}></FieldButton>,
+  //         /* dontFlip= */ true
+  //       )
+  //     );
 
-          driverStation.includes("b") ? values[0][1] : 1600 - values[0][1],
-
-          100,
-
-          100,
-
-          (match) => <FieldButton color={COLORS.PRIMARY}></FieldButton>
-        )
-      );
-
-      looping = false;
-    }
-  });
+  //     looping = false;
+  //   }
+  // });
 
   const POST_MATCHChildren = [
     createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => (

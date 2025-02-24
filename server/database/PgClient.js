@@ -29,13 +29,11 @@ export const protectOperation =
   async (req, ...args) => {
     // return await operation(...args);
     try {
+      if (!allowedroles || allowedroles.length == 0) {
+        return await operation(...args);
+      }
       const role = await extractRoleFromRequest(req);
-      if (
-        role == USER_ROLES.ADMIN ||
-        !allowedroles ||
-        allowedroles.length == 0 ||
-        allowedroles.includes(role)
-      ) {
+      if (role == USER_ROLES.ADMIN || allowedroles.includes(role)) {
         return await operation(...args);
       }
       throw new Error("Not authorized to used this route.");

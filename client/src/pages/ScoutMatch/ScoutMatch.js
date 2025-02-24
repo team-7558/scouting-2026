@@ -77,6 +77,8 @@ const ScoutMatch = () => {
     endgame: {}
   });
 
+  const [cycles, setCycles] = useState([]);
+
   // robot state
   const [isDefending, setIsDefending] = useState(false);
   const [startingPosition, setStartingPosition] = useState(-1);
@@ -160,15 +162,10 @@ const ScoutMatch = () => {
   // Only run when coral.depositTime changes
   useEffect(() => {
     if (coral.depositTime != null) {
-      setData({...data, 
-        cycles: [
-          ...data.cycles,
-          {
-            type: "coral",
-            ...coral
-          }
-        ]
-      });
+      setCycles([...cycles, {
+        type: "coral",
+        ...coral
+      }]);
 
       console.log("coral cycle: " + JSON.stringify(coral));
       // TODO Update cycles when scored
@@ -181,15 +178,10 @@ const ScoutMatch = () => {
   // Only run when algae.depositTime changes
   useEffect(() => {
     if (algae.depositTime != null) {      
-      setData({...data, 
-        cycles: [
-          ...data.cycles,
-          {
-            type: "algae",
-            ...algae
-          }
-        ]
-      });
+      setCycles([...cycles, {
+        type: "algae",
+        ...algae
+      }]);
 
       console.log("algae cycle: " + JSON.stringify(algae));
       // TODO Update cycles when scored
@@ -221,18 +213,10 @@ const ScoutMatch = () => {
   // Only run when defense.endTime changes
   useEffect(() => {
     if (defense.endTime != null) {
-      setData({
-        ...data, 
-        cycles: [
-          ...data.cycles, 
-          {
-            type: "defense", 
-            startTime: defense.startTime, 
-            endTime: defense.endTime,
-            defendingTeam: defense.defendingTeam,
-          }
-        ]
-      });
+      setCycles([...cycles, {
+        type: "defense",
+        ...defense,
+      }]);
 
       console.log("defense cycle: " + JSON.stringify(defense));
       setDefense({});
@@ -1054,14 +1038,17 @@ const ScoutMatch = () => {
           id: "submit",
           label: "SUBMIT",
           onClick: () => {
+            console.log("cycles: ", cycles)
             setData({
               ...data,
-              endgame
+              endgame,
+              cycles,
             });
 
             console.log({
               ...data,
-              endgame
+              endgame,
+              cycles,
             });
 
             setMatchStartTime(-1);

@@ -2,6 +2,13 @@
 import { USER_ROLES } from "./auth.js";
 import { pgClient, protectOperation } from "./PgClient.js";
 
+const stripFRC = (teamNumber) => {
+  if (teamNumber && teamNumber.startsWith("frc")) {
+    return teamNumber.substring(3);
+  }
+  return teamNumber;
+};
+
 export const storeMatchesInternal = async (event_code, matches) => {
   // Define the dynamic table name; note we sanitize event_code in the route so this is safe.
   const tableName = `matches_${event_code}`;
@@ -31,12 +38,12 @@ export const storeMatchesInternal = async (event_code, matches) => {
       // Extract team keys for alliances (r1, r2, r3 for red and b1, b2, b3 for blue)
       const redTeams = match.alliances?.red?.team_keys || [];
       const blueTeams = match.alliances?.blue?.team_keys || [];
-      const r1 = redTeams[0] || null;
-      const r2 = redTeams[1] || null;
-      const r3 = redTeams[2] || null;
-      const b1 = blueTeams[0] || null;
-      const b2 = blueTeams[1] || null;
-      const b3 = blueTeams[2] || null;
+      const r1 = stripFRC(redTeams[0]) || null;
+      const r2 = stripFRC(redTeams[1]) || null;
+      const r3 = stripFRC(redTeams[2]) || null;
+      const b1 = stripFRC(blueTeams[0]) || null;
+      const b2 = stripFRC(blueTeams[1]) || null;
+      const b3 = stripFRC(blueTeams[2]) || null;
 
       const insertQuery = `
         INSERT INTO ${tableName} 
@@ -78,7 +85,7 @@ export const getScoutMatchInternal = async (eventKey, station, matchCode) => {
   try {
     // Note: table name and column name cannot be parameterized, so we've validated them above.
     const query = `
-      SELECT match_number, comp_level, event_key, set_number, ${station} AS team
+      SELECT match_number, comp_level, event_key, set_number, ${station} AS team, r1, r2, r3, b1, b2, b3
       FROM ${tableName}
       WHERE key = $1
     `;

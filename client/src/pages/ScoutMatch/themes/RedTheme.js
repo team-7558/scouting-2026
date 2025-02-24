@@ -13,7 +13,7 @@ export const RedTheme = createTheme({
       main: "#AA0055",
     },
     info: {
-      main: "#FF7799"
+      main: "#FF7799",
     },
     coralPickup: {
       main: "#64B5F6",
@@ -29,6 +29,9 @@ export const RedTheme = createTheme({
     },
     cancel: {
       main: "#9E9E9E",
+    },
+    autoBackground: {
+      main: "#ffbc42",
     },
   },
 });

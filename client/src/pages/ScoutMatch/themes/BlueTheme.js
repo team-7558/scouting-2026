@@ -16,7 +16,7 @@ export const BlueTheme = createTheme({
       main: "#64B5F6",
     },
     info: {
-      main: "#1E90FF"
+      main: "#1E90FF",
     },
     coralDropoff: {
       main: "#1E88E5",
@@ -29,6 +29,9 @@ export const BlueTheme = createTheme({
     },
     cancel: {
       main: "#9E9E9E",
+    },
+    autoBackground: {
+      main: "#ffbc42",
     },
   },
 });

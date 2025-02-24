@@ -197,7 +197,7 @@ const ScoutMatch = () => {
         ],
       });
 
-      console.log("coral cycle: " + JSON.stringify(coral));
+      console.log("coral cycle: submit " + JSON.stringify(coral));
       // TODO Update cycles when scored
       // Note: updateCoral re-writes the entire state intentionally.
       updateCoral({});
@@ -219,8 +219,7 @@ const ScoutMatch = () => {
         ],
       });
 
-      console.log("algae cycle: " + JSON.stringify(algae));
-      // TODO Update cycles when scored
+      console.log("algae cycle submit: " + JSON.stringify(algae));
       setAlgae({});
       clearUnfinished();
     }
@@ -228,19 +227,15 @@ const ScoutMatch = () => {
 
   useEffect(() => {
     if (coral.attainedTime != null) {
-      console.log("coral cycle: " + JSON.stringify(coral));
-      // TODO Update cycles when scored
-      // Note: updateCoral re-writes the entire state intentionally.
+      console.log("coral cycle progress: " + JSON.stringify(coral));
       updateCoral({});
       clearUnfinished();
     }
   }, [coral.attainedTime]);
 
-  // Only run when algae.depositTime changes
   useEffect(() => {
     if (algae.attainedTime != null) {
-      console.log("algae cycle: " + JSON.stringify(algae));
-      // TODO Update cycles when scored
+      console.log("algae cycle progress: " + JSON.stringify(algae));
       setAlgae({});
       clearUnfinished();
     }
@@ -1068,7 +1063,7 @@ const ScoutMatch = () => {
       phase === PHASES.AUTO ||
       (phase === PHASES.TELE && isDefending)
     ) {
-      enemies.forEach((enemy, index) => {
+      Object.values(scoutData.opponents).forEach((enemy, index) => {
         buttonsList.push(
           createSidebarButton({
             id: `defense_${index}`,
@@ -1400,6 +1395,10 @@ const ScoutMatch = () => {
           >
             <Box
               sx={{
+                background:
+                  phase == PHASES.AUTO
+                    ? getTheme().palette.autoBackground.main
+                    : "",
                 position: "absolute",
                 left: scaleWidthToActual(sidebarVirtualWidth),
                 width:

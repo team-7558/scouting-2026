@@ -67,12 +67,18 @@ router.get("/getScoutMatch", async (req, res) => {
       teamNumber = teamNumber.substring(3);
     }
 
+    let opponents = { r1: matchData.r1, r2: matchData.r2, r3: matchData.r3 };
+    if (station.startsWith("b")) {
+      opponents = { b1: matchData.b1, b2: matchData.b2, b3: matchData.b3 };
+    }
+
     res.json({
       teamNumber,
       match_number: matchData.match_number,
       comp_level: matchData.comp_level,
       eventKey: matchData.eventKey,
       set_number: matchData.set_number,
+      opponents,
     });
   } catch (error) {
     console.error("Error querying scoutMatch:", error);

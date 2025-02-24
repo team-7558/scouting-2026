@@ -145,7 +145,7 @@ export const SCOUTING_CONFIG = {
       height: 250,
     },
     tasks: [createTask(ACTIONS.GO_TELE)],
-    textFunction: (match, key) => key,
+    textFunction: (match, key) => "FINISH AUTO",
   },
 
   // CORAL_ICON: {

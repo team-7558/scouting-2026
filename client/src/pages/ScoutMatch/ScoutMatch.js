@@ -188,10 +188,13 @@ const ScoutMatch = () => {
   // Only run when coral.depositTime changes
   useEffect(() => {
     if (coral.depositTime != null) {
-      setCycles([...cycles, {
-        type: "coral",
-        ...coral
-      }]);
+      setCycles([
+        ...cycles,
+        {
+          type: "coral",
+          ...coral,
+        },
+      ]);
 
       console.log("coral cycle: submit " + JSON.stringify(coral));
       // TODO Update cycles when scored
@@ -203,11 +206,14 @@ const ScoutMatch = () => {
 
   // Only run when algae.depositTime changes
   useEffect(() => {
-    if (algae.depositTime != null) {      
-      setCycles([...cycles, {
-        type: "algae",
-        ...algae
-      }]);
+    if (algae.depositTime != null) {
+      setCycles([
+        ...cycles,
+        {
+          type: "algae",
+          ...algae,
+        },
+      ]);
 
       console.log("algae cycle submit: " + JSON.stringify(algae));
       setAlgae({});
@@ -234,10 +240,13 @@ const ScoutMatch = () => {
   // Only run when defense.endTime changes
   useEffect(() => {
     if (defense.endTime != null) {
-      setCycles([...cycles, {
-        type: "defense",
-        ...defense,
-      }]);
+      setCycles([
+        ...cycles,
+        {
+          type: "defense",
+          ...defense,
+        },
+      ]);
 
       console.log("defense cycle: " + JSON.stringify(defense));
       setDefense({});
@@ -1045,23 +1054,25 @@ const ScoutMatch = () => {
       phase === PHASES.AUTO ||
       (phase === PHASES.TELE && isDefending)
     ) {
-      Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach((enemy, index) => {
-        buttonsList.push(
-          createSidebarButton({
-            id: `defense_${index}`,
-            label: `${enemy}`,
-            onClick: () => {
-              setDefense({
-                startTime: currentTime,
-                defendingTeam: enemy,
-                endTime: null,
-              });
-            },
-            color: COLORS.PENDING,
-            show: defense.defendingTeam == null,
-          })
-        );
-      });
+      Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach(
+        (enemy, index) => {
+          buttonsList.push(
+            createSidebarButton({
+              id: `defense_${index}`,
+              label: `${enemy}`,
+              onClick: () => {
+                setDefense({
+                  startTime: currentTime,
+                  defendingTeam: enemy,
+                  endTime: null,
+                });
+              },
+              color: COLORS.PENDING,
+              show: defense.defendingTeam == null,
+            })
+          );
+        }
+      );
       buttonsList.push(
         createSidebarButton({
           id: "stopDefending",
@@ -1147,7 +1158,7 @@ const ScoutMatch = () => {
           id: "submit",
           label: "SUBMIT",
           onClick: () => {
-            console.log("cycles: ", cycles)
+            console.log("cycles: ", cycles);
             setData({
               ...data,
               endgame,
@@ -1341,6 +1352,7 @@ const ScoutMatch = () => {
         sx={{
           backgroundColor: getTheme().palette.primary.main,
           color: getTheme().palette.primary.contrastText,
+          fontSize: scaleWidthToActual(50) + "px",
           padding: 1,
         }}
       >

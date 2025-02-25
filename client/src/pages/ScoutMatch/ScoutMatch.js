@@ -870,8 +870,7 @@ const ScoutMatch = () => {
       scaledBoxRect.height * FIELD_ASPECT_RATIO -
       scaleWidthToActual(FIELD_VIRTUAL_WIDTH);
 
-    const defenseShift =
-      isDefending && phase != PHASES.POST_MATCH ? shift / 2 : 0;
+    const defenseShift = isDefending && phase != PHASES.POST_MATCH ? shift : 0;
     const offset =
       isScoutingRed() != isScoringTableFar()
         ? -shift + defenseShift

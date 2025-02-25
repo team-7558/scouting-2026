@@ -73,7 +73,7 @@ const scaleToFieldCoordinates = (
     ((x - offsetX) / expectedWidth) * FIELD_VIRTUAL_WIDTH
   );
   let fieldY = Math.round((y / actualHeight) * FIELD_VIRTUAL_HEIGHT);
-
+  console.log(perspective);
   if (isScoringTableFar(perspective)) {
     fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
     fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
@@ -141,12 +141,11 @@ const FieldLocalComponent = ({
  * for FieldLocalComponent children. It handles mouse interactions and resizing.
  */
 const FieldCanvas = forwardRef(
-  ({ theme, children, onClick, height, perspective }, ref) => {
-    // Use a default size based on the provided height and the field's aspect ratio.
+  ({ theme, children, onClick, height, perspective, strokes }, ref) => {
+    // Existing initialization code
     const initialSize = { width: height * FIELD_ASPECT_RATIO, height: height };
     const [canvasSize, setCanvasSize] = useState(initialSize);
     const [cursorCoordinates, setCursorCoordinates] = useState(null);
-
     const canvasRef = useRef(null);
 
     useImperativeHandle(ref, () => ({
@@ -156,13 +155,42 @@ const FieldCanvas = forwardRef(
         (virtualHeight * canvasSize.height) / FIELD_VIRTUAL_HEIGHT,
     }));
 
-    // Update canvas dimensions whenever the 'height' prop changes.
     useLayoutEffect(() => {
       const newSize = { width: height * FIELD_ASPECT_RATIO, height: height };
       setCanvasSize(newSize);
     }, [height]);
 
-    // Draw the field image on the canvas.
+    // // Draw the field image on the canvas.
+    // useEffect(() => {
+    //   const canvas = canvasRef.current;
+    //   if (!canvas) return;
+    //   const ctx = canvas.getContext("2d");
+    //   const image = new Image();
+    //   image.src = fullField;
+    //   const flipX = isScoringTableFar(perspective);
+    //   const flipY = isScoringTableFar(perspective);
+    //   image.onload = () => {
+    //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    //     // Save the current context state.
+    //     ctx.save();
+
+    //     // If flipX is true, translate horizontally by the canvas width.
+    //     // If flipY is true, translate vertically by the canvas height.
+    //     ctx.translate(flipX ? canvas.width : 0, flipY ? canvas.height : 0);
+
+    //     // Scale the context to flip the image.
+    //     // A scale factor of -1 flips the image.
+    //     ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+
+    //     // Draw the image onto the canvas.
+    //     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    //     // Restore the context to its original state.
+    //     ctx.restore();
+    //   };
+    // }, [canvasSize]);
+
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -172,26 +200,42 @@ const FieldCanvas = forwardRef(
       const flipX = isScoringTableFar(perspective);
       const flipY = isScoringTableFar(perspective);
       image.onload = () => {
+        // Clear the canvas and draw the field image
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Save the current context state.
         ctx.save();
-
-        // If flipX is true, translate horizontally by the canvas width.
-        // If flipY is true, translate vertically by the canvas height.
         ctx.translate(flipX ? canvas.width : 0, flipY ? canvas.height : 0);
-
-        // Scale the context to flip the image.
-        // A scale factor of -1 flips the image.
         ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-
-        // Draw the image onto the canvas.
         ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-        // Restore the context to its original state.
         ctx.restore();
+
+        // ---- Added Stroke Drawing Code ----
+        if (strokes && strokes.length > 0) {
+          strokes.forEach((stroke) => {
+            if (!stroke.points || stroke.points.length === 0) return;
+            ctx.strokeStyle = stroke.color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            stroke.points.forEach((pt, idx) => {
+              // Start with the provided field coordinates
+              let { fieldX, fieldY } = pt;
+              // If the perspective is flipped, adjust the coordinates.
+              if (isScoringTableFar(perspective)) {
+                fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
+                fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
+              }
+              // Scale the field coordinates to actual canvas dimensions.
+              const scaledX = (fieldX / FIELD_VIRTUAL_WIDTH) * canvas.width;
+              const scaledY = (fieldY / FIELD_VIRTUAL_HEIGHT) * canvas.height;
+              if (idx === 0) ctx.moveTo(scaledX, scaledY);
+              else ctx.lineTo(scaledX, scaledY);
+            });
+            ctx.stroke();
+          });
+        }
+        // -------------------------------------
       };
-    }, [canvasSize]);
+    }, [canvasSize, perspective, strokes]);
 
     const handleMouseInteraction = (event, isClick = false) => {
       const canvas = canvasRef.current;

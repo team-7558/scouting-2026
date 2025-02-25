@@ -29,9 +29,9 @@ const App = () => {
           <Route
             path="/scoutMatch"
             element={
-              // <ProtectedRoute>
-              <ScoutMatch />
-              // </ProtectedRoute>
+              <ProtectedRoute>
+                <ScoutMatch />
+              </ProtectedRoute>
             }
           />
           {/* <Route path="/scoutMatch2" element={<ScoutMatch2 />} /> */}

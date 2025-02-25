@@ -71,7 +71,6 @@ const ScoutMatch = () => {
   }, [searchParams]);
 
   const handleMissingParamsSubmit = ({ eventKey, matchCode, station }) => {
-    // Update the query parameters
     setSearchParams({ eventKey, matchCode, station });
   };
 
@@ -188,14 +187,6 @@ const ScoutMatch = () => {
       );
     }
   };
-
-  // Automatically fetch scout match data on component mount
-  useEffect(() => {
-    if (!scoutData) {
-      fetchScoutMatchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {

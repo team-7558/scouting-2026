@@ -35,6 +35,7 @@ import {
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
 import { ImageIcon } from "./CustomFieldComponents.js";
+import MissingParamsDialog from "./MissingParamsDialog.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -53,7 +54,26 @@ const MatchContext = createContext();
 // Scout Match Component
 const ScoutMatch = () => {
   const context = useContext(MatchContext);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParamsError, setSearchParamsError] = useState(null);
+
+  // Open the dialog if any of the required params are missing
+  useEffect(() => {
+    if (
+      !searchParams.get("eventKey") ||
+      !searchParams.get("matchCode") ||
+      !searchParams.get("station")
+    ) {
+      setSearchParamsError("Missing search params");
+    } else {
+      fetchScoutMatchData();
+    }
+  }, [searchParams]);
+
+  const handleMissingParamsSubmit = ({ eventKey, matchCode, station }) => {
+    // Update the query parameters
+    setSearchParams({ eventKey, matchCode, station });
+  };
 
   const eventKey = searchParams.get("eventKey");
   const matchCode = searchParams.get("matchCode");
@@ -158,9 +178,14 @@ const ScoutMatch = () => {
         matchCode,
       });
       setScoutData(response.data);
+      searchParamsError(null);
       console.log("Fetched scout match data:", response.data);
     } catch (err) {
-      console.error("Error fetching scout match data:", err);
+      setSearchParamsError(err.response?.data?.message);
+      console.error(
+        "Error fetching scout match data:",
+        err.response?.data?.message
+      );
     }
   };
 
@@ -1378,6 +1403,12 @@ const ScoutMatch = () => {
           }}
         >
           {/* <FullscreenDialog /> */}
+          <MissingParamsDialog
+            open={searchParamsError != null}
+            searchParams={searchParams}
+            searchParamsError={searchParamsError}
+            onSubmit={handleMissingParamsSubmit}
+          />
           <Box
             ref={scaledBoxRef}
             sx={{

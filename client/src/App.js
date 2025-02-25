@@ -10,6 +10,7 @@ import SignInPage from "./pages/SignInPage.js";
 import ScoutMatch from "./pages/ScoutMatch/ScoutMatch.js";
 import AdminPage from "./pages/Admin/Admin.js";
 import ProtectedRoute from "./ProtectedRoute.js";
+import MatchStrategy from "./pages/Strategy/MatchStrategy.js";
 
 const App = () => {
   return (
@@ -29,12 +30,19 @@ const App = () => {
           <Route
             path="/scoutMatch"
             element={
-              // <ProtectedRoute>
-              <ScoutMatch />
-              // </ProtectedRoute>
+              <ProtectedRoute>
+                <ScoutMatch />
+              </ProtectedRoute>
             }
           />
-          {/* <Route path="/scoutMatch2" element={<ScoutMatch2 />} /> */}
+          <Route
+            path="/matchStrategy"
+            element={
+              <ProtectedRoute>
+                <MatchStrategy />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={

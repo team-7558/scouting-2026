@@ -10,7 +10,7 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 // Extract user information from the JWT token
-export const extractUserFromToken = (req) => {
+export const extractUserFromRequest = (req) => {
   const token = req.headers["authorization"];
 
   if (!token) {
@@ -25,10 +25,10 @@ export const extractUserFromToken = (req) => {
   }
 };
 
-// Extract only the role from the token using extractUserFromToken to avoid duplicate logic
+// Extract only the role from the token using extractUserFromRequest to avoid duplicate logic
 export const extractRoleFromRequest = (req) => {
   try {
-    const user = extractUserFromToken(req);
+    const user = extractUserFromRequest(req);
     return user.role;
   } catch (err) {
     throw new Error("Failed to extract role: " + err.message);
@@ -51,7 +51,7 @@ router.post("/signin", async (req, res) => {
         role: user.role,
       },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1d" }
     );
 
     return res.json({ token });
@@ -79,7 +79,7 @@ router.post("/createUser", async (req, res) => {
 // Update Password Endpoint
 router.post("/updatePassword", async (req, res) => {
   try {
-    const user = extractUserFromToken(req);
+    const user = extractUserFromRequest(req);
     console.log(user);
     const { oldPassword, newPassword } = req.body;
 

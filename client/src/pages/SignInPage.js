@@ -16,11 +16,9 @@ const SignInPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Get the `from` location from state, or default to homepage
-  const from = location.state?.from?.pathname || "/";
-
+  const params = new URLSearchParams(window.location.search);
+  const redirectUrl = decodeURIComponent(params.get("redirect")) || "/";
+  console.log(redirectUrl);
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -30,7 +28,7 @@ const SignInPage = () => {
       // JSON.parse(atob(response.data.token.split(".")[1]));
       console.log(response.data.token);
       localStorage.setItem("token", response.data.token);
-      navigate(from);
+      navigate(redirectUrl);
     } catch (err) {
       if (err.response && err.response.status === 401) {
         setError("Invalid username or password");

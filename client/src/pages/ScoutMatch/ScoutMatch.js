@@ -35,6 +35,7 @@ import {
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
 import { ImageIcon } from "./CustomFieldComponents.js";
+import MissingParamsDialog from "./MissingParamsDialog.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -53,7 +54,25 @@ const MatchContext = createContext();
 // Scout Match Component
 const ScoutMatch = () => {
   const context = useContext(MatchContext);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParamsError, setSearchParamsError] = useState(null);
+
+  // Open the dialog if any of the required params are missing
+  useEffect(() => {
+    if (
+      !searchParams.get("eventKey") ||
+      !searchParams.get("matchCode") ||
+      !searchParams.get("station")
+    ) {
+      setSearchParamsError("Missing search params");
+    } else {
+      fetchScoutMatchData();
+    }
+  }, [searchParams]);
+
+  const handleMissingParamsSubmit = ({ eventKey, matchCode, station }) => {
+    setSearchParams({ eventKey, matchCode, station });
+  };
 
   const eventKey = searchParams.get("eventKey");
   const matchCode = searchParams.get("matchCode");
@@ -158,19 +177,16 @@ const ScoutMatch = () => {
         matchCode,
       });
       setScoutData(response.data);
+      searchParamsError(null);
       console.log("Fetched scout match data:", response.data);
     } catch (err) {
-      console.error("Error fetching scout match data:", err);
+      setSearchParamsError(err.response?.data?.message);
+      console.error(
+        "Error fetching scout match data:",
+        err.response?.data?.message
+      );
     }
   };
-
-  // Automatically fetch scout match data on component mount
-  useEffect(() => {
-    if (!scoutData) {
-      fetchScoutMatchData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -188,10 +204,13 @@ const ScoutMatch = () => {
   // Only run when coral.depositTime changes
   useEffect(() => {
     if (coral.depositTime != null) {
-      setCycles([...cycles, {
-        type: "coral",
-        ...coral
-      }]);
+      setCycles([
+        ...cycles,
+        {
+          type: "coral",
+          ...coral,
+        },
+      ]);
 
       console.log("coral cycle: submit " + JSON.stringify(coral));
       // TODO Update cycles when scored
@@ -203,11 +222,14 @@ const ScoutMatch = () => {
 
   // Only run when algae.depositTime changes
   useEffect(() => {
-    if (algae.depositTime != null) {      
-      setCycles([...cycles, {
-        type: "algae",
-        ...algae
-      }]);
+    if (algae.depositTime != null) {
+      setCycles([
+        ...cycles,
+        {
+          type: "algae",
+          ...algae,
+        },
+      ]);
 
       console.log("algae cycle submit: " + JSON.stringify(algae));
       setAlgae({});
@@ -234,10 +256,13 @@ const ScoutMatch = () => {
   // Only run when defense.endTime changes
   useEffect(() => {
     if (defense.endTime != null) {
-      setCycles([...cycles, {
-        type: "defense",
-        ...defense,
-      }]);
+      setCycles([
+        ...cycles,
+        {
+          type: "defense",
+          ...defense,
+        },
+      ]);
 
       console.log("defense cycle: " + JSON.stringify(defense));
       setDefense({});
@@ -845,8 +870,7 @@ const ScoutMatch = () => {
       scaledBoxRect.height * FIELD_ASPECT_RATIO -
       scaleWidthToActual(FIELD_VIRTUAL_WIDTH);
 
-    const defenseShift =
-      isDefending && phase != PHASES.POST_MATCH ? shift / 2 : 0;
+    const defenseShift = isDefending && phase != PHASES.POST_MATCH ? shift : 0;
     const offset =
       isScoutingRed() != isScoringTableFar()
         ? -shift + defenseShift
@@ -1045,23 +1069,25 @@ const ScoutMatch = () => {
       phase === PHASES.AUTO ||
       (phase === PHASES.TELE && isDefending)
     ) {
-      Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach((enemy, index) => {
-        buttonsList.push(
-          createSidebarButton({
-            id: `defense_${index}`,
-            label: `${enemy}`,
-            onClick: () => {
-              setDefense({
-                startTime: currentTime,
-                defendingTeam: enemy,
-                endTime: null,
-              });
-            },
-            color: COLORS.PENDING,
-            show: defense.defendingTeam == null,
-          })
-        );
-      });
+      Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach(
+        (enemy, index) => {
+          buttonsList.push(
+            createSidebarButton({
+              id: `defense_${index}`,
+              label: `${enemy}`,
+              onClick: () => {
+                setDefense({
+                  startTime: currentTime,
+                  defendingTeam: enemy,
+                  endTime: null,
+                });
+              },
+              color: COLORS.PENDING,
+              show: defense.defendingTeam == null,
+            })
+          );
+        }
+      );
       buttonsList.push(
         createSidebarButton({
           id: "stopDefending",
@@ -1147,7 +1173,7 @@ const ScoutMatch = () => {
           id: "submit",
           label: "SUBMIT",
           onClick: () => {
-            console.log("cycles: ", cycles)
+            console.log("cycles: ", cycles);
             setData({
               ...data,
               endgame,
@@ -1341,6 +1367,7 @@ const ScoutMatch = () => {
         sx={{
           backgroundColor: getTheme().palette.primary.main,
           color: getTheme().palette.primary.contrastText,
+          fontSize: scaleWidthToActual(50) + "px",
           padding: 1,
         }}
       >
@@ -1366,6 +1393,12 @@ const ScoutMatch = () => {
           }}
         >
           {/* <FullscreenDialog /> */}
+          <MissingParamsDialog
+            open={searchParamsError != null}
+            searchParams={searchParams}
+            searchParamsError={searchParamsError}
+            onSubmit={handleMissingParamsSubmit}
+          />
           <Box
             ref={scaledBoxRef}
             sx={{

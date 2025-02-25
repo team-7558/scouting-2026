@@ -21,6 +21,9 @@ const HomePage = () => {
         <Button variant="contained" onClick={() => navigate("/viewData")}>
           View Data
         </Button>
+        <Button variant="contained" onClick={() => navigate("/matchStrategy")}>
+          Match Strategy
+        </Button>
         <UpdatePassword />
       </div>
     </div>

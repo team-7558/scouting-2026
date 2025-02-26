@@ -189,6 +189,7 @@ export const SCOUTING_CONFIG = {
     },
     tasks: [createTask(ACTIONS.GO_DEFENSE)],
     textFunction: (match, key) => key,
+    disabled: (match, key) => match.contact.startTime != null,
   },
 
   GO_POST_MATCH: {

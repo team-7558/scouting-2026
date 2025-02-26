@@ -57,7 +57,7 @@ export const SIDEBAR_CONFIG = [
     positions: Object.keys(GAME_LOCATIONS.REEF_LEVEL).sort().reverse(),
     label: (match, key) => `L${key}`,
     onClick: (match, level) => {
-      match.updateCoral({
+      match.setCoral({
         ...match.coral,
         depositLocation: match.coral.depositLocation + `_L${level}`,
         depositTime: match.currentTime,
@@ -75,7 +75,7 @@ export const SIDEBAR_CONFIG = [
     positions: ["dropCoral"],
     label: (match, key) => "DROP CORAL",
     tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)],
-    color: (match, key) => COLORS.DROP,
+    color: (match, key) => COLORS.WARNING,
     sx: {},
     show: (match, key) =>
       match.isUnfinished(match.coral.depositLocation, match.coral.depositTime),
@@ -131,9 +131,9 @@ export const SIDEBAR_CONFIG = [
     positions: ["dropAlgae"],
     label: (match, key) => "DROP ALGAE",
     onClick: (match, key) => {
-      match.updateAlgae({ ...match.algae, depositTime: match.currentTime });
+      match.setAlgae({ ...match.algae, depositTime: match.currentTime });
     },
-    color: (match, key) => COLORS.DROP,
+    color: (match, key) => COLORS.WARNING,
     sx: {},
     show: (match, key) =>
       match.isUnfinished(match.algae.depositLocation, match.algae.depositTime),
@@ -153,39 +153,66 @@ export const SIDEBAR_CONFIG = [
       // Read the opponent from match.scoutData.opponents by index
       return match.scoutData?.opponents &&
         match.scoutData?.opponents[opponentKey]
-        ? `${match.scoutData?.opponents[opponentKey]}`
-        : "Opponent";
+        ? `Contact ${match.scoutData?.opponents[opponentKey]}`
+        : `Contact ${opponentKey}`;
     },
     onClick: (match, key) => {
       const opponentKey = match.isScoutingRed ? `b${key}` : `r${key}`;
-      if (
-        match.scoutData?.opponents &&
-        match.scoutData?.opponents[opponentKey]
-      ) {
-        const opponent = match.scoutData?.opponents[opponentKey];
-        match.setDefense({
-          startTime: match.currentTime,
-          defendingTeam: opponent,
-          endTime: null,
-        });
-      }
+      const oppenentRobot =
+        (match.scoutData?.opponents &&
+          match.scoutData?.opponents[opponentKey]) ||
+        opponentKey;
+
+      match.setContact({
+        startTime: match.currentTime,
+        robot: oppenentRobot,
+      });
     },
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.isDefending() && match.defense.defendingTeam == null,
+      match.isDefending() && match.contact.startTime == null,
   },
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "stopDefending",
     positions: ["stopDefending"],
-    label: (match, key) => "STOP DEFENDING",
+    label: (match, key) => "Finish Contact",
     onClick: (match, key) => {
-      match.setDefense({ ...match.defense, endTime: match.currentTime });
+      match.setContact({ ...match.contact, endTime: match.currentTime });
     },
     color: (match, key) => COLORS.PENDING,
     sx: {},
-    show: (match, key) => match.defense.defendingTeam != null,
+    show: (match, key) => match.contact.startTime != null,
+  },
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    positions: ["countPin"],
+    label: (match, key) => "Pin count: " + (match.contact.pin_count || 0),
+    onClick: (match, key) => {
+      match.setContact({
+        ...match.contact,
+        pin_count: (match.contact.pin_count || 0) + 1,
+      });
+    },
+    color: (match, key) => COLORS.SUCCESS,
+    sx: {},
+    show: (match, key) => match.contact.startTime != null,
+  },
+
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    positions: ["countFoul"],
+    label: (match, key) => "Foul count: " + (match.contact.foul_count || 0),
+    onClick: (match, key) => {
+      match.setContact({
+        ...match.contact,
+        foul_count: (match.contact.foul_count || 0) + 1,
+      });
+    },
+    color: (match, key) => COLORS.WARNING,
+    sx: {},
+    show: (match, key) => match.contact.startTime != null,
   },
 
   // ---------- TELE Hang Buttons (when hang has started) ----------
@@ -229,7 +256,7 @@ export const SIDEBAR_CONFIG = [
     onClick: (match, key) => {
       match.clearUnfinished();
     },
-    color: (match, key) => COLORS.PENDING,
+    color: (match, key) => COLORS.CANCEL,
     sx: {},
     show: (match, key) => match.hasUnfinished(),
   },

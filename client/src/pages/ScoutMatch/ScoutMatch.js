@@ -31,6 +31,7 @@ import {
   FIELD_VIRTUAL_HEIGHT,
   FIELD_ASPECT_RATIO,
   PERSPECTIVE,
+  CYCLE_TYPES,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
@@ -106,12 +107,6 @@ const ScoutMatch = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [data, setData] = useState({
-    cycles: [],
-    hang: {},
-    endgame: {},
-  });
-
   const [cycles, setCycles] = useState([]);
 
   // robot state
@@ -143,8 +138,8 @@ const ScoutMatch = () => {
     startTime: null,
     endTime: null,
     robot: null,
-    pinned: null,
-    foul: null,
+    pin_count: null,
+    foul_count: null,
   });
 
   const [hang, setHang] = useState({
@@ -224,62 +219,61 @@ const ScoutMatch = () => {
     return () => clearInterval(interval);
   }, [matchStartTime, phase, currentTime]);
 
-  // Only run when coral.depositTime changes
-  useEffect(() => {
-    if (coral.depositTime != null) {
-      setCycles([
-        ...cycles,
-        {
-          type: "coral",
-          ...coral,
-        },
-      ]);
-
-      console.log("coral cycle: submit " + JSON.stringify(coral));
-      setCoral({});
-      clearUnfinished();
+  const getCycle = (cycleType) => {
+    switch (cycleType) {
+      case CYCLE_TYPES.ALGAE:
+        return algae;
+      case CYCLE_TYPES.CORAL:
+        return coral;
+      case CYCLE_TYPES.CONTACT:
+        return contact;
+      case CYCLE_TYPES.DEFENSE:
+        return defense;
+      case CYCLE_TYPES.HANG:
+        return hang;
     }
-  }, [coral.depositTime]);
+  };
 
-  useEffect(() => {
-    if (algae.depositTime != null) {
-      setCycles([
-        ...cycles,
-        {
-          type: "algae",
-          ...algae,
-        },
-      ]);
+  const getWritableCycle = (cycleType) => {
+    return {
+      phase,
+      type: cycleType,
+      ...getCycle(cycleType),
+    };
+  };
 
-      console.log("algae cycle submit: " + JSON.stringify(algae));
-      setAlgae({});
-      clearUnfinished();
+  const terminateCycle = (
+    cycleType,
+    terminator,
+    cleanupFunction,
+    skipTerminator = false
+  ) => {
+    const cycle = getCycle(cycleType);
+    if (terminator != null || skipTerminator) {
+      console.log(`Terminating ${cycleType} cycle: ${JSON.stringify(cycle)}`);
+      setCycles([...cycles, getWritableCycle(cycleType)]);
+      cleanupFunction();
     }
-  }, [algae.depositTime]);
-
-  useEffect(() => {
-    if (hang.completeTime != null) {
-      clearUnfinished();
-      setPhase(PHASES.POST_MATCH);
-    }
-  }, [hang.completeTime]);
+  };
 
   useEffect(() => {
-    if (hang.result != null) {
-      setCycles([
-        ...cycles,
-        {
-          type: "hang",
-          ...hang,
-        },
-      ]);
-    }
-  }, [hang.result]);
+    terminateCycle(CYCLE_TYPES.CORAL, coral.depositTime, () => setCoral({}));
+    terminateCycle(CYCLE_TYPES.ALGAE, algae.depositTime, () => setAlgae({}));
+    terminateCycle(CYCLE_TYPES.DEFENSE, defense.exitTime, () => setDefense({}));
+    terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
+    terminateCycle(CYCLE_TYPES.HANG, hang.result, () => setHang({}));
+    clearUnfinished();
+  }, [
+    coral.depositTime,
+    algae.depositTime,
+    defense.exitTime,
+    contact.endTime,
+    hang.result,
+  ]);
 
   useEffect(() => {
     if (coral.attainedTime != null) {
       console.log("coral cycle progress: " + JSON.stringify(coral));
-      setCoral({});
       clearUnfinished();
     }
   }, [coral.attainedTime]);
@@ -287,26 +281,9 @@ const ScoutMatch = () => {
   useEffect(() => {
     if (algae.attainedTime != null) {
       console.log("algae cycle progress: " + JSON.stringify(algae));
-      setAlgae({});
       clearUnfinished();
     }
   }, [algae.attainedTime]);
-
-  // Only run when defense.endTime changes
-  useEffect(() => {
-    if (defense.endTime != null) {
-      setCycles([
-        ...cycles,
-        {
-          type: "defense",
-          ...defense,
-        },
-      ]);
-
-      console.log("defense cycle: " + JSON.stringify(defense));
-      setDefense({});
-    }
-  }, [defense.endTime]);
 
   const hasCoral = () => {
     return coral.attainedTime != null;
@@ -316,23 +293,23 @@ const ScoutMatch = () => {
     return algae.attainedTime != null;
   };
 
+  useEffect(() => {
+    if (hang.completeTime != null) {
+      endMatch();
+    }
+  }, [hang.completeTime]);
+
   const isScoutingRed = () => [R1, R2, R3].includes(driverStation);
   const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
   const flipX = () => isScoutingRed();
   const flipY = () => isScoutingRed();
-  // console.log(
-  //   flipX(),
-  //   flipY(),
-  //   isScoutingRed(),
-  //   isScoringTableFar(),
-  //   driverStation,
-  //   scoutPerspective
-  // );
+
   const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
     // console.log(matchContext);
     clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
     clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
     matchContext.setHang({});
+    matchContext.setContact({});
   };
 
   const isUnfinished = (location, time) => location != null && time == null;
@@ -354,8 +331,26 @@ const ScoutMatch = () => {
         matchContext.algae.depositLocation,
         matchContext.algae.depositTime
       ) ||
-      isUnfinished(matchContext.hang.enterTime, matchContext.hang.completeTime)
+      isUnfinished(
+        matchContext.hang.enterTime,
+        matchContext.hang.completeTime
+      ) ||
+      isUnfinished(matchContext.contact.startTime, matchContext.contact.endTime)
     );
+  };
+  const shouldWriteCycle = (cycleType) => {
+    switch (cycleType) {
+      case CYCLE_TYPES.ALGAE:
+        return isUnfinished(algae.attainedTime, algae.depositTime);
+      case CYCLE_TYPES.CORAL:
+        return isUnfinished(coral.attainedTime, coral.depositTime);
+      case CYCLE_TYPES.CONTACT:
+        return isUnfinished(contact.startTime, algae.endTime);
+      case CYCLE_TYPES.DEFENSE:
+        return isUnfinished(defense.enterTime, defense.endTime);
+      case CYCLE_TYPES.HANG:
+        return isUnfinished(hang.startTime, hang.result);
+    }
   };
 
   const CONTEXT_WRAPPER = {
@@ -386,12 +381,23 @@ const ScoutMatch = () => {
     clearUnfinished,
     hasUnfinished,
     scoutData,
+    contact,
+    setContact,
   };
 
   const createTask = (action, gamepiece = null) => ({
     action: action,
     gamepiece: gamepiece,
   });
+
+  const getGamepieceState = (gamepiece, matchContext) => {
+    switch (gamepiece) {
+      case CORAL:
+        return [matchContext.coral, matchContext.setCoral];
+      case ALGAE:
+        return [matchContext.algae, matchContext.setAlgae];
+    }
+  };
 
   const clearUnfinishedGamepiece = (gamepieceState, setter) => {
     if (gamepieceState?.attainedTime == null) {
@@ -406,44 +412,21 @@ const ScoutMatch = () => {
 
   // don't add default matchContext here
   const startAcquireGamepiece = (location, gamepiece, matchContext) => {
+    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     console.log("acquiring: ", gamepiece, location);
-    switch (gamepiece) {
-      case GAME_PIECES.CORAL:
-        if (!matchContext.hasCoral()) {
-          matchContext.setCoral({ attainedLocation: location });
-        }
-        break;
-      case GAME_PIECES.ALGAE:
-        if (!matchContext.hasAlgae()) {
-          matchContext.setAlgae({ attainedLocation: location });
-        }
-        break;
+    if (gamepieceState?.attainedTime == null) {
+      setter({ attainedLocation: location });
     }
   };
 
   // don't add default matchContext here
   const startDepositGamepiece = (location, gamepiece, matchContext) => {
+    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     console.log("depositing: ", gamepiece, location);
-    switch (gamepiece) {
-      case GAME_PIECES.CORAL:
-        if (!matchContext.hasCoral()) {
-          return;
-        }
-        matchContext.setCoral({
-          ...matchContext.coral,
-          depositLocation: location,
-        });
-        break;
-      case GAME_PIECES.ALGAE:
-        if (!matchContext.hasAlgae()) {
-          return;
-        }
-        matchContext.setAlgae({
-          ...matchContext.algae,
-          depositLocation: location,
-        });
-        break;
+    if (gamepieceState?.attainedTime == null) {
+      return;
     }
+    setter({ ...gamepieceState, depositLocation: location });
   };
 
   const finishGamepiece = (location, gamepiece, matchContext) => {
@@ -459,15 +442,27 @@ const ScoutMatch = () => {
     }
   };
 
-  const startHang = (location, matchContext) => {
-    console.log("starting hang", location);
-    matchContext.setHang({
-      ...hang,
-      position: location,
-      startTime: currentTime,
-    });
+  const endMatch = () => {
+    console.log(
+      [
+        ...cycles,
+        shouldWriteCycle(CYCLE_TYPES.ALGAE) &&
+          getWritableCycle(CYCLE_TYPES.ALGAE),
+        shouldWriteCycle(CYCLE_TYPES.CORAL) &&
+          getWritableCycle(CYCLE_TYPES.CORAL),
+        shouldWriteCycle(CYCLE_TYPES.DEFENSE) && {
+          ...getWritableCycle(CYCLE_TYPES.DEFENSE),
+          exitTime: currentTime,
+        },
+        shouldWriteCycle(CYCLE_TYPES.CONTACT) && {
+          ...getWritableCycle(CYCLE_TYPES.CONTACT),
+          endTime: currentTime,
+        },
+        shouldWriteCycle(CYCLE_TYPES.HANG) &&
+          getWritableCycle(CYCLE_TYPES.HANG),
+      ].filter((x) => x)
+    );
   };
-
   // actions is a map of gamepiece transformations to be executed
   const startPendingTasks = (
     location,
@@ -478,10 +473,10 @@ const ScoutMatch = () => {
       return;
     }
     clearUnfinished();
-    console.log(matchContext.hang);
+    // console.log(matchContext.hang);
     // console.log("executing: ", actions);
     for (let i in tasks) {
-      console.log(tasks[i]);
+      // console.log(tasks[i]);
       let task = tasks[i];
       switch (task.action) {
         case ACQUIRE:
@@ -516,34 +511,15 @@ const ScoutMatch = () => {
           break;
         case GO_DEFENSE:
           matchContext.setDefense(
-            matchContext.isDefending() ? {} : { enterTime: currentTime }
+            matchContext.isDefending()
+              ? { ...matchContext.defense, exitTime: currentTime }
+              : { enterTime: currentTime }
           );
-          // matchContext.setIsDefending(!matchContext.isDefending);
           break;
         case GO_POST_MATCH:
-          matchContext.setPhase(PHASES.POST_MATCH);
+          endMatch();
           break;
       }
-    }
-  };
-
-  const getGamepieceState = (gamepiece, matchContext) => {
-    switch (gamepiece) {
-      case CORAL:
-        return [matchContext.coral, matchContext.setCoral];
-      case ALGAE:
-        return [matchContext.algae, matchContext.setAlgae];
-    }
-  };
-  const finishTask = (task, matchContext = CONTEXT_WRAPPER) => {
-    const { action, gamepiece } = task;
-    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    switch (action) {
-      case ACQUIRE:
-        setter({ ...gamepieceState, attainedTime: currentTime });
-      case DEPOSIT:
-        setter({ ...gamepieceState, depositTime: currentTime });
-        break;
     }
   };
 

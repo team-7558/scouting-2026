@@ -2,6 +2,14 @@ export const FIELD_VIRTUAL_HEIGHT = 1610;
 export const FIELD_VIRTUAL_WIDTH = 3510;
 export const FIELD_ASPECT_RATIO = FIELD_VIRTUAL_WIDTH / FIELD_VIRTUAL_HEIGHT;
 
+export const CYCLE_TYPES = {
+  CORAL: "CORAL",
+  ALGAE: "ALGAE",
+  HANG: "HANG",
+  DEFENSE: "DEFENSE",
+  CONTACT: "CONTACT",
+};
+
 export const DRIVER_STATIONS = {
   R1: "r1",
   R2: "r2",
@@ -25,8 +33,9 @@ export const COLORS = {
   ALGAEPICKUP: "algaePickup",
   CORALDROPOFF: "coralDropoff",
   ALGAEDROPOFF: "algaeDropoff",
-  DROP: "warning",
-  CANCEL: "error",
+  WARNING: "warning",
+  ERROR: "error",
+  CANCEL: "cancel",
 };
 
 export const ACTIONS = {

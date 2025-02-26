@@ -456,7 +456,7 @@ const ScoutMatch = () => {
   };
 
   const endMatch = () => {
-    console.log(
+    setCycles(
       [
         ...cycles,
         shouldWriteCycle(CYCLE_TYPES.ALGAE) &&
@@ -475,6 +475,7 @@ const ScoutMatch = () => {
           getWritableCycle(CYCLE_TYPES.HANG),
       ].filter((x) => x)
     );
+    setPhase(PHASES.POST_MATCH);
   };
   // actions is a map of gamepiece transformations to be executed
   const startPendingTasks = (

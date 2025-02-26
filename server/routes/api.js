@@ -68,7 +68,7 @@ router.get("/getScoutMatch", async (req, res) => {
     }
 
     let opponents = { r1: matchData.r1, r2: matchData.r2, r3: matchData.r3 };
-    if (station.startsWith("b")) {
+    if (station.startsWith("r")) {
       opponents = { b1: matchData.b1, b2: matchData.b2, b3: matchData.b3 };
     }
 

@@ -36,6 +36,7 @@ import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
 import { ImageIcon } from "./CustomFieldComponents.js";
 import MissingParamsDialog from "./MissingParamsDialog.js";
+import { SIDEBAR_CONFIG } from "./SidebarConfig.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -314,51 +315,6 @@ const ScoutMatch = () => {
   //   driverStation,
   //   scoutPerspective
   // );
-  const CONTEXT_WRAPPER = {
-    fieldCanvasRef,
-    matchStartTime,
-    setMatchStartTime,
-    phase,
-    setPhase,
-    isDefending,
-    setIsDefending,
-    startingPosition,
-    setStartingPosition,
-    coral,
-    setCoral,
-    algae,
-    setAlgae,
-    updateCoral,
-    updateAlgae,
-    hasCoral,
-    hasAlgae,
-    hang,
-    setHang,
-    endgame,
-    setEndgame,
-    defense,
-    setDefense,
-    currentTime,
-    isScoutingRed: isScoutingRed(),
-    isScoringTableFar: isScoringTableFar(),
-  };
-
-  const createTask = (action, gamepiece = null) => ({
-    action: action,
-    gamepiece: gamepiece,
-  });
-
-  const clearUnfinishedGamepiece = (gamepieceState, setter) => {
-    if (gamepieceState?.attainedTime == null) {
-      setter({});
-      return;
-    }
-    if (gamepieceState?.depositTime == null) {
-      setter({ ...gamepieceState, depositLocation: null });
-      return;
-    }
-  };
-
   const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
     // console.log(matchContext);
     clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
@@ -388,6 +344,85 @@ const ScoutMatch = () => {
       isUnfinished(matchContext.hang.position, matchContext.hang.endTime)
     );
   };
+
+  const CONTEXT_WRAPPER = {
+    fieldCanvasRef,
+    matchStartTime,
+    setMatchStartTime,
+    phase,
+    setPhase,
+    isDefending,
+    setIsDefending,
+    startingPosition,
+    setStartingPosition,
+    coral,
+    setCoral,
+    algae,
+    setAlgae,
+    updateCoral,
+    updateAlgae,
+    hasCoral,
+    hasAlgae,
+    hang,
+    setHang,
+    endgame,
+    setEndgame,
+    defense,
+    setDefense,
+    currentTime,
+    isScoutingRed: isScoutingRed(),
+    isScoringTableFar: isScoringTableFar(),
+    isUnfinished,
+    clearUnfinished,
+    hasUnfinished,
+    scoutData,
+  };
+
+  const createTask = (action, gamepiece = null) => ({
+    action: action,
+    gamepiece: gamepiece,
+  });
+
+  const clearUnfinishedGamepiece = (gamepieceState, setter) => {
+    if (gamepieceState?.attainedTime == null) {
+      setter({});
+      return;
+    }
+    if (gamepieceState?.depositTime == null) {
+      setter({ ...gamepieceState, depositLocation: null });
+      return;
+    }
+  };
+
+  // const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
+  //   // console.log(matchContext);
+  //   clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
+  //   clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
+  //   matchContext.setHang({});
+  // };
+
+  // const isUnfinished = (location, time) => location != null && time == null;
+  // const hasUnfinished = (matchContext = CONTEXT_WRAPPER) => {
+  //   return (
+  //     isUnfinished(
+  //       matchContext.coral.attainedLocation,
+  //       matchContext.coral.attainedTime
+  //     ) ||
+  //     isUnfinished(
+  //       matchContext.coral.depositLocation,
+  //       matchContext.coral.depositTime
+  //     ) ||
+  //     isUnfinished(
+  //       matchContext.algae.attainedLocation,
+  //       matchContext.algae.attainedTime
+  //     ) ||
+  //     isUnfinished(
+  //       matchContext.algae.depositLocation,
+  //       matchContext.algae.depositTime
+  //     ) ||
+  //     isUnfinished(matchContext.hang.position, matchContext.hang.endTime)
+  //   );
+  // };
 
   // don't add default matchContext here
   const startAcquireGamepiece = (location, gamepiece, matchContext) => {
@@ -919,317 +954,548 @@ const ScoutMatch = () => {
     );
   };
 
+  // const renderSideBar = () => {
+  //   let buttonsList = [];
+
+  //   if (phase === PHASES.PRE_MATCH) {
+  //     buttonsList = [
+  //       createSidebarButton({
+  //         id: "startMatch",
+  //         flexWeight: 2,
+  //         label:
+  //           startingPosition < 0
+  //             ? "Please select starting position"
+  //             : "Start match",
+  //         onClick: () => {
+  //           setMatchStartTime(Date.now());
+  //           setPhase(PHASES.AUTO);
+  //           clearUnfinished();
+  //         },
+  //         color: startingPosition < 0 ? "disabled" : COLORS.ACTIVE,
+  //         disabled: startingPosition < 0,
+  //         extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
+  //       }),
+  //       createSidebarButton({
+  //         id: "preload",
+  //         flexWeight: 1,
+  //         label: hasCoral() ? "Has preload" : "No Preload",
+  //         onClick: () => {
+  //           setCoral(
+  //             hasCoral() ? {} : { attainedLocation: "preload", attainedTime: 0 }
+  //           );
+  //         },
+  //         color: hasCoral() ? COLORS.SUCCESS : COLORS.PENDING,
+  //         extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
+  //         show: true,
+  //       }),
+  //     ].filter(Boolean);
+  //   } else if (
+  //     (phase === PHASES.AUTO || phase === PHASES.TELE) &&
+  //     !isDefending &&
+  //     hang?.startTime == null
+  //   ) {
+  //     // REEF SCORE BUTTONS
+  //     Object.keys(GAME_LOCATIONS.REEF_LEVEL)
+  //       .sort()
+  //       .reverse()
+  //       .forEach((level) => {
+  //         buttonsList.push(
+  //           createSidebarButton({
+  //             id: `reefLevel_${level}`,
+  //             label: `L${level}`,
+  //             onClick: () => {
+  //               updateCoral({
+  //                 ...coral,
+  //                 depositLocation: coral.depositLocation + `L${level}`,
+  //                 depositTime: currentTime,
+  //               });
+  //               if (!hasAlgae()) {
+  //                 updateAlgae({});
+  //               }
+  //             },
+  //             color: COLORS.CORALDROPOFF,
+  //             show:
+  //               hasCoral() &&
+  //               Object.values(GAME_LOCATIONS.REEF).includes(
+  //                 coral.depositLocation
+  //               ),
+  //           })
+  //         );
+  //       });
+
+  //     buttonsList.push(
+  //       createSidebarButton({
+  //         id: "DROP_CORAL",
+  //         label: "DROP CORAL",
+  //         onClick: () => {
+  //           updateCoral({ ...coral, depositTime: currentTime });
+  //         },
+  //         color: COLORS.DROP,
+  //         show: isUnfinished(coral.depositLocation, coral.depositTime),
+  //       })
+  //     );
+
+  //     buttonsList.push(
+  //       createSidebarButton({
+  //         id: "PICKUP_ALGAE",
+  //         label: "PICKUP ALGAE",
+  //         onClick: () => {
+  //           updateAlgae({ ...algae, attainedTime: currentTime });
+  //         },
+  //         color: COLORS.ALGAEPICKUP,
+  //         show: isUnfinished(algae.attainedLocation, algae.attainedTime),
+  //       })
+  //     );
+
+  //     buttonsList.push(
+  //       createSidebarButton({
+  //         id: "PICKUP_CORAL",
+  //         label: "PICKUP CORAL",
+  //         onClick: () => {
+  //           updateCoral({ ...coral, attainedTime: currentTime });
+  //         },
+  //         color: COLORS.CORALPICKUP,
+  //         show: isUnfinished(coral.attainedLocation, coral.attainedTime),
+  //       })
+  //     );
+
+  //     // PROCESSOR/NET SCORE MENU
+  //     if (
+  //       algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
+  //       algae.depositLocation === GAME_LOCATIONS.NET
+  //     ) {
+  //       buttonsList.push(
+  //         createSidebarButton({
+  //           id: "scoreProcessor",
+  //           label: `Score ${algae.depositLocation}`,
+  //           onClick: () => {
+  //             updateAlgae({ ...algae, depositTime: currentTime });
+  //           },
+  //           color: COLORS.ALGAEDROPOFF,
+  //           show: true,
+  //         })
+  //       );
+  //     }
+
+  //     buttonsList.push(
+  //       createSidebarButton({
+  //         id: "DROP_ALGAE",
+  //         label: "DROP ALGAE",
+  //         onClick: () => {
+  //           updateAlgae({ ...algae, depositTime: currentTime });
+  //         },
+  //         color: COLORS.DROP,
+  //         show: isUnfinished(algae.depositLocation, algae.depositTime),
+  //       })
+  //     );
+
+  //     buttonsList.push(
+  //       createSidebarButton({
+  //         id: "cancel",
+  //         label: "cancel",
+  //         onClick: () => {
+  //           clearUnfinished();
+  //         },
+  //         color: COLORS.PENDING,
+  //         show: hasUnfinished(),
+  //       })
+  //     );
+  //   } else if (
+  //     phase === PHASES.AUTO ||
+  //     (phase === PHASES.TELE && isDefending)
+  //   ) {
+  //     Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach(
+  //       (enemy, index) => {
+  //         buttonsList.push(
+  //           createSidebarButton({
+  //             id: `defense_${index}`,
+  //             label: `${enemy}`,
+  //             onClick: () => {
+  //               setDefense({
+  //                 startTime: currentTime,
+  //                 defendingTeam: enemy,
+  //                 endTime: null,
+  //               });
+  //             },
+  //             color: COLORS.PENDING,
+  //             show: defense.defendingTeam == null,
+  //           })
+  //         );
+  //       }
+  //     );
+  //     buttonsList.push(
+  //       createSidebarButton({
+  //         id: "stopDefending",
+  //         label: "STOP DEFENDING",
+  //         onClick: () => {
+  //           setDefense({ ...defense, endTime: currentTime });
+  //         },
+  //         color: COLORS.PENDING,
+  //         show: defense.defendingTeam != null,
+  //       })
+  //     );
+  //   } else if (phase === PHASES.TELE && hang?.startTime != null) {
+  //     if (hang.height == null) {
+  //       Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
+  //         buttonsList.push(
+  //           createSidebarButton({
+  //             id: `hangDepth_${index}`,
+  //             label: `${height}`,
+  //             onClick: () => {
+  //               setHang({ ...hang, height });
+  //             },
+  //             color: COLORS.PENDING,
+  //             show: true,
+  //           })
+  //         );
+  //       });
+  //       buttonsList.push(
+  //         createSidebarButton({
+  //           id: "cancelHang",
+  //           label: "CANCEL",
+  //           onClick: () => {
+  //             setHang({
+  //               startTime: null,
+  //               endTime: null,
+  //               position: null,
+  //               depth: null,
+  //               succeeded: false,
+  //             });
+  //           },
+  //           color: COLORS.PENDING,
+  //           show: true,
+  //         })
+  //       );
+  //     } else {
+  //       Object.values(GAME_LOCATIONS.HANG_STATE).forEach((state, index) => {
+  //         buttonsList.push(
+  //           createSidebarButton({
+  //             id: `hangState_${index}`,
+  //             label: `${state}`,
+  //             onClick: () => {
+  //               setHang({
+  //                 ...hang,
+  //                 succeeded: state == GAME_LOCATIONS.HANG_STATE.SUCCEED,
+  //                 endTime: currentTime,
+  //               });
+  //             },
+  //             color: COLORS.PENDING,
+  //             show: true,
+  //           })
+  //         );
+  //       });
+  //       buttonsList.push(
+  //         createSidebarButton({
+  //           id: "cancelHangState",
+  //           label: "CANCEL",
+  //           onClick: () => {
+  //             setHang({
+  //               startTime: null,
+  //               endTime: null,
+  //               position: null,
+  //               depth: null,
+  //               succeeded: false,
+  //             });
+  //           },
+  //           color: COLORS.PENDING,
+  //           show: true,
+  //         })
+  //       );
+  //     }
+  //   } else if (phase === PHASES.POST_MATCH) {
+  //     buttonsList.push(
+  //       createSidebarButton({
+  //         id: "submit",
+  //         label: "SUBMIT",
+  //         onClick: () => {
+  //           console.log("cycles: ", cycles);
+  //           setData({
+  //             ...data,
+  //             endgame,
+  //             cycles,
+  //           });
+
+  //           console.log({
+  //             ...data,
+  //             endgame,
+  //             cycles,
+  //           });
+
+  //           setMatchStartTime(-1);
+  //           setCurrentTime(0);
+  //           setPhase(PHASES.PRE_MATCH);
+
+  //           // robot state
+  //           setIsDefending(false);
+  //           setStartingPosition(-1);
+  //           setCoral({
+  //             attainedLocation: null,
+  //             attainedTime: null,
+  //             depositLocation: null,
+  //             depositTime: null,
+  //           });
+  //           setAlgae({
+  //             attainedLocation: null,
+  //             attainedTime: null,
+  //             depositLocation: null,
+  //             depositTime: null,
+  //           });
+  //           setDefense({
+  //             defendingTeam: null,
+  //             startTime: null,
+  //             endTime: null,
+  //           });
+  //           setHang({
+  //             startTime: null,
+  //             endTime: null,
+  //             position: null,
+  //             height: null,
+  //             succeeded: false,
+  //           });
+  //           setEndgame({
+  //             disabled: false,
+  //             driverSkill: "N/A",
+  //             defenseSkill: "N/A",
+  //             role: "N/A",
+  //             comments: "",
+  //           });
+  //         },
+  //         color: COLORS.PENDING,
+  //         show: true,
+  //       })
+  //     );
+  //   }
+
+  //   return (
+  //     <>
+  //       <Sidebar
+  //         sidebarOpen={sidebarOpen}
+  //         setSidebarOpen={setSidebarOpen}
+  //         scaleWidthToActual={scaleWidthToActual}
+  //         scaleHeightToActual={scaleHeightToActual}
+  //       />
+  //       <Box
+  //         sx={{
+  //           display: "flex",
+  //           width: "100%",
+  //           height: "10%",
+  //           overflowX: "auto",
+  //         }}
+  //       >
+  //         <Button
+  //           sx={{
+  //             width: "90%",
+  //             height: "90%",
+  //           }}
+  //           onClick={() => setSidebarOpen(true)}
+  //         >
+  //           <MenuIcon />
+  //         </Button>
+  //         <Box
+  //           sx={{
+  //             width: "90%",
+  //             height: "90%",
+  //           }}
+  //         >
+  //           <img
+  //             src={AlgaeIcon}
+  //             style={{
+  //               width: "auto%",
+  //               height: "90%",
+  //               visibility: hasAlgae() ? "visible" : "hidden",
+  //             }}
+  //           ></img>
+  //         </Box>
+  //         <Box
+  //           sx={{
+  //             width: "90%",
+  //             height: "90%",
+  //           }}
+  //         >
+  //           <img
+  //             src={CoralIcon}
+  //             style={{
+  //               width: "auto%",
+  //               height: "90%",
+  //               visibility: hasCoral() ? "visible" : "hidden",
+  //             }}
+  //           ></img>
+  //         </Box>
+  //         <Box
+  //           sx={{
+  //             width: "90%",
+  //             height: "90%",
+  //           }}
+  //         >
+  //           <h2 style={{ color: "black", marginTop: "30%" }}>{currentTime}</h2>
+  //         </Box>
+  //       </Box>
+
+  //       <Box
+  //         sx={{
+  //           display: "flex",
+  //           flexDirection: "column",
+  //           width: "100%",
+  //           height: "90%",
+  //           backgroundColor: getTheme().palette.background.paper,
+  //           overflowY: "auto",
+  //         }}
+  //       >
+  //         {renderScoutDataLabel()}
+  //         {buttonsList.filter(Boolean).map((button, index) => (
+  //           <Box
+  //             key={index}
+  //             sx={{
+  //               flex: button.flexWeight || 1,
+  //               display: "flex",
+  //               justifyContent: "center",
+  //               alignItems: "center",
+  //               padding: 0,
+  //             }}
+  //           >
+  //             {button.component}
+  //           </Box>
+  //         ))}
+  //       </Box>
+  //     </>
+  //   );
+  // };
+
+  const renderScoutDataLabel = () => {
+    return (
+      <Box
+        sx={{
+          backgroundColor: getTheme().palette.primary.main,
+          color: getTheme().palette.primary.contrastText,
+          fontSize: scaleWidthToActual(50) + "px",
+        }}
+      >
+        {scoutData ? (
+          <div>
+            Team: {scoutData.teamNumber}, Match: {getMatchCode()}
+          </div>
+        ) : (
+          <div>No scout data</div>
+        )}
+      </Box>
+    );
+  };
+  const renderSideBarHeader = () => {
+    const iconSize = scaleWidthToActual(150);
+    const fontSize = scaleWidthToActual(60);
+    const scoutDataFontSize = scaleWidthToActual(50);
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          borderBottom: "1px solid #ccc",
+        }}
+      >
+        {/* Top Row: Menu, Algae, Coral, and Current Time */}
+        <Box
+          sx={{
+            display: "flex",
+            width: "100%",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          {/* Menu Icon */}
+          <Button
+            onClick={() => setSidebarOpen(true)}
+            sx={{
+              width: iconSize,
+              height: iconSize,
+              minWidth: 0,
+              padding: 0,
+            }}
+          >
+            <MenuIcon
+              sx={{ height: "100%", width: "100%", fontSize: fontSize }}
+            />
+          </Button>
+          {/* Algae Icon */}
+          <Box
+            sx={{
+              width: iconSize,
+              height: iconSize,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {ImageIcon(AlgaeIcon)}
+          </Box>
+          {/* Coral Icon */}
+          <Box
+            sx={{
+              width: iconSize * 2,
+              height: iconSize,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {ImageIcon(CoralIcon)}
+          </Box>
+          {/* Current Time */}
+          <Box
+            sx={{
+              width: iconSize,
+              height: iconSize,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span style={{ color: "black", fontSize: fontSize }}>
+              {currentTime}
+            </span>
+          </Box>
+        </Box>
+        {/* Second Row: Scout Data */}
+        {renderScoutDataLabel()}
+      </Box>
+    );
+  };
+
   const renderSideBar = () => {
-    let buttonsList = [];
+    let match = CONTEXT_WRAPPER;
+    // Filter sidebar config items for the current phase.
+    const configItems = SIDEBAR_CONFIG.filter((item) =>
+      item.phases.includes(match.phase)
+    );
 
-    if (phase === PHASES.PRE_MATCH) {
-      buttonsList = [
-        createSidebarButton({
-          id: "startMatch",
-          flexWeight: 2,
-          label:
-            startingPosition < 0
-              ? "Please select starting position"
-              : "Start match",
-          onClick: () => {
-            setMatchStartTime(Date.now());
-            setPhase(PHASES.AUTO);
-            clearUnfinished();
-          },
-          color: startingPosition < 0 ? "disabled" : COLORS.ACTIVE,
-          disabled: startingPosition < 0,
-          extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
-        }),
-        createSidebarButton({
-          id: "preload",
-          flexWeight: 1,
-          label: hasCoral() ? "Has preload" : "No Preload",
-          onClick: () => {
-            setCoral(
-              hasCoral() ? {} : { attainedLocation: "preload", attainedTime: 0 }
-            );
-          },
-          color: hasCoral() ? COLORS.SUCCESS : COLORS.PENDING,
-          extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
-          show: true,
-        }),
-      ].filter(Boolean);
-    } else if (
-      (phase === PHASES.AUTO || phase === PHASES.TELE) &&
-      !isDefending &&
-      hang?.startTime == null
-    ) {
-      // REEF SCORE BUTTONS
-      Object.keys(GAME_LOCATIONS.REEF_LEVEL)
-        .sort()
-        .reverse()
-        .forEach((level) => {
-          buttonsList.push(
-            createSidebarButton({
-              id: `reefLevel_${level}`,
-              label: `L${level}`,
-              onClick: () => {
-                updateCoral({
-                  ...coral,
-                  depositLocation: coral.depositLocation + `L${level}`,
-                  depositTime: currentTime,
-                });
-                if (!hasAlgae()) {
-                  updateAlgae({});
-                }
-              },
-              color: COLORS.CORALDROPOFF,
-              show:
-                hasCoral() &&
-                Object.values(GAME_LOCATIONS.REEF).includes(
-                  coral.depositLocation
-                ),
-            })
-          );
-        });
-
-      buttonsList.push(
-        createSidebarButton({
-          id: "DROP_CORAL",
-          label: "DROP CORAL",
-          onClick: () => {
-            updateCoral({ ...coral, depositTime: currentTime });
-          },
-          color: COLORS.DROP,
-          show: isUnfinished(coral.depositLocation, coral.depositTime),
-        })
-      );
-
-      buttonsList.push(
-        createSidebarButton({
-          id: "PICKUP_ALGAE",
-          label: "PICKUP ALGAE",
-          onClick: () => {
-            updateAlgae({ ...algae, attainedTime: currentTime });
-          },
-          color: COLORS.ALGAEPICKUP,
-          show: isUnfinished(algae.attainedLocation, algae.attainedTime),
-        })
-      );
-
-      buttonsList.push(
-        createSidebarButton({
-          id: "PICKUP_CORAL",
-          label: "PICKUP CORAL",
-          onClick: () => {
-            updateCoral({ ...coral, attainedTime: currentTime });
-          },
-          color: COLORS.CORALPICKUP,
-          show: isUnfinished(coral.attainedLocation, coral.attainedTime),
-        })
-      );
-
-      // PROCESSOR/NET SCORE MENU
-      if (
-        algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
-        algae.depositLocation === GAME_LOCATIONS.NET
-      ) {
-        buttonsList.push(
-          createSidebarButton({
-            id: "scoreProcessor",
-            label: `Score ${algae.depositLocation}`,
-            onClick: () => {
-              updateAlgae({ ...algae, depositTime: currentTime });
-            },
-            color: COLORS.ALGAEDROPOFF,
-            show: true,
-          })
+    // For each config item, iterate over its positions keys.
+    const buttonsList = configItems.flatMap((item) =>
+      Object.keys(item.positions).map((key) => {
+        if (!item.show(match, key)) return null;
+        return (
+          <Box key={`${item.id}-${key}`} sx={{ flex: item.flexWeight || 1 }}>
+            {
+              createSidebarButton({
+                id: `${item.id}-${key}`,
+                label:
+                  typeof item.label === "function"
+                    ? item.label(match, key)
+                    : item.label,
+                onClick: () => item.onClick(match, key),
+                color:
+                  typeof item.color === "function"
+                    ? item.color(match, key)
+                    : item.color,
+                sx: item.sx,
+                flexWeight: item.flexWeight || 1,
+                disabled: item.isDisabled && item.isDisabled(match, key),
+              }).component
+            }
+          </Box>
         );
-      }
-
-      buttonsList.push(
-        createSidebarButton({
-          id: "DROP_ALGAE",
-          label: "DROP ALGAE",
-          onClick: () => {
-            updateAlgae({ ...algae, depositTime: currentTime });
-          },
-          color: COLORS.DROP,
-          show: isUnfinished(algae.depositLocation, algae.depositTime),
-        })
-      );
-
-      buttonsList.push(
-        createSidebarButton({
-          id: "cancel",
-          label: "cancel",
-          onClick: () => {
-            clearUnfinished();
-          },
-          color: COLORS.PENDING,
-          show: hasUnfinished(),
-        })
-      );
-    } else if (
-      phase === PHASES.AUTO ||
-      (phase === PHASES.TELE && isDefending)
-    ) {
-      Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach(
-        (enemy, index) => {
-          buttonsList.push(
-            createSidebarButton({
-              id: `defense_${index}`,
-              label: `${enemy}`,
-              onClick: () => {
-                setDefense({
-                  startTime: currentTime,
-                  defendingTeam: enemy,
-                  endTime: null,
-                });
-              },
-              color: COLORS.PENDING,
-              show: defense.defendingTeam == null,
-            })
-          );
-        }
-      );
-      buttonsList.push(
-        createSidebarButton({
-          id: "stopDefending",
-          label: "STOP DEFENDING",
-          onClick: () => {
-            setDefense({ ...defense, endTime: currentTime });
-          },
-          color: COLORS.PENDING,
-          show: defense.defendingTeam != null,
-        })
-      );
-    } else if (phase === PHASES.TELE && hang?.startTime != null) {
-      if (hang.height == null) {
-        Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
-          buttonsList.push(
-            createSidebarButton({
-              id: `hangDepth_${index}`,
-              label: `${height}`,
-              onClick: () => {
-                setHang({ ...hang, height });
-              },
-              color: COLORS.PENDING,
-              show: true,
-            })
-          );
-        });
-        buttonsList.push(
-          createSidebarButton({
-            id: "cancelHang",
-            label: "CANCEL",
-            onClick: () => {
-              setHang({
-                startTime: null,
-                endTime: null,
-                position: null,
-                depth: null,
-                succeeded: false,
-              });
-            },
-            color: COLORS.PENDING,
-            show: true,
-          })
-        );
-      } else {
-        Object.values(GAME_LOCATIONS.HANG_STATE).forEach((state, index) => {
-          buttonsList.push(
-            createSidebarButton({
-              id: `hangState_${index}`,
-              label: `${state}`,
-              onClick: () => {
-                setHang({
-                  ...hang,
-                  succeeded: state == GAME_LOCATIONS.HANG_STATE.SUCCEED,
-                  endTime: currentTime,
-                });
-              },
-              color: COLORS.PENDING,
-              show: true,
-            })
-          );
-        });
-        buttonsList.push(
-          createSidebarButton({
-            id: "cancelHangState",
-            label: "CANCEL",
-            onClick: () => {
-              setHang({
-                startTime: null,
-                endTime: null,
-                position: null,
-                depth: null,
-                succeeded: false,
-              });
-            },
-            color: COLORS.PENDING,
-            show: true,
-          })
-        );
-      }
-    } else if (phase === PHASES.POST_MATCH) {
-      buttonsList.push(
-        createSidebarButton({
-          id: "submit",
-          label: "SUBMIT",
-          onClick: () => {
-            console.log("cycles: ", cycles);
-            setData({
-              ...data,
-              endgame,
-              cycles,
-            });
-
-            console.log({
-              ...data,
-              endgame,
-              cycles,
-            });
-
-            setMatchStartTime(-1);
-            setCurrentTime(0);
-            setPhase(PHASES.PRE_MATCH);
-
-            // robot state
-            setIsDefending(false);
-            setStartingPosition(-1);
-            setCoral({
-              attainedLocation: null,
-              attainedTime: null,
-              depositLocation: null,
-              depositTime: null,
-            });
-            setAlgae({
-              attainedLocation: null,
-              attainedTime: null,
-              depositLocation: null,
-              depositTime: null,
-            });
-            setDefense({
-              defendingTeam: null,
-              startTime: null,
-              endTime: null,
-            });
-            setHang({
-              startTime: null,
-              endTime: null,
-              position: null,
-              height: null,
-              succeeded: false,
-            });
-            setEndgame({
-              disabled: false,
-              driverSkill: "N/A",
-              defenseSkill: "N/A",
-              role: "N/A",
-              comments: "",
-            });
-          },
-          color: COLORS.PENDING,
-          show: true,
-        })
-      );
-    }
+      })
+    );
 
     return (
       <>
@@ -1239,88 +1505,19 @@ const ScoutMatch = () => {
           scaleWidthToActual={scaleWidthToActual}
           scaleHeightToActual={scaleHeightToActual}
         />
-        <Box
-          sx={{
-            display: "flex",
-            width: "100%",
-            height: "10%",
-            overflowX: "auto",
-          }}
-        >
-          <Button
-            sx={{
-              width: "90%",
-              height: "90%",
-            }}
-            onClick={() => setSidebarOpen(true)}
-          >
-            <MenuIcon />
-          </Button>
-          <Box
-            sx={{
-              width: "90%",
-              height: "90%",
-            }}
-          >
-            <img
-              src={AlgaeIcon}
-              style={{
-                width: "auto%",
-                height: "90%",
-                visibility: hasAlgae() ? "visible" : "hidden",
-              }}
-            ></img>
-          </Box>
-          <Box
-            sx={{
-              width: "90%",
-              height: "90%",
-            }}
-          >
-            <img
-              src={CoralIcon}
-              style={{
-                width: "auto%",
-                height: "90%",
-                visibility: hasCoral() ? "visible" : "hidden",
-              }}
-            ></img>
-          </Box>
-          <Box
-            sx={{
-              width: "90%",
-              height: "90%",
-            }}
-          >
-            <h2 style={{ color: "black", marginTop: "30%" }}>{currentTime}</h2>
-          </Box>
-        </Box>
 
+        {/* Sidebar Buttons (vertical list) */}
         <Box
           sx={{
             display: "flex",
             flexDirection: "column",
-            width: "100%",
-            height: "90%",
-            backgroundColor: getTheme().palette.background.paper,
             overflowY: "auto",
+            flex: 1,
+            height: "100%",
           }}
         >
-          {renderScoutDataLabel()}
-          {buttonsList.filter(Boolean).map((button, index) => (
-            <Box
-              key={index}
-              sx={{
-                flex: button.flexWeight || 1,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                padding: 0,
-              }}
-            >
-              {button.component}
-            </Box>
-          ))}
+          {renderSideBarHeader()}
+          {buttonsList.filter(Boolean)}
         </Box>
       </>
     );
@@ -1359,27 +1556,6 @@ const ScoutMatch = () => {
         (scoutData.comp_level !== "qm" ? scoutData.set_number : "")
       );
     }
-  };
-
-  const renderScoutDataLabel = () => {
-    return (
-      <Box
-        sx={{
-          backgroundColor: getTheme().palette.primary.main,
-          color: getTheme().palette.primary.contrastText,
-          fontSize: scaleWidthToActual(50) + "px",
-          padding: 1,
-        }}
-      >
-        {scoutData ? (
-          <div>
-            Team: {scoutData.teamNumber}, Match: {getMatchCode()}
-          </div>
-        ) : (
-          <div>No scout data</div>
-        )}
-      </Box>
-    );
   };
 
   return (

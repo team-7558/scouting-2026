@@ -213,20 +213,21 @@ const ScoutMatch = () => {
       console.error("Error fetching scout match data:", err);
     }
   };
+  const getDisplayTime = () => {
+    let displayTime = null;
+    if (phase == PHASES.AUTO) {
+      displayTime = AUTO_MAX_TIME - getCurrentTime();
+    } else if (phase == PHASES.TELE) {
+      displayTime = TELE_MAX_TIME - getCurrentTime();
+    }
 
+    return displayTime != null ? Math.round(displayTime / 1000) : "- - -";
+  };
   useEffect(() => {
+    setDisplayTime(getDisplayTime()); //first time
     const interval = setInterval(() => {
-      let displayTime = null;
-      if (phase == PHASES.AUTO) {
-        displayTime = AUTO_MAX_TIME - getCurrentTime();
-      } else if (phase == PHASES.TELE) {
-        displayTime = TELE_MAX_TIME - getCurrentTime();
-      }
-
-      setDisplayTime(
-        displayTime != null ? Math.trunc(displayTime / 1000) : "- - -"
-      );
-    }, 1000);
+      setDisplayTime(getDisplayTime);
+    }, 500); // 500 ms to make sure we don't skip a number
 
     return () => clearInterval(interval);
   }, [matchStartTime, phase]);

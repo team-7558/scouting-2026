@@ -154,7 +154,7 @@ const ScoutMatch = () => {
     enterTime: null, // when robot enters under barge
     cageTouchTime: null, // when robot touches cage
     completeTime: null, // when robot off the floor
-    location: null, // LEFT MIDDLE RIGHT
+    cageLocation: null, // LEFT MIDDLE RIGHT
     cageType: null,
     result: null, // will be entered after match score released PARK // SUCCESS
   });
@@ -361,7 +361,7 @@ const ScoutMatch = () => {
         return isUnfinished(contact.startTime, algae.endTime);
       case CYCLE_TYPES.DEFENSE:
         return isUnfinished(defense.enterTime, defense.endTime);
-      case CYCLE_TYPES.HANG:
+      case CYCLE_TYPES.HANG: // this should never happen probably
         return isUnfinished(hang.startTime, hang.result);
     }
   };
@@ -374,6 +374,7 @@ const ScoutMatch = () => {
     setPhase,
     isDefending,
     startingPosition,
+    cycles,
     setStartingPosition,
     coral,
     setCoral,
@@ -396,6 +397,7 @@ const ScoutMatch = () => {
     scoutData,
     contact,
     setContact,
+    userToken,
   };
 
   const createTask = (action, gamepiece = null) => ({
@@ -456,6 +458,7 @@ const ScoutMatch = () => {
   };
 
   const endMatch = () => {
+    console.log(cycles);
     setCycles(
       [
         ...cycles,
@@ -487,7 +490,7 @@ const ScoutMatch = () => {
       return;
     }
     // don't clear unfinished if going to post match.
-    if (tasks.includes(GO_POST_MATCH)) {
+    if (!tasks.includes(GO_POST_MATCH)) {
       clearUnfinished();
     }
     for (let i in tasks) {

@@ -231,7 +231,9 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.hang?.enterTime != null && match.hang?.cageType == null,
+      match.hang?.enterTime != null &&
+      match.hang?.cageType == null &&
+      match.hang?.cageLocation != null,
   },
 
   // When hang.height is set: show hang state buttons and a cancel button.
@@ -251,9 +253,16 @@ export const SIDEBAR_CONFIG = [
     phases: [PHASES.POST_MATCH],
     positions: ["post_match"],
     label: (match, key) => "Submit",
-    onClick: (match, key) => {},
-    isDisabled: (match, key) =>
-      match.hang?.enterTime != null && match.hang.result == null,
+    onClick: (match, key) => {
+      console.log({
+        scoutId: match.userToken.id,
+        scoutName: match.userToken.username,
+        cycles: match.cycles,
+        endgame: match.endgame,
+      });
+    },
+    isDisabled: (match, key) => false,
+    // match.hang?.enterTime != null && match.hang.result == null,
     show: (match, key) => true,
   },
   // Cancel Button

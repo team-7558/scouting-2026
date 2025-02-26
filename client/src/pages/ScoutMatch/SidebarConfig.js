@@ -6,6 +6,7 @@ import {
   GAME_PIECES,
   GAME_LOCATIONS,
 } from "./Constants";
+import { saveMatch } from "../../storage/MatchStorageManager";
 
 const createTask = (action, gamepiece = null) => ({
   action: action,
@@ -254,12 +255,20 @@ export const SIDEBAR_CONFIG = [
     positions: ["post_match"],
     label: (match, key) => "Submit",
     onClick: (match, key) => {
-      console.log({
-        scoutId: match.userToken.id,
-        scoutName: match.userToken.username,
-        cycles: match.cycles,
-        endgame: match.endgame,
-      });
+      saveMatch(
+        {
+          scoutId: match.userToken.id,
+          scoutName: match.userToken.username,
+          cycles: [...match.cycles],
+          endgame: match.endgame,
+        },
+        {
+          eventKey: match.searchParams.get("eventKey"),
+          matchCode: match.searchParams.get("matchCode"),
+          station: match.searchParams.get("station"),
+        },
+        match.userToken
+      );
     },
     isDisabled: (match, key) => false,
     // match.hang?.enterTime != null && match.hang.result == null,

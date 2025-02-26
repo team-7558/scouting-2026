@@ -373,6 +373,7 @@ const ScoutMatch = () => {
     phase,
     setPhase,
     isDefending,
+    searchParams,
     startingPosition,
     cycles,
     setStartingPosition,

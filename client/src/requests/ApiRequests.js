@@ -22,3 +22,5 @@ export const getScoutMatch = async ({ eventKey, station, matchCode }) => {
     headers: getAuthHeaders(),
   });
 };
+
+export const submitMatch = async () => {};

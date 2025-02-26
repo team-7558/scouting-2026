@@ -486,9 +486,10 @@ const ScoutMatch = () => {
     if (![PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE].includes(phase)) {
       return;
     }
-    clearUnfinished();
-    // console.log(matchContext.hang);
-    // console.log("executing: ", actions);
+    // don't clear unfinished if going to post match.
+    if (tasks.includes(GO_POST_MATCH)) {
+      clearUnfinished();
+    }
     for (let i in tasks) {
       // console.log(tasks[i]);
       let task = tasks[i];

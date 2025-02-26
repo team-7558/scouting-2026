@@ -247,6 +247,15 @@ export const SIDEBAR_CONFIG = [
     show: (match, key) =>
       match.hang?.enterTime != null && match.hang.cageType != null,
   },
+  {
+    phases: [PHASES.POST_MATCH],
+    positions: ["post_match"],
+    label: (match, key) => "Submit",
+    onClick: (match, key) => {},
+    isDisabled: (match, key) =>
+      match.hang?.enterTime != null && match.hang.result == null,
+    show: (match, key) => true,
+  },
   // Cancel Button
   {
     phases: [PHASES.AUTO, PHASES.TELE],

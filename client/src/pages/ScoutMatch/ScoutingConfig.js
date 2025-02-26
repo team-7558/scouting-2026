@@ -106,32 +106,49 @@ export const SCOUTING_CONFIG = {
     phases: [PHASES.AUTO, PHASES.TELE],
     drawBorder: (match, key) => match.algae.depositLocation == key,
     disabled: (match, key) => !match.hasAlgae(),
+    showFunction: (match, key) => match.hang.enterTime == null,
     positions: {
-      [GAME_LOCATIONS.NET]: [1755, 375],
+      [GAME_LOCATIONS.NET]: [1755, 525],
     },
     dimensions: {
       width: 300,
-      height: 750,
+      height: 450,
     },
     tasks: [createTask(ACTIONS.DEPOSIT, GAME_PIECES.ALGAE)],
     textFunction: (match, key) => key,
   },
 
+  START_HANG: {
+    phases: [PHASES.TELE],
+    disabled: (match, key) => match.hang.enterTime != null,
+    showFunction: (match, key) => match.hang.enterTime == null,
+    positions: {
+      START_HANG: [1755, 125],
+    },
+    dimensions: {
+      width: 300,
+      height: 300,
+    },
+    tasks: [createTask(ACTIONS.HANG_ENTER)],
+    textFunction: (match, key) => key.replaceAll("_", " "),
+  },
+
   // Hang: three positions; task is to hang.
   HANG: {
     phases: [PHASES.TELE],
-    drawBorder: (match, key) =>
-      match.hang?.position != null && match.hang.position == key,
+    drawBorder: (match, key) => match.hang?.cageLocation == key,
+    disabled: (match, key) => match.hang.enterTime == null,
+    showFunction: (match, key) => match.hang.enterTime != null,
     positions: {
-      [GAME_LOCATIONS.HANG.LEFT]: [1755, 1000],
-      [GAME_LOCATIONS.HANG.MIDDLE]: [1755, 1225],
-      [GAME_LOCATIONS.HANG.RIGHT]: [1755, 1450],
+      [GAME_LOCATIONS.HANG.LEFT]: [1755, 140],
+      [GAME_LOCATIONS.HANG.MIDDLE]: [1755, 370],
+      [GAME_LOCATIONS.HANG.RIGHT]: [1755, 600],
     },
     dimensions: {
       width: 250,
       height: 200,
     },
-    tasks: [createTask(ACTIONS.HANG)],
+    tasks: [createTask(ACTIONS.HANG_CAGE_TOUCH)],
     textFunction: (match, key) => key.replaceAll("_", " "),
   },
 
@@ -147,35 +164,6 @@ export const SCOUTING_CONFIG = {
     tasks: [createTask(ACTIONS.GO_TELE)],
     textFunction: (match, key) => "FINISH AUTO",
   },
-
-  // CORAL_ICON: {
-  //   phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
-  //   showFunction: (match, key) => match.coral.attainedLocation != null,
-  //   positions: {
-  //     dynamic: true,
-  //     CORAL_DYNAMIC: (match) => {},
-  //   },
-  //   dimensions: {
-  //     width: 100,
-  //     height: 100,
-  //   },
-  //   tasks: [createTask(ACTIONS.GO_TELE)],
-  //   componentFunction: (match, key) => ImageIcon(CoralIcon),
-  // },
-
-  // ALGAE_ICON: {
-  //   phases: [PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE],
-  //   showFunction: (match, key) => match.hasAlgae(),
-  //   positions: {
-  //     TELE: [2050, 350],
-  //   },
-  //   dimensions: {
-  //     width: 200,
-  //     height: 200,
-  //   },
-  //   tasks: [createTask(ACTIONS.GO_TELE)],
-  //   componentFunction: (match, key) => ImageIcon(AlgaeIcon),
-  // },
 
   STARTING_LINE: {
     phases: [PHASES.PRE_MATCH],

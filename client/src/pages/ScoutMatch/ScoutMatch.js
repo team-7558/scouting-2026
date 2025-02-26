@@ -41,7 +41,17 @@ import { SIDEBAR_CONFIG } from "./SidebarConfig.js";
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
 
-const { ACQUIRE, DEPOSIT, HANG, GO_TELE, GO_DEFENSE, GO_POST_MATCH } = ACTIONS;
+const {
+  ACQUIRE,
+  DEPOSIT,
+  FINISH,
+  HANG_ENTER,
+  HANG_CAGE_TOUCH,
+  HANG_COMPLETE,
+  GO_TELE,
+  GO_DEFENSE,
+  GO_POST_MATCH,
+} = ACTIONS;
 const { CORAL, ALGAE } = GAME_PIECES;
 
 // Canvas Helpers
@@ -118,17 +128,25 @@ const ScoutMatch = () => {
   });
 
   const [defense, setDefense] = useState({
-    defendingTeam: null,
+    enterTime: null,
+    exitTime: null,
+  });
+
+  const [contact, setContact] = useState({
     startTime: null,
     endTime: null,
+    robot: null,
+    pinned: null,
+    foul: null,
   });
 
   const [hang, setHang] = useState({
-    startTime: null,
-    endTime: null,
-    position: null,
-    height: null,
-    succeeded: false,
+    enterTime: null, // when robot enters under barge
+    cageTouchTime: null, // when robot touches cage
+    completeTime: null, // when robot off the floor
+    location: null, // LEFT MIDDLE RIGHT
+    cageType: null,
+    result: null, // will be entered after match score released PARK // SUCCESS
   });
 
   const [endgame, setEndgame] = useState({
@@ -238,6 +256,25 @@ const ScoutMatch = () => {
     }
   }, [algae.depositTime]);
 
+  // Only run when algae.depositTime changes
+  useEffect(() => {
+    if (hang.completeTime != null) {
+      clearUnfinished();
+      setPhase(PHASES.POST_MATCH);
+    }
+  }, [hang.completeTime]);
+  useEffect(() => {
+    if (hang.result != null) {
+      setCycles([
+        ...cycles,
+        {
+          type: "hang",
+          ...hang,
+        },
+      ]);
+    }
+  }, [hang.result]);
+
   useEffect(() => {
     if (coral.attainedTime != null) {
       console.log("coral cycle progress: " + JSON.stringify(coral));
@@ -341,7 +378,7 @@ const ScoutMatch = () => {
         matchContext.algae.depositLocation,
         matchContext.algae.depositTime
       ) ||
-      isUnfinished(matchContext.hang.position, matchContext.hang.endTime)
+      isUnfinished(matchContext.hang.enterTime, matchContext.hang.completeTime)
     );
   };
 
@@ -394,36 +431,6 @@ const ScoutMatch = () => {
     }
   };
 
-  // const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
-  //   // console.log(matchContext);
-  //   clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
-  //   clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
-  //   matchContext.setHang({});
-  // };
-
-  // const isUnfinished = (location, time) => location != null && time == null;
-  // const hasUnfinished = (matchContext = CONTEXT_WRAPPER) => {
-  //   return (
-  //     isUnfinished(
-  //       matchContext.coral.attainedLocation,
-  //       matchContext.coral.attainedTime
-  //     ) ||
-  //     isUnfinished(
-  //       matchContext.coral.depositLocation,
-  //       matchContext.coral.depositTime
-  //     ) ||
-  //     isUnfinished(
-  //       matchContext.algae.attainedLocation,
-  //       matchContext.algae.attainedTime
-  //     ) ||
-  //     isUnfinished(
-  //       matchContext.algae.depositLocation,
-  //       matchContext.algae.depositTime
-  //     ) ||
-  //     isUnfinished(matchContext.hang.position, matchContext.hang.endTime)
-  //   );
-  // };
-
   // don't add default matchContext here
   const startAcquireGamepiece = (location, gamepiece, matchContext) => {
     console.log("acquiring: ", gamepiece, location);
@@ -466,6 +473,19 @@ const ScoutMatch = () => {
     }
   };
 
+  const finishGamepiece = (location, gamepiece, matchContext) => {
+    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
+    if (
+      isUnfinished(gamepieceState.attainedLocation, gamepieceState.attainedTime)
+    ) {
+      setter({ ...gamepieceState, attainedTime: currentTime });
+    } else if (
+      isUnfinished(gamepieceState.depositLocation, gamepieceState.depositTime)
+    ) {
+      setter({ ...gamepieceState, depositTime: currentTime });
+    }
+  };
+
   const startHang = (location, matchContext) => {
     console.log("starting hang", location);
     matchContext.setHang({
@@ -481,8 +501,11 @@ const ScoutMatch = () => {
     tasks,
     matchContext = CONTEXT_WRAPPER
   ) => {
+    if (![PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE].includes(phase)) {
+      return;
+    }
     clearUnfinished();
-
+    console.log(matchContext.hang);
     // console.log("executing: ", actions);
     for (let i in tasks) {
       console.log(tasks[i]);
@@ -494,8 +517,26 @@ const ScoutMatch = () => {
         case DEPOSIT:
           startDepositGamepiece(location, task.gamepiece, matchContext);
           break;
-        case HANG:
-          startHang(location, matchContext);
+        case FINISH:
+          finishGamepiece(location, task.gamepiece, matchContext);
+          break;
+        case HANG_ENTER:
+          matchContext.setHang({
+            enterTime: currentTime,
+          });
+          break;
+        case HANG_CAGE_TOUCH:
+          matchContext.setHang({
+            ...matchContext.hang,
+            cageLocation: location,
+            cageTouchTime: currentTime,
+          });
+          break;
+        case HANG_COMPLETE:
+          matchContext.setHang({
+            ...matchContext.hang,
+            completeTime: currentTime,
+          });
           break;
         case GO_TELE:
           matchContext.setPhase(PHASES.TELE);
@@ -538,7 +579,8 @@ const ScoutMatch = () => {
     fieldWidth,
     fieldHeight,
     componentFunction,
-    dontFlip = false
+    dontFlip = false,
+    isDisabled = false
   ) => {
     if (!dontFlip) {
       fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
@@ -553,6 +595,7 @@ const ScoutMatch = () => {
             fieldWidth={fieldWidth}
             fieldHeight={fieldHeight}
             perspective={scoutPerspective}
+            sx={{ "pointer-events": isDisabled ? "none" : "auto" }}
           >
             {componentFunction(match)}
           </FieldLocalComponent>
@@ -595,6 +638,7 @@ const ScoutMatch = () => {
           config.dimensions.width,
           config.dimensions.height,
           (match) => {
+            const isDisabled = config.disabled && config.disabled(match, key);
             if (config.showFunction && !config.showFunction(match, key)) {
               return;
             }
@@ -603,10 +647,11 @@ const ScoutMatch = () => {
             ) : (
               <FieldButton
                 sx={{
+                  "pointer-events": isDisabled ? "none" : "auto",
                   borderRadius: config.isCircle ? "50%" : "2%",
                 }}
                 drawBorder={config.drawBorder && config.drawBorder(match, key)}
-                disabled={config.disabled && config.disabled(match, key)}
+                disabled={isDisabled}
                 color={config.color || COLORS.ACTIVE}
                 onClick={() => {
                   startPendingTasks(key, config.tasks, match);
@@ -615,7 +660,10 @@ const ScoutMatch = () => {
                 {config.textFunction && config.textFunction(match, key)}
               </FieldButton>
             );
-          }
+          },
+          /*dontFlip= */ false,
+          /*isDisabled=*/ config.disabled &&
+            config.disabled(CONTEXT_WRAPPER, key)
         )
       : null;
   };
@@ -629,7 +677,8 @@ const ScoutMatch = () => {
         100,
         100,
         (match) => ImageIcon(icon),
-        /* dontFlip= */ gamePiecePosition[1]
+        /* dontFlip= */ gamePiecePosition[1],
+        /* isDisabled= */ true
       );
     }
   };
@@ -642,7 +691,6 @@ const ScoutMatch = () => {
     }
 
     for (const config of Object.values(SCOUTING_CONFIG)) {
-      console.log(config);
       for (const positionKey of Object.keys(config.positions)) {
         if (positionKey == key) {
           return [config.positions[positionKey], false];
@@ -752,9 +800,15 @@ const ScoutMatch = () => {
   // });
 
   const POST_MATCHChildren = [
-    createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => (
-      <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>
-    )),
+    createFieldLocalMatchComponent(
+      "disabled",
+      250,
+      100,
+      500,
+      150,
+      (match) => <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>,
+      /* dontFlip= */ !isScoringTableFar()
+    ),
     ...[150, 600].map((x, index) => {
       const value = ["no", "yes"][index];
       return createFieldLocalMatchComponent(
@@ -773,7 +827,8 @@ const ScoutMatch = () => {
           >
             {value}
           </FieldButton>
-        )
+        ),
+        /* dontFlip= */ !isScoringTableFar()
       );
     }),
 
@@ -784,7 +839,8 @@ const ScoutMatch = () => {
       500,
       500,
       150,
-      (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>
+      (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>,
+      /* dontFlip= */ !isScoringTableFar()
     ),
     ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
@@ -804,7 +860,8 @@ const ScoutMatch = () => {
           >
             {value}
           </FieldButton>
-        )
+        ),
+        /* dontFlip= */ !isScoringTableFar()
       );
     }),
 
@@ -815,7 +872,10 @@ const ScoutMatch = () => {
       900,
       500,
       150,
-      (match) => <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
+      (match) => (
+        <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
+      ),
+      /* dontFlip= */ !isScoringTableFar()
     ),
     ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
@@ -835,14 +895,21 @@ const ScoutMatch = () => {
           >
             {value}
           </FieldButton>
-        )
+        ),
+        /* dontFlip= */ !isScoringTableFar()
       );
     }),
 
     //role
-    createFieldLocalMatchComponent("role", 250, 1300, 500, 150, (match) => (
-      <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>
-    )),
+    createFieldLocalMatchComponent(
+      "role",
+      250,
+      1300,
+      500,
+      150,
+      (match) => <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>,
+      /* dontFlip= */ !isScoringTableFar()
+    ),
     ...[200, 575, 950, 1325].map((x, index) => {
       const value = ["N/A", "Defense", "Coral Cycle", "Algae Cycle"][index];
       return createFieldLocalMatchComponent(
@@ -861,7 +928,8 @@ const ScoutMatch = () => {
           >
             {value}
           </FieldButton>
-        )
+        ),
+        /* dontFlip= */ !isScoringTableFar()
       );
     }),
 
@@ -896,11 +964,15 @@ const ScoutMatch = () => {
             }}
           ></textarea>
         </>
-      )
+      ),
+      /* dontFlip= */ !isScoringTableFar()
     ),
   ];
 
   const getFieldCanvasOffset = () => {
+    if (phase == PHASES.POST_MATCH) {
+      return 0;
+    }
     const shift =
       scaledBoxRect.height * FIELD_ASPECT_RATIO -
       scaleWidthToActual(FIELD_VIRTUAL_WIDTH);
@@ -919,7 +991,7 @@ const ScoutMatch = () => {
     const fieldChildren = [
       ...ScoutingConfigChildren,
       ...(phase === PHASES.POST_MATCH ? POST_MATCHChildren : []),
-      ...GROUND_PICKUPIcon,
+      ...([PHASES.AUTO, PHASES.TELE].includes(phase) ? GROUND_PICKUPIcon : []),
     ];
     return (
       <Box
@@ -953,413 +1025,6 @@ const ScoutMatch = () => {
       </Box>
     );
   };
-
-  // const renderSideBar = () => {
-  //   let buttonsList = [];
-
-  //   if (phase === PHASES.PRE_MATCH) {
-  //     buttonsList = [
-  //       createSidebarButton({
-  //         id: "startMatch",
-  //         flexWeight: 2,
-  //         label:
-  //           startingPosition < 0
-  //             ? "Please select starting position"
-  //             : "Start match",
-  //         onClick: () => {
-  //           setMatchStartTime(Date.now());
-  //           setPhase(PHASES.AUTO);
-  //           clearUnfinished();
-  //         },
-  //         color: startingPosition < 0 ? "disabled" : COLORS.ACTIVE,
-  //         disabled: startingPosition < 0,
-  //         extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
-  //       }),
-  //       createSidebarButton({
-  //         id: "preload",
-  //         flexWeight: 1,
-  //         label: hasCoral() ? "Has preload" : "No Preload",
-  //         onClick: () => {
-  //           setCoral(
-  //             hasCoral() ? {} : { attainedLocation: "preload", attainedTime: 0 }
-  //           );
-  //         },
-  //         color: hasCoral() ? COLORS.SUCCESS : COLORS.PENDING,
-  //         extraSx: { width: "100%", height: "100%", fontSize: "1.5rem" },
-  //         show: true,
-  //       }),
-  //     ].filter(Boolean);
-  //   } else if (
-  //     (phase === PHASES.AUTO || phase === PHASES.TELE) &&
-  //     !isDefending &&
-  //     hang?.startTime == null
-  //   ) {
-  //     // REEF SCORE BUTTONS
-  //     Object.keys(GAME_LOCATIONS.REEF_LEVEL)
-  //       .sort()
-  //       .reverse()
-  //       .forEach((level) => {
-  //         buttonsList.push(
-  //           createSidebarButton({
-  //             id: `reefLevel_${level}`,
-  //             label: `L${level}`,
-  //             onClick: () => {
-  //               updateCoral({
-  //                 ...coral,
-  //                 depositLocation: coral.depositLocation + `L${level}`,
-  //                 depositTime: currentTime,
-  //               });
-  //               if (!hasAlgae()) {
-  //                 updateAlgae({});
-  //               }
-  //             },
-  //             color: COLORS.CORALDROPOFF,
-  //             show:
-  //               hasCoral() &&
-  //               Object.values(GAME_LOCATIONS.REEF).includes(
-  //                 coral.depositLocation
-  //               ),
-  //           })
-  //         );
-  //       });
-
-  //     buttonsList.push(
-  //       createSidebarButton({
-  //         id: "DROP_CORAL",
-  //         label: "DROP CORAL",
-  //         onClick: () => {
-  //           updateCoral({ ...coral, depositTime: currentTime });
-  //         },
-  //         color: COLORS.DROP,
-  //         show: isUnfinished(coral.depositLocation, coral.depositTime),
-  //       })
-  //     );
-
-  //     buttonsList.push(
-  //       createSidebarButton({
-  //         id: "PICKUP_ALGAE",
-  //         label: "PICKUP ALGAE",
-  //         onClick: () => {
-  //           updateAlgae({ ...algae, attainedTime: currentTime });
-  //         },
-  //         color: COLORS.ALGAEPICKUP,
-  //         show: isUnfinished(algae.attainedLocation, algae.attainedTime),
-  //       })
-  //     );
-
-  //     buttonsList.push(
-  //       createSidebarButton({
-  //         id: "PICKUP_CORAL",
-  //         label: "PICKUP CORAL",
-  //         onClick: () => {
-  //           updateCoral({ ...coral, attainedTime: currentTime });
-  //         },
-  //         color: COLORS.CORALPICKUP,
-  //         show: isUnfinished(coral.attainedLocation, coral.attainedTime),
-  //       })
-  //     );
-
-  //     // PROCESSOR/NET SCORE MENU
-  //     if (
-  //       algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
-  //       algae.depositLocation === GAME_LOCATIONS.NET
-  //     ) {
-  //       buttonsList.push(
-  //         createSidebarButton({
-  //           id: "scoreProcessor",
-  //           label: `Score ${algae.depositLocation}`,
-  //           onClick: () => {
-  //             updateAlgae({ ...algae, depositTime: currentTime });
-  //           },
-  //           color: COLORS.ALGAEDROPOFF,
-  //           show: true,
-  //         })
-  //       );
-  //     }
-
-  //     buttonsList.push(
-  //       createSidebarButton({
-  //         id: "DROP_ALGAE",
-  //         label: "DROP ALGAE",
-  //         onClick: () => {
-  //           updateAlgae({ ...algae, depositTime: currentTime });
-  //         },
-  //         color: COLORS.DROP,
-  //         show: isUnfinished(algae.depositLocation, algae.depositTime),
-  //       })
-  //     );
-
-  //     buttonsList.push(
-  //       createSidebarButton({
-  //         id: "cancel",
-  //         label: "cancel",
-  //         onClick: () => {
-  //           clearUnfinished();
-  //         },
-  //         color: COLORS.PENDING,
-  //         show: hasUnfinished(),
-  //       })
-  //     );
-  //   } else if (
-  //     phase === PHASES.AUTO ||
-  //     (phase === PHASES.TELE && isDefending)
-  //   ) {
-  //     Object.values(scoutData ? scoutData.opponents : [1, 2, 3]).forEach(
-  //       (enemy, index) => {
-  //         buttonsList.push(
-  //           createSidebarButton({
-  //             id: `defense_${index}`,
-  //             label: `${enemy}`,
-  //             onClick: () => {
-  //               setDefense({
-  //                 startTime: currentTime,
-  //                 defendingTeam: enemy,
-  //                 endTime: null,
-  //               });
-  //             },
-  //             color: COLORS.PENDING,
-  //             show: defense.defendingTeam == null,
-  //           })
-  //         );
-  //       }
-  //     );
-  //     buttonsList.push(
-  //       createSidebarButton({
-  //         id: "stopDefending",
-  //         label: "STOP DEFENDING",
-  //         onClick: () => {
-  //           setDefense({ ...defense, endTime: currentTime });
-  //         },
-  //         color: COLORS.PENDING,
-  //         show: defense.defendingTeam != null,
-  //       })
-  //     );
-  //   } else if (phase === PHASES.TELE && hang?.startTime != null) {
-  //     if (hang.height == null) {
-  //       Object.values(GAME_LOCATIONS.HANG_LEVEL).forEach((height, index) => {
-  //         buttonsList.push(
-  //           createSidebarButton({
-  //             id: `hangDepth_${index}`,
-  //             label: `${height}`,
-  //             onClick: () => {
-  //               setHang({ ...hang, height });
-  //             },
-  //             color: COLORS.PENDING,
-  //             show: true,
-  //           })
-  //         );
-  //       });
-  //       buttonsList.push(
-  //         createSidebarButton({
-  //           id: "cancelHang",
-  //           label: "CANCEL",
-  //           onClick: () => {
-  //             setHang({
-  //               startTime: null,
-  //               endTime: null,
-  //               position: null,
-  //               depth: null,
-  //               succeeded: false,
-  //             });
-  //           },
-  //           color: COLORS.PENDING,
-  //           show: true,
-  //         })
-  //       );
-  //     } else {
-  //       Object.values(GAME_LOCATIONS.HANG_STATE).forEach((state, index) => {
-  //         buttonsList.push(
-  //           createSidebarButton({
-  //             id: `hangState_${index}`,
-  //             label: `${state}`,
-  //             onClick: () => {
-  //               setHang({
-  //                 ...hang,
-  //                 succeeded: state == GAME_LOCATIONS.HANG_STATE.SUCCEED,
-  //                 endTime: currentTime,
-  //               });
-  //             },
-  //             color: COLORS.PENDING,
-  //             show: true,
-  //           })
-  //         );
-  //       });
-  //       buttonsList.push(
-  //         createSidebarButton({
-  //           id: "cancelHangState",
-  //           label: "CANCEL",
-  //           onClick: () => {
-  //             setHang({
-  //               startTime: null,
-  //               endTime: null,
-  //               position: null,
-  //               depth: null,
-  //               succeeded: false,
-  //             });
-  //           },
-  //           color: COLORS.PENDING,
-  //           show: true,
-  //         })
-  //       );
-  //     }
-  //   } else if (phase === PHASES.POST_MATCH) {
-  //     buttonsList.push(
-  //       createSidebarButton({
-  //         id: "submit",
-  //         label: "SUBMIT",
-  //         onClick: () => {
-  //           console.log("cycles: ", cycles);
-  //           setData({
-  //             ...data,
-  //             endgame,
-  //             cycles,
-  //           });
-
-  //           console.log({
-  //             ...data,
-  //             endgame,
-  //             cycles,
-  //           });
-
-  //           setMatchStartTime(-1);
-  //           setCurrentTime(0);
-  //           setPhase(PHASES.PRE_MATCH);
-
-  //           // robot state
-  //           setIsDefending(false);
-  //           setStartingPosition(-1);
-  //           setCoral({
-  //             attainedLocation: null,
-  //             attainedTime: null,
-  //             depositLocation: null,
-  //             depositTime: null,
-  //           });
-  //           setAlgae({
-  //             attainedLocation: null,
-  //             attainedTime: null,
-  //             depositLocation: null,
-  //             depositTime: null,
-  //           });
-  //           setDefense({
-  //             defendingTeam: null,
-  //             startTime: null,
-  //             endTime: null,
-  //           });
-  //           setHang({
-  //             startTime: null,
-  //             endTime: null,
-  //             position: null,
-  //             height: null,
-  //             succeeded: false,
-  //           });
-  //           setEndgame({
-  //             disabled: false,
-  //             driverSkill: "N/A",
-  //             defenseSkill: "N/A",
-  //             role: "N/A",
-  //             comments: "",
-  //           });
-  //         },
-  //         color: COLORS.PENDING,
-  //         show: true,
-  //       })
-  //     );
-  //   }
-
-  //   return (
-  //     <>
-  //       <Sidebar
-  //         sidebarOpen={sidebarOpen}
-  //         setSidebarOpen={setSidebarOpen}
-  //         scaleWidthToActual={scaleWidthToActual}
-  //         scaleHeightToActual={scaleHeightToActual}
-  //       />
-  //       <Box
-  //         sx={{
-  //           display: "flex",
-  //           width: "100%",
-  //           height: "10%",
-  //           overflowX: "auto",
-  //         }}
-  //       >
-  //         <Button
-  //           sx={{
-  //             width: "90%",
-  //             height: "90%",
-  //           }}
-  //           onClick={() => setSidebarOpen(true)}
-  //         >
-  //           <MenuIcon />
-  //         </Button>
-  //         <Box
-  //           sx={{
-  //             width: "90%",
-  //             height: "90%",
-  //           }}
-  //         >
-  //           <img
-  //             src={AlgaeIcon}
-  //             style={{
-  //               width: "auto%",
-  //               height: "90%",
-  //               visibility: hasAlgae() ? "visible" : "hidden",
-  //             }}
-  //           ></img>
-  //         </Box>
-  //         <Box
-  //           sx={{
-  //             width: "90%",
-  //             height: "90%",
-  //           }}
-  //         >
-  //           <img
-  //             src={CoralIcon}
-  //             style={{
-  //               width: "auto%",
-  //               height: "90%",
-  //               visibility: hasCoral() ? "visible" : "hidden",
-  //             }}
-  //           ></img>
-  //         </Box>
-  //         <Box
-  //           sx={{
-  //             width: "90%",
-  //             height: "90%",
-  //           }}
-  //         >
-  //           <h2 style={{ color: "black", marginTop: "30%" }}>{currentTime}</h2>
-  //         </Box>
-  //       </Box>
-
-  //       <Box
-  //         sx={{
-  //           display: "flex",
-  //           flexDirection: "column",
-  //           width: "100%",
-  //           height: "90%",
-  //           backgroundColor: getTheme().palette.background.paper,
-  //           overflowY: "auto",
-  //         }}
-  //       >
-  //         {renderScoutDataLabel()}
-  //         {buttonsList.filter(Boolean).map((button, index) => (
-  //           <Box
-  //             key={index}
-  //             sx={{
-  //               flex: button.flexWeight || 1,
-  //               display: "flex",
-  //               justifyContent: "center",
-  //               alignItems: "center",
-  //               padding: 0,
-  //             }}
-  //           >
-  //             {button.component}
-  //           </Box>
-  //         ))}
-  //       </Box>
-  //     </>
-  //   );
-  // };
 
   const renderScoutDataLabel = () => {
     return (
@@ -1427,7 +1092,7 @@ const ScoutMatch = () => {
               justifyContent: "center",
             }}
           >
-            {ImageIcon(AlgaeIcon)}
+            {hasAlgae() && ImageIcon(AlgaeIcon)}
           </Box>
           {/* Coral Icon */}
           <Box
@@ -1439,7 +1104,7 @@ const ScoutMatch = () => {
               justifyContent: "center",
             }}
           >
-            {ImageIcon(CoralIcon)}
+            {hasCoral() && ImageIcon(CoralIcon)}
           </Box>
           {/* Current Time */}
           <Box
@@ -1471,18 +1136,21 @@ const ScoutMatch = () => {
 
     // For each config item, iterate over its positions keys.
     const buttonsList = configItems.flatMap((item) =>
-      Object.keys(item.positions).map((key) => {
+      item.positions.map((key) => {
         if (!item.show(match, key)) return null;
         return (
-          <Box key={`${item.id}-${key}`} sx={{ flex: item.flexWeight || 1 }}>
+          <Box key={key} sx={{ flex: item.flexWeight || 1 }}>
             {
               createSidebarButton({
-                id: `${item.id}-${key}`,
+                id: key,
                 label:
                   typeof item.label === "function"
                     ? item.label(match, key)
                     : item.label,
-                onClick: () => item.onClick(match, key),
+                onClick: () =>
+                  item.tasks != null
+                    ? startPendingTasks(key, item.tasks, match)
+                    : item.onClick && item.onClick(match, key),
                 color:
                   typeof item.color === "function"
                     ? item.color(match, key)

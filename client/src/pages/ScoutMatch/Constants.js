@@ -32,7 +32,11 @@ export const COLORS = {
 export const ACTIONS = {
   ACQUIRE: "acquire",
   DEPOSIT: "deposit",
+  FINISH: "finish",
   HANG: "hang",
+  HANG_ENTER: "hang_enter",
+  HANG_CAGE_TOUCH: "hang_cage_touch",
+  HANG_COMPLETE: "hang_complete",
   GO_TELE: "go_tele",
   GO_DEFENSE: "go_defense",
   GO_POST_MATCH: "go_post_match",
@@ -51,6 +55,7 @@ export const MATCH_BUTTONS = {
 };
 
 export const GAME_LOCATIONS = {
+  PRELOAD: "PRELOAD",
   CORAL_MARK: {
     LEFT: "CORAL_MARK_LEFT",
     MIDDLE: "CORAL_MARK_MIDDLE",

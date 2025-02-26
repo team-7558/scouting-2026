@@ -1,12 +1,23 @@
 // SidebarConfig.js
-import { PHASES, COLORS, GAME_LOCATIONS } from "./Constants";
+import {
+  PHASES,
+  COLORS,
+  ACTIONS,
+  GAME_PIECES,
+  GAME_LOCATIONS,
+} from "./Constants";
+
+const createTask = (action, gamepiece = null) => ({
+  action: action,
+  gamepiece: gamepiece,
+});
 
 export const SIDEBAR_CONFIG = [
   // ---------- PRE_MATCH Buttons ----------
   {
     phases: [PHASES.PRE_MATCH],
     id: "startMatch",
-    positions: { startMatch: true },
+    positions: ["startMatch"],
     flexWeight: 2,
     label: (match, key) =>
       match.startingPosition < 0
@@ -22,13 +33,15 @@ export const SIDEBAR_CONFIG = [
   },
   {
     phases: [PHASES.PRE_MATCH],
-    id: "preload",
-    positions: { preload: true },
+    id: GAME_LOCATIONS.PRELOAD,
+    positions: [GAME_LOCATIONS.PRELOAD],
     flexWeight: 1,
     label: (match, key) => (match.hasCoral() ? "Has preload" : "No Preload"),
     onClick: (match, key) => {
       match.setCoral(
-        match.hasCoral() ? {} : { attainedLocation: "preload", attainedTime: 0 }
+        match.hasCoral()
+          ? {}
+          : { attainedLocation: GAME_LOCATIONS.PRELOAD, attainedTime: 0 }
       );
     },
     color: (match, key) => (match.hasCoral() ? COLORS.SUCCESS : COLORS.PENDING),
@@ -40,22 +53,18 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "reefScoring",
-    // Expect GAME_LOCATIONS.REEF_LEVEL to be an object whose keys (e.g., "1", "2", "3") are unique.
-    positions: GAME_LOCATIONS.REEF_LEVEL,
-    label: (match, level) => `L${level}`,
+    // Convert the keys of GAME_LOCATIONS.REEF_LEVEL into an array.
+    positions: Object.keys(GAME_LOCATIONS.REEF_LEVEL).sort().reverse(),
+    label: (match, key) => `L${key}`,
     onClick: (match, level) => {
       match.updateCoral({
         ...match.coral,
         depositLocation: match.coral.depositLocation + `_L${level}`,
         depositTime: match.currentTime,
       });
-      if (!match.hasAlgae()) {
-        match.updateAlgae({});
-      }
     },
-    color: (match, level) => COLORS.CORALDROPOFF,
-    sx: {},
-    show: (match, level) =>
+    color: (match, key) => COLORS.CORALDROPOFF,
+    show: (match, key) =>
       match.hasCoral() &&
       Object.values(GAME_LOCATIONS.REEF).includes(match.coral.depositLocation),
   },
@@ -63,42 +72,22 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "DROP_CORAL",
-    positions: { dropCoral: true },
+    positions: ["dropCoral"],
     label: (match, key) => "DROP CORAL",
-    onClick: (match, key) => {
-      match.updateCoral({ ...match.coral, depositTime: match.currentTime });
-    },
+    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)],
     color: (match, key) => COLORS.DROP,
     sx: {},
     show: (match, key) =>
       match.isUnfinished(match.coral.depositLocation, match.coral.depositTime),
   },
-  // PICKUP_ALGAE Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "PICKUP_ALGAE",
-    positions: { pickupAlgae: true },
-    label: (match, key) => "PICKUP ALGAE",
-    onClick: (match, key) => {
-      match.updateAlgae({ ...match.algae, attainedTime: match.currentTime });
-    },
-    color: (match, key) => COLORS.ALGAEPICKUP,
-    sx: {},
-    show: (match, key) =>
-      match.isUnfinished(
-        match.algae.attainedLocation,
-        match.algae.attainedTime
-      ),
-  },
+
   // PICKUP_CORAL Button
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "PICKUP_CORAL",
-    positions: { pickupCoral: true },
+    positions: ["pickupCoral"],
     label: (match, key) => "PICKUP CORAL",
-    onClick: (match, key) => {
-      match.updateCoral({ ...match.coral, attainedTime: match.currentTime });
-    },
+    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)],
     color: (match, key) => COLORS.CORALPICKUP,
     sx: {},
     show: (match, key) =>
@@ -107,15 +96,28 @@ export const SIDEBAR_CONFIG = [
         match.coral.attainedTime
       ),
   },
+  // PICKUP_ALGAE Button
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    id: "PICKUP_ALGAE",
+    positions: ["pickupAlgae"],
+    label: (match, key) => "PICKUP ALGAE",
+    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
+    color: (match, key) => COLORS.ALGAEPICKUP,
+    sx: {},
+    show: (match, key) =>
+      match.isUnfinished(
+        match.algae.attainedLocation,
+        match.algae.attainedTime
+      ),
+  },
   // Score Processor/Net Menu Button (conditionally shown)
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "scoreProcessor",
-    positions: { scoreProcessor: true },
+    positions: ["scoreProcessor"],
     label: (match, key) => `Score ${match.algae.depositLocation}`,
-    onClick: (match, key) => {
-      match.updateAlgae({ ...match.algae, depositTime: match.currentTime });
-    },
+    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
     color: (match, key) => COLORS.ALGAEDROPOFF,
     sx: {},
     show: (match, key) =>
@@ -126,7 +128,7 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "DROP_ALGAE",
-    positions: { dropAlgae: true },
+    positions: ["dropAlgae"],
     label: (match, key) => "DROP ALGAE",
     onClick: (match, key) => {
       match.updateAlgae({ ...match.algae, depositTime: match.currentTime });
@@ -136,19 +138,6 @@ export const SIDEBAR_CONFIG = [
     show: (match, key) =>
       match.isUnfinished(match.algae.depositLocation, match.algae.depositTime),
   },
-  // Cancel Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "cancel",
-    positions: { cancel: true },
-    label: (match, key) => "cancel",
-    onClick: (match, key) => {
-      match.clearUnfinished();
-    },
-    color: (match, key) => COLORS.PENDING,
-    sx: {},
-    show: (match, key) => match.hasUnfinished(),
-  },
 
   // ---------- DEFENSE Buttons (for AUTO/TELE when defending) ----------
   // Note: In your original code, the defense buttons were generated dynamically from scoutData.opponents.
@@ -157,7 +146,8 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "defense",
-    positions: { 1: true, 2: true, 3: true },
+    // Convert numeric keys to strings
+    positions: ["1", "2", "3"],
     label: (match, key) => {
       const opponentKey = match.isScoutingRed ? `b${key}` : `r${key}`;
       // Read the opponent from match.scoutData.opponents by index
@@ -188,7 +178,7 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "stopDefending",
-    positions: { stopDefending: true },
+    positions: ["stopDefending"],
     label: (match, key) => "STOP DEFENDING",
     onClick: (match, key) => {
       match.setDefense({ ...match.defense, endTime: match.currentTime });
@@ -203,70 +193,44 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.TELE],
     id: "hangLevel",
-    positions: GAME_LOCATIONS.HANG_LEVEL, // keys represent available levels
+    positions: [
+      GAME_LOCATIONS.HANG_LEVEL.DEEP,
+      GAME_LOCATIONS.HANG_LEVEL.SHALLOW,
+    ],
     label: (match, key) => `${key}`, // or customize label as needed
     onClick: (match, key) => {
-      match.setHang({ ...match.hang, height: key });
+      match.setHang({ ...match.hang, cageType: key });
     },
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.hang && match.hang.startTime != null && match.hang.height == null,
+      match.hang?.enterTime != null && match.hang?.cageType == null,
   },
-  {
-    phases: [PHASES.TELE],
-    id: "cancelHang",
-    positions: { cancelHang: true },
-    label: (match, key) => "CANCEL",
-    onClick: (match, key) => {
-      match.setHang({
-        startTime: null,
-        endTime: null,
-        position: null,
-        depth: null,
-        succeeded: false,
-      });
-    },
-    color: (match, key) => COLORS.PENDING,
-    sx: {},
-    show: (match, key) =>
-      match.hang && match.hang.startTime != null && match.hang.height == null,
-  },
+
   // When hang.height is set: show hang state buttons and a cancel button.
   {
     phases: [PHASES.TELE],
-    id: "hangState",
-    positions: GAME_LOCATIONS.HANG_STATE, // keys represent hang states
+    positions: [GAME_LOCATIONS.HANG_STATE.SUCCEED],
     label: (match, key) => `${key}`,
     onClick: (match, key) => {
-      match.setHang({
-        ...match.hang,
-        succeeded: key === GAME_LOCATIONS.HANG_STATE.SUCCEED,
-        endTime: match.currentTime,
-      });
+      match.setHang({ ...match.hang, completeTime: match.currentTime });
     },
-    color: (match, key) => COLORS.PENDING,
+    // color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.hang && match.hang.startTime != null && match.hang.height != null,
+      match.hang?.enterTime != null && match.hang.cageType != null,
   },
+  // Cancel Button
   {
-    phases: [PHASES.TELE],
-    id: "cancelHangState",
-    positions: { cancelHangState: true },
-    label: (match, key) => "CANCEL",
+    phases: [PHASES.AUTO, PHASES.TELE],
+    id: "cancel",
+    positions: ["cancel"],
+    label: (match, key) => "cancel",
     onClick: (match, key) => {
-      match.setHang({
-        startTime: null,
-        endTime: null,
-        position: null,
-        depth: null,
-        succeeded: false,
-      });
+      match.clearUnfinished();
     },
     color: (match, key) => COLORS.PENDING,
     sx: {},
-    show: (match, key) =>
-      match.hang && match.hang.startTime != null && match.hang.height != null,
+    show: (match, key) => match.hasUnfinished(),
   },
 ];

@@ -90,6 +90,7 @@ const FieldLocalComponent = ({
   fieldWidth,
   fieldHeight,
   perspective,
+  sx,
   children,
 }) => {
   const localRef = useRef(null);
@@ -122,12 +123,13 @@ const FieldLocalComponent = ({
   return (
     <Box
       ref={localRef}
-      style={{
+      sx={{
         position: "absolute",
         left: scaledX,
         top: scaledY,
         width: scaledWidth,
         height: scaledHeight,
+        ...sx,
       }}
     >
       {/* {fieldX + ", " + fieldY} */}

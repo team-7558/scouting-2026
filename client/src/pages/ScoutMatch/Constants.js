@@ -2,6 +2,9 @@ export const FIELD_VIRTUAL_HEIGHT = 1610;
 export const FIELD_VIRTUAL_WIDTH = 3510;
 export const FIELD_ASPECT_RATIO = FIELD_VIRTUAL_WIDTH / FIELD_VIRTUAL_HEIGHT;
 
+export const AUTO_MAX_TIME = 15 * 1000;
+export const TELE_MAX_TIME = 150 * 1000;
+
 export const CYCLE_TYPES = {
   CORAL: "CORAL",
   ALGAE: "ALGAE",

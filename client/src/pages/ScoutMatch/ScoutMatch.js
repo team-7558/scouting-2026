@@ -32,6 +32,8 @@ import {
   FIELD_ASPECT_RATIO,
   PERSPECTIVE,
   CYCLE_TYPES,
+  AUTO_MAX_TIME,
+  TELE_MAX_TIME,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
@@ -100,8 +102,14 @@ const ScoutMatch = () => {
 
   const [scoutData, setScoutData] = useState(null);
 
-  const [matchStartTime, setMatchStartTime] = useState(-1);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [matchStartTime, setMatchStartTime] = useState(null);
+  const getCurrentTime = () => {
+    return Math.min(
+      phase == PHASES.AUTO ? AUTO_MAX_TIME : TELE_MAX_TIME,
+      matchStartTime == null ? 0 : Date.now() - matchStartTime
+    );
+  };
+  const [displayTime, setDisplayTime] = useState(0);
 
   const [phase, setPhase] = useState(PHASES.PRE_MATCH);
 
@@ -208,16 +216,20 @@ const ScoutMatch = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (
-        matchStartTime > 0 &&
-        (currentTime < 15 || (phase === PHASES.TELE && currentTime < 150))
-      ) {
-        setCurrentTime((prevTime) => prevTime + 1);
+      let displayTime = null;
+      if (phase == PHASES.AUTO) {
+        displayTime = AUTO_MAX_TIME - getCurrentTime();
+      } else if (phase == PHASES.TELE) {
+        displayTime = TELE_MAX_TIME - getCurrentTime();
       }
+
+      setDisplayTime(
+        displayTime != null ? Math.trunc(displayTime / 1000) : "- - -"
+      );
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [matchStartTime, phase, currentTime]);
+  }, [matchStartTime, phase]);
 
   const getCycle = (cycleType) => {
     switch (cycleType) {
@@ -374,7 +386,7 @@ const ScoutMatch = () => {
     setEndgame,
     defense,
     setDefense,
-    currentTime,
+    getCurrentTime,
     isScoutingRed: isScoutingRed(),
     isScoringTableFar: isScoringTableFar(),
     isUnfinished,
@@ -434,11 +446,11 @@ const ScoutMatch = () => {
     if (
       isUnfinished(gamepieceState.attainedLocation, gamepieceState.attainedTime)
     ) {
-      setter({ ...gamepieceState, attainedTime: currentTime });
+      setter({ ...gamepieceState, attainedTime: getCurrentTime() });
     } else if (
       isUnfinished(gamepieceState.depositLocation, gamepieceState.depositTime)
     ) {
-      setter({ ...gamepieceState, depositTime: currentTime });
+      setter({ ...gamepieceState, depositTime: getCurrentTime() });
     }
   };
 
@@ -452,11 +464,11 @@ const ScoutMatch = () => {
           getWritableCycle(CYCLE_TYPES.CORAL),
         shouldWriteCycle(CYCLE_TYPES.DEFENSE) && {
           ...getWritableCycle(CYCLE_TYPES.DEFENSE),
-          exitTime: currentTime,
+          exitTime: getCurrentTime(),
         },
         shouldWriteCycle(CYCLE_TYPES.CONTACT) && {
           ...getWritableCycle(CYCLE_TYPES.CONTACT),
-          endTime: currentTime,
+          endTime: getCurrentTime(),
         },
         shouldWriteCycle(CYCLE_TYPES.HANG) &&
           getWritableCycle(CYCLE_TYPES.HANG),
@@ -490,20 +502,20 @@ const ScoutMatch = () => {
           break;
         case HANG_ENTER:
           matchContext.setHang({
-            enterTime: currentTime,
+            enterTime: getCurrentTime(),
           });
           break;
         case HANG_CAGE_TOUCH:
           matchContext.setHang({
             ...matchContext.hang,
             cageLocation: location,
-            cageTouchTime: currentTime,
+            cageTouchTime: getCurrentTime(),
           });
           break;
         case HANG_COMPLETE:
           matchContext.setHang({
             ...matchContext.hang,
-            completeTime: currentTime,
+            completeTime: getCurrentTime(),
           });
           break;
         case GO_TELE:
@@ -512,8 +524,8 @@ const ScoutMatch = () => {
         case GO_DEFENSE:
           matchContext.setDefense(
             matchContext.isDefending()
-              ? { ...matchContext.defense, exitTime: currentTime }
-              : { enterTime: currentTime }
+              ? { ...matchContext.defense, exitTime: getCurrentTime() }
+              : { enterTime: getCurrentTime() }
           );
           break;
         case GO_POST_MATCH:
@@ -1071,7 +1083,7 @@ const ScoutMatch = () => {
             }}
           >
             <span style={{ color: "black", fontSize: fontSize }}>
-              {currentTime}
+              {displayTime}
             </span>
           </Box>
         </Box>

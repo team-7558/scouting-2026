@@ -73,7 +73,6 @@ const scaleToFieldCoordinates = (
     ((x - offsetX) / expectedWidth) * FIELD_VIRTUAL_WIDTH
   );
   let fieldY = Math.round((y / actualHeight) * FIELD_VIRTUAL_HEIGHT);
-  console.log(perspective);
   if (isScoringTableFar(perspective)) {
     fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
     fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
@@ -90,6 +89,7 @@ const FieldLocalComponent = ({
   fieldWidth,
   fieldHeight,
   perspective,
+  sx,
   children,
 }) => {
   const localRef = useRef(null);
@@ -122,12 +122,13 @@ const FieldLocalComponent = ({
   return (
     <Box
       ref={localRef}
-      style={{
+      sx={{
         position: "absolute",
         left: scaledX,
         top: scaledY,
         width: scaledWidth,
         height: scaledHeight,
+        ...sx,
       }}
     >
       {/* {fieldX + ", " + fieldY} */}

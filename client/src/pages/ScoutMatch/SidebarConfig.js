@@ -173,7 +173,7 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.isDefending && match.defense.defendingTeam == null,
+      match.isDefending() && match.defense.defendingTeam == null,
   },
   {
     phases: [PHASES.AUTO, PHASES.TELE],

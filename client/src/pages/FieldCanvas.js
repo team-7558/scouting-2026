@@ -73,7 +73,6 @@ const scaleToFieldCoordinates = (
     ((x - offsetX) / expectedWidth) * FIELD_VIRTUAL_WIDTH
   );
   let fieldY = Math.round((y / actualHeight) * FIELD_VIRTUAL_HEIGHT);
-  console.log(perspective);
   if (isScoringTableFar(perspective)) {
     fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
     fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;

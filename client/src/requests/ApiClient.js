@@ -1,6 +1,6 @@
 // ApiClient.js
 import axios from "axios";
-import { hasValidToken } from "../ProtectedRoute.js";
+import { hasValidToken } from "../TokenUtils.js";
 
 class ApiClient {
   constructor(baseURL) {
@@ -11,7 +11,6 @@ class ApiClient {
     // Add a request interceptor
     this.instance.interceptors.request.use(
       (config) => {
-        console.log("interceptor");
         if (!hasValidToken()) {
           console.log("no valid token");
           // URL encode the current location

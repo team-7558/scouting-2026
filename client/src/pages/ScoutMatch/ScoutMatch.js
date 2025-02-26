@@ -37,6 +37,7 @@ import { getScoutMatch } from "../../requests/ApiRequests.js";
 import { ImageIcon } from "./CustomFieldComponents.js";
 import MissingParamsDialog from "./MissingParamsDialog.js";
 import { SIDEBAR_CONFIG } from "./SidebarConfig.js";
+import { getSignedInUser } from "../../TokenUtils.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -64,10 +65,14 @@ const MatchContext = createContext();
 
 // Scout Match Component
 const ScoutMatch = () => {
-  const context = useContext(MatchContext);
+  const [userToken, setUserToken] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchParamsError, setSearchParamsError] = useState(null);
-
+  useEffect(() => {
+    if (!userToken) {
+      setUserToken(getSignedInUser());
+    }
+  }, []);
   // Open the dialog if any of the required params are missing
   useEffect(() => {
     if (
@@ -76,7 +81,7 @@ const ScoutMatch = () => {
       !searchParams.get("station")
     ) {
       setSearchParamsError("Missing search params");
-    } else {
+    } else if (!scoutData) {
       fetchScoutMatchData();
     }
   }, [searchParams]);
@@ -110,7 +115,8 @@ const ScoutMatch = () => {
   const [cycles, setCycles] = useState([]);
 
   // robot state
-  const [isDefending, setIsDefending] = useState(false);
+  // const [isDefending, setIsDefending] = useState(false);
+
   const [startingPosition, setStartingPosition] = useState(-1);
 
   const [coral, setCoral] = useState({
@@ -131,6 +137,7 @@ const ScoutMatch = () => {
     enterTime: null,
     exitTime: null,
   });
+  const isDefending = () => isUnfinished(defense.enterTime, defense.exitTime);
 
   const [contact, setContact] = useState({
     startTime: null,
@@ -196,14 +203,11 @@ const ScoutMatch = () => {
         matchCode,
       });
       setScoutData(response.data);
-      searchParamsError(null);
+      setSearchParamsError(null);
       console.log("Fetched scout match data:", response.data);
     } catch (err) {
       setSearchParamsError(err.response?.data?.message);
-      console.error(
-        "Error fetching scout match data:",
-        err.response?.data?.message
-      );
+      console.error("Error fetching scout match data:", err);
     }
   };
 
@@ -232,14 +236,11 @@ const ScoutMatch = () => {
       ]);
 
       console.log("coral cycle: submit " + JSON.stringify(coral));
-      // TODO Update cycles when scored
-      // Note: updateCoral re-writes the entire state intentionally.
-      updateCoral({});
+      setCoral({});
       clearUnfinished();
     }
   }, [coral.depositTime]);
 
-  // Only run when algae.depositTime changes
   useEffect(() => {
     if (algae.depositTime != null) {
       setCycles([
@@ -256,13 +257,13 @@ const ScoutMatch = () => {
     }
   }, [algae.depositTime]);
 
-  // Only run when algae.depositTime changes
   useEffect(() => {
     if (hang.completeTime != null) {
       clearUnfinished();
       setPhase(PHASES.POST_MATCH);
     }
   }, [hang.completeTime]);
+
   useEffect(() => {
     if (hang.result != null) {
       setCycles([
@@ -278,7 +279,7 @@ const ScoutMatch = () => {
   useEffect(() => {
     if (coral.attainedTime != null) {
       console.log("coral cycle progress: " + JSON.stringify(coral));
-      updateCoral({});
+      setCoral({});
       clearUnfinished();
     }
   }, [coral.attainedTime]);
@@ -307,25 +308,6 @@ const ScoutMatch = () => {
     }
   }, [defense.endTime]);
 
-  // Only run when hang.time changes
-  useEffect(() => {
-    if (hang.endTime != null) {
-      setData({
-        ...data,
-        hang,
-      });
-      console.log("Hang: " + JSON.stringify(hang));
-      setHang({});
-    }
-  }, [hang.endTime]);
-
-  // TODO add sanity checks here
-  const updateCoral = (updates) => {
-    // intentionally re-writing the entire state,
-    // the caller of this method should decide if it wants to include prior state
-    setCoral(updates);
-  };
-
   const hasCoral = () => {
     return coral.attainedTime != null;
   };
@@ -334,12 +316,6 @@ const ScoutMatch = () => {
     return algae.attainedTime != null;
   };
 
-  // TODO add sanity checks here
-  const updateAlgae = (updates) => {
-    // intentionally re-writing the entire state,
-    // the caller of this method should decide if it wants to include prior state
-    setAlgae(updates);
-  };
   const isScoutingRed = () => [R1, R2, R3].includes(driverStation);
   const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
   const flipX = () => isScoutingRed();
@@ -389,15 +365,12 @@ const ScoutMatch = () => {
     phase,
     setPhase,
     isDefending,
-    setIsDefending,
     startingPosition,
     setStartingPosition,
     coral,
     setCoral,
     algae,
     setAlgae,
-    updateCoral,
-    updateAlgae,
     hasCoral,
     hasAlgae,
     hang,
@@ -542,7 +515,10 @@ const ScoutMatch = () => {
           matchContext.setPhase(PHASES.TELE);
           break;
         case GO_DEFENSE:
-          matchContext.setIsDefending(!matchContext.isDefending);
+          matchContext.setDefense(
+            matchContext.isDefending() ? {} : { enterTime: currentTime }
+          );
+          // matchContext.setIsDefending(!matchContext.isDefending);
           break;
         case GO_POST_MATCH:
           matchContext.setPhase(PHASES.POST_MATCH);
@@ -595,7 +571,7 @@ const ScoutMatch = () => {
             fieldWidth={fieldWidth}
             fieldHeight={fieldHeight}
             perspective={scoutPerspective}
-            sx={{ "pointer-events": isDisabled ? "none" : "auto" }}
+            sx={{ pointerEvents: isDisabled ? "none" : "auto" }}
           >
             {componentFunction(match)}
           </FieldLocalComponent>
@@ -647,7 +623,7 @@ const ScoutMatch = () => {
             ) : (
               <FieldButton
                 sx={{
-                  "pointer-events": isDisabled ? "none" : "auto",
+                  pointerEvents: isDisabled ? "none" : "auto",
                   borderRadius: config.isCircle ? "50%" : "2%",
                 }}
                 drawBorder={config.drawBorder && config.drawBorder(match, key)}
@@ -977,7 +953,8 @@ const ScoutMatch = () => {
       scaledBoxRect.height * FIELD_ASPECT_RATIO -
       scaleWidthToActual(FIELD_VIRTUAL_WIDTH);
 
-    const defenseShift = isDefending && phase != PHASES.POST_MATCH ? shift : 0;
+    const defenseShift =
+      isDefending() && phase != PHASES.POST_MATCH ? shift : 0;
     const offset =
       isScoutingRed() != isScoringTableFar()
         ? -shift + defenseShift
@@ -1037,7 +1014,8 @@ const ScoutMatch = () => {
       >
         {scoutData ? (
           <div>
-            Team: {scoutData.teamNumber}, Match: {getMatchCode()}
+            Scout: {userToken.username} Team: {scoutData.teamNumber} Match:{" "}
+            {getMatchCode()}
           </div>
         ) : (
           <div>No scout data</div>

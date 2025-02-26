@@ -9,7 +9,7 @@ import HomePage from "./pages/Home/HomePage.js";
 import SignInPage from "./pages/SignInPage.js";
 import ScoutMatch from "./pages/ScoutMatch/ScoutMatch.js";
 import AdminPage from "./pages/Admin/Admin.js";
-import ProtectedRoute from "./ProtectedRoute.js";
+import { ProtectedRoute } from "./TokenUtils.js";
 import MatchStrategy from "./pages/Strategy/MatchStrategy.js";
 
 const App = () => {

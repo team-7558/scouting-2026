@@ -223,6 +223,7 @@ export const SIDEBAR_CONFIG = [
     positions: [
       GAME_LOCATIONS.HANG_LEVEL.DEEP,
       GAME_LOCATIONS.HANG_LEVEL.SHALLOW,
+      GAME_LOCATIONS.HANG_LEVEL.PARK,
     ],
     label: (match, key) => `${key}`, // or customize label as needed
     onClick: (match, key) => {

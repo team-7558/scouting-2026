@@ -261,7 +261,7 @@ const ScoutMatch = () => {
     terminateCycle(CYCLE_TYPES.ALGAE, algae.depositTime, () => setAlgae({}));
     terminateCycle(CYCLE_TYPES.DEFENSE, defense.exitTime, () => setDefense({}));
     terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
-    terminateCycle(CYCLE_TYPES.HANG, hang.result, () => setHang({}));
+    // terminateCycle(CYCLE_TYPES.HANG, hang.result, () => setHang({}));
     clearUnfinished();
   }, [
     coral.depositTime,
@@ -308,7 +308,7 @@ const ScoutMatch = () => {
     // console.log(matchContext);
     clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
     clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
-    matchContext.setHang({});
+    // matchContext.setHang({});
     matchContext.setContact({});
   };
 
@@ -462,6 +462,7 @@ const ScoutMatch = () => {
           getWritableCycle(CYCLE_TYPES.HANG),
       ].filter((x) => x)
     );
+    setPhase(PHASES.POST_MATCH);
   };
   // actions is a map of gamepiece transformations to be executed
   const startPendingTasks = (
@@ -761,7 +762,7 @@ const ScoutMatch = () => {
       (match) => <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>,
       /* dontFlip= */ !isScoringTableFar()
     ),
-    ...[150, 600].map((x, index) => {
+    ...[150, 500].map((x, index) => {
       const value = ["no", "yes"][index];
       return createFieldLocalMatchComponent(
         `${index}DisabledMenu`,
@@ -776,6 +777,38 @@ const ScoutMatch = () => {
               match.setEndgame({ ...match.endgame, disabled: value === "yes" });
             }}
             drawBorder={match.endgame.disabled === (value === "yes")}
+          >
+            {value}
+          </FieldButton>
+        ),
+        /* dontFlip= */ !isScoringTableFar()
+      );
+    }),
+
+    createFieldLocalMatchComponent(
+      "hang",
+      1150,
+      100,
+      500,
+      150,
+      (match) => <FieldButton color={COLORS.PRIMARY}>HANG?</FieldButton>,
+    ),
+
+    ...[950, 1300].map((x, index) => {
+      const value = ["succeed", "fail"][index];
+      return createFieldLocalMatchComponent(
+        `${index}HangMenu`,
+        x,
+        250,
+        300,
+        100,
+        (match) => (
+          <FieldButton
+            color={COLORS.PENDING}
+            onClick={() => {
+              match.setHang({ ...match.hang, result: value});
+            }}
+            drawBorder={match.hang.result === value}
           >
             {value}
           </FieldButton>

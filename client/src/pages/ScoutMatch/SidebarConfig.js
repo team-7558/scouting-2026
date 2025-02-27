@@ -6,6 +6,7 @@ import {
   GAME_PIECES,
   GAME_LOCATIONS,
 } from "./Constants";
+import { saveMatch } from "../../storage/MatchStorageManager";
 
 const createTask = (action, gamepiece = null) => ({
   action: action,
@@ -60,7 +61,7 @@ export const SIDEBAR_CONFIG = [
       match.setCoral({
         ...match.coral,
         depositLocation: match.coral.depositLocation + `_L${level}`,
-        depositTime: match.currentTime,
+        depositTime: match.getCurrentTime(),
       });
     },
     color: (match, key) => COLORS.CORALDROPOFF,
@@ -131,7 +132,7 @@ export const SIDEBAR_CONFIG = [
     positions: ["dropAlgae"],
     label: (match, key) => "DROP ALGAE",
     onClick: (match, key) => {
-      match.setAlgae({ ...match.algae, depositTime: match.currentTime });
+      match.setAlgae({ ...match.algae, depositTime: match.getCurrentTime() });
     },
     color: (match, key) => COLORS.WARNING,
     sx: {},
@@ -164,7 +165,7 @@ export const SIDEBAR_CONFIG = [
         opponentKey;
 
       match.setContact({
-        startTime: match.currentTime,
+        startTime: match.getCurrentTime(),
         robot: oppenentRobot,
       });
     },
@@ -179,7 +180,7 @@ export const SIDEBAR_CONFIG = [
     positions: ["stopDefending"],
     label: (match, key) => "Finish Contact",
     onClick: (match, key) => {
-      match.setContact({ ...match.contact, endTime: match.currentTime });
+      match.setContact({ ...match.contact, endTime: match.getCurrentTime() });
     },
     color: (match, key) => COLORS.PENDING,
     sx: {},
@@ -232,7 +233,9 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.hang?.enterTime != null && match.hang?.cageType == null,
+      match.hang?.enterTime != null &&
+      match.hang?.cageType == null &&
+      match.hang?.cageLocation != null,
   },
 
   // When hang.height is set: show hang state buttons and a cancel button.
@@ -241,12 +244,36 @@ export const SIDEBAR_CONFIG = [
     positions: [GAME_LOCATIONS.HANG_STATE.SUCCEED],
     label: (match, key) => `${key}`,
     onClick: (match, key) => {
-      match.setHang({ ...match.hang, completeTime: match.currentTime });
+      match.setHang({ ...match.hang, completeTime: match.getCurrentTime() });
     },
     // color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
       match.hang?.enterTime != null && match.hang.cageType != null,
+  },
+  {
+    phases: [PHASES.POST_MATCH],
+    positions: ["post_match"],
+    label: (match, key) => "Submit",
+    onClick: (match, key) => {
+      saveMatch(
+        {
+          scoutId: match.userToken.id,
+          scoutName: match.userToken.username,
+          cycles: [...match.cycles],
+          endgame: match.endgame,
+        },
+        {
+          eventKey: match.searchParams.get("eventKey"),
+          matchCode: match.searchParams.get("matchCode"),
+          station: match.searchParams.get("station"),
+        },
+        match.userToken
+      );
+    },
+    isDisabled: (match, key) => false,
+    // match.hang?.enterTime != null && match.hang.result == null,
+    show: (match, key) => true,
   },
   // Cancel Button
   {

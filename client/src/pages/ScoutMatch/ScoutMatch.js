@@ -154,7 +154,7 @@ const ScoutMatch = () => {
     enterTime: null, // when robot enters under barge
     cageTouchTime: null, // when robot touches cage
     completeTime: null, // when robot off the floor
-    location: null, // LEFT MIDDLE RIGHT
+    cageLocation: null, // LEFT MIDDLE RIGHT
     cageType: null,
     result: null, // will be entered after match score released PARK // SUCCESS
   });
@@ -193,22 +193,25 @@ const ScoutMatch = () => {
   //TODO: replace with real teams.
   const allies = [7558, 188, 1325];
   const enemies = [1, 2, 3];
-
+  let fetching = false;
   const fetchScoutMatchData = async () => {
-    if (!eventKey || !driverStation || !matchCode) {
+    if (fetching || !eventKey || !driverStation || !matchCode) {
       console.error("Missing eventKey, station, or matchCode in URL.");
       return;
     }
     try {
+      fetching = true;
       const response = await getScoutMatch({
         eventKey,
         station: driverStation,
         matchCode,
       });
+      fetching = false;
       setScoutData(response.data);
       setSearchParamsError(null);
       console.log("Fetched scout match data:", response.data);
     } catch (err) {
+      fetching = false;
       setSearchParamsError(err.response?.data?.message);
       console.error("Error fetching scout match data:", err);
     }
@@ -274,7 +277,7 @@ const ScoutMatch = () => {
     terminateCycle(CYCLE_TYPES.ALGAE, algae.depositTime, () => setAlgae({}));
     terminateCycle(CYCLE_TYPES.DEFENSE, defense.exitTime, () => setDefense({}));
     terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
-    terminateCycle(CYCLE_TYPES.HANG, hang.result, () => setHang({}));
+    // terminateCycle(CYCLE_TYPES.HANG, hang.result, () => setHang({}));
     clearUnfinished();
   }, [
     coral.depositTime,
@@ -321,7 +324,7 @@ const ScoutMatch = () => {
     // console.log(matchContext);
     clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
     clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
-    matchContext.setHang({});
+    // matchContext.setHang({});
     matchContext.setContact({});
   };
 
@@ -361,7 +364,7 @@ const ScoutMatch = () => {
         return isUnfinished(contact.startTime, algae.endTime);
       case CYCLE_TYPES.DEFENSE:
         return isUnfinished(defense.enterTime, defense.endTime);
-      case CYCLE_TYPES.HANG:
+      case CYCLE_TYPES.HANG: // this should never happen probably
         return isUnfinished(hang.startTime, hang.result);
     }
   };
@@ -373,7 +376,9 @@ const ScoutMatch = () => {
     phase,
     setPhase,
     isDefending,
+    searchParams,
     startingPosition,
+    cycles,
     setStartingPosition,
     coral,
     setCoral,
@@ -396,6 +401,7 @@ const ScoutMatch = () => {
     scoutData,
     contact,
     setContact,
+    userToken,
   };
 
   const createTask = (action, gamepiece = null) => ({
@@ -456,6 +462,7 @@ const ScoutMatch = () => {
   };
 
   const endMatch = () => {
+    console.log(cycles);
     setCycles(
       [
         ...cycles,
@@ -486,9 +493,10 @@ const ScoutMatch = () => {
     if (![PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE].includes(phase)) {
       return;
     }
-    clearUnfinished();
-    // console.log(matchContext.hang);
-    // console.log("executing: ", actions);
+    // don't clear unfinished if going to post match.
+    if (!tasks.includes(GO_POST_MATCH)) {
+      clearUnfinished();
+    }
     for (let i in tasks) {
       // console.log(tasks[i]);
       let task = tasks[i];
@@ -775,7 +783,7 @@ const ScoutMatch = () => {
       (match) => <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>,
       /* dontFlip= */ !isScoringTableFar()
     ),
-    ...[150, 600].map((x, index) => {
+    ...[150, 500].map((x, index) => {
       const value = ["no", "yes"][index];
       return createFieldLocalMatchComponent(
         `${index}DisabledMenu`,
@@ -790,6 +798,33 @@ const ScoutMatch = () => {
               match.setEndgame({ ...match.endgame, disabled: value === "yes" });
             }}
             drawBorder={match.endgame.disabled === (value === "yes")}
+          >
+            {value}
+          </FieldButton>
+        ),
+        /* dontFlip= */ !isScoringTableFar()
+      );
+    }),
+
+    createFieldLocalMatchComponent("hang", 1150, 100, 500, 150, (match) => (
+      <FieldButton color={COLORS.PRIMARY}>HANG?</FieldButton>
+    )),
+
+    ...[950, 1300].map((x, index) => {
+      const value = ["succeed", "fail"][index];
+      return createFieldLocalMatchComponent(
+        `${index}HangMenu`,
+        x,
+        250,
+        300,
+        100,
+        (match) => (
+          <FieldButton
+            color={COLORS.PENDING}
+            onClick={() => {
+              match.setHang({ ...match.hang, result: value });
+            }}
+            drawBorder={match.hang.result === value}
           >
             {value}
           </FieldButton>
@@ -1177,8 +1212,17 @@ const ScoutMatch = () => {
     });
   };
 
-  // Use a useLayoutEffect so measurement occurs before paint
+  const lockOrientation = async () => {
+    try {
+      await window.screen.orientation.lock("landscape");
+      console.log("Orientation locked to landscape");
+    } catch (error) {
+      console.error("Failed to lock orientation:", error);
+    }
+  };
+
   useLayoutEffect(() => {
+    lockOrientation();
     resizeScaledBox();
     window.addEventListener("resize", resizeScaledBox);
     return () => window.removeEventListener("resize", resizeScaledBox);
@@ -1204,7 +1248,7 @@ const ScoutMatch = () => {
             height: "100vh",
           }}
         >
-          {/* <FullscreenDialog /> */}
+          <FullscreenDialog />
           <MissingParamsDialog
             open={searchParamsError != null}
             searchParams={searchParams}

@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 const Sidebar = ({sidebarOpen, setSidebarOpen, scaleWidthToActual, scaleHeightToActual}) => {
     const navigate = useNavigate();
     const [teamNumber, setTeamNumber] = useState(0);
-    const createButtonsFromList = (list, width, paramName, color) => {
+    const createButtonsFromList = (list, width, paramName, color, drawBorder) => {
         return (
             <Box key={JSON.stringify(list)}>
                 {Object.keys(list).slice(0, 3).map((key) => {
@@ -17,6 +17,7 @@ const Sidebar = ({sidebarOpen, setSidebarOpen, scaleWidthToActual, scaleHeightTo
                                 width: scaleWidthToActual(width) + "px", 
                                 height: scaleHeightToActual(150) + "px",
                                 color: color,
+                                border: drawBorder(list, key) ? "5px solid " + color : "", 
                             }}
                             onClick={() => {
                                 let url = new URL(window.location);
@@ -43,14 +44,44 @@ const Sidebar = ({sidebarOpen, setSidebarOpen, scaleWidthToActual, scaleHeightTo
                 <center key="sidebarStation">
                     <h3 key="sidebarStationHeading">STATION</h3>
                 </center>,
-                createButtonsFromList({R1: DRIVER_STATIONS.R1, R2: DRIVER_STATIONS.R2, R3: DRIVER_STATIONS.R3}, 500, 'station', 'red'),
-                createButtonsFromList({B1: DRIVER_STATIONS.B1, B2: DRIVER_STATIONS.B2, B3: DRIVER_STATIONS.B3}, 500, 'station', 'blue'),
+                createButtonsFromList(
+                    {R1: DRIVER_STATIONS.R1, R2: DRIVER_STATIONS.R2, R3: DRIVER_STATIONS.R3}, 
+                    500, 
+                    'station', 
+                    'red', 
+                    (list, key) => {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const station = urlParams.get('station');
+                        return station==list[key];
+                    } 
+                ),
+                createButtonsFromList(
+                    {B1: DRIVER_STATIONS.B1, B2: DRIVER_STATIONS.B2, B3: DRIVER_STATIONS.B3}, 
+                    500, 
+                    'station', 
+                    'blue', 
+                    (list, key) => {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const station = urlParams.get('station');
+                        return station==list[key];
+                    }
+                ),
             
                 <center key="sidebarPerspective">
                     <h3 key="sidebarPerspectiveHeading">PRESPECTIVE</h3>
                 </center>,
 
-                createButtonsFromList(PERSPECTIVE, 750, 'perspective', 'blue'),
+                createButtonsFromList(
+                    PERSPECTIVE, 
+                    750, 
+                    'perspective', 
+                    'blue', 
+                    (list, key) => {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const perspective = urlParams.get('perspective') || PERSPECTIVE.SCORING_TABLE_NEAR;
+                        return perspective==list[key];
+                    }
+                ),
 
                 <center key="teamNumber">
                     <h3 key="teamNumberHeading">TEAM NUMBER</h3>

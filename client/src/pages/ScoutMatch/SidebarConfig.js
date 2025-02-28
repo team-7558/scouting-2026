@@ -6,6 +6,7 @@ import {
   GAME_PIECES,
   GAME_LOCATIONS,
 } from "./Constants";
+import { saveMatch } from "../../storage/MatchStorageManager";
 
 const createTask = (action, gamepiece = null) => ({
   action: action,
@@ -223,6 +224,7 @@ export const SIDEBAR_CONFIG = [
     positions: [
       GAME_LOCATIONS.HANG_LEVEL.DEEP,
       GAME_LOCATIONS.HANG_LEVEL.SHALLOW,
+      GAME_LOCATIONS.HANG_LEVEL.PARK,
     ],
     label: (match, key) => `${key}`, // or customize label as needed
     onClick: (match, key) => {
@@ -231,7 +233,9 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.hang?.enterTime != null && match.hang?.cageType == null,
+      match.hang?.enterTime != null &&
+      match.hang?.cageType == null &&
+      match.hang?.cageLocation != null,
   },
 
   // When hang.height is set: show hang state buttons and a cancel button.
@@ -246,6 +250,30 @@ export const SIDEBAR_CONFIG = [
     sx: {},
     show: (match, key) =>
       match.hang?.enterTime != null && match.hang.cageType != null,
+  },
+  {
+    phases: [PHASES.POST_MATCH],
+    positions: ["post_match"],
+    label: (match, key) => "Submit",
+    onClick: (match, key) => {
+      saveMatch(
+        {
+          scoutId: match.userToken.id,
+          scoutName: match.userToken.username,
+          cycles: [...match.cycles],
+          endgame: match.endgame,
+        },
+        {
+          eventKey: match.searchParams.get("eventKey"),
+          matchCode: match.searchParams.get("matchCode"),
+          station: match.searchParams.get("station"),
+        },
+        match.userToken
+      );
+    },
+    isDisabled: (match, key) => false,
+    // match.hang?.enterTime != null && match.hang.result == null,
+    show: (match, key) => true,
   },
   // Cancel Button
   {

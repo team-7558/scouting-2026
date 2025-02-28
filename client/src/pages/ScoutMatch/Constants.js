@@ -98,14 +98,13 @@ export const GAME_LOCATIONS = {
     MIDDLE: "HANG_MIDDLE",
     RIGHT: "HANG_RIGHT",
   },
-  HANG_LEVEL: {
-    PARK: "PARK",
-    DEEP: "DEEP",
-    SHALLOW: "SHALLOW",
-  },
-  HANG_STATE: {
-    FAIL: "FAIL",
-    SUCCEED: "SUCCEED",
-  },
+
   STARTING_LINE: "STARTING_LINE",
+};
+
+export const HANG_RESULTS = {
+  NONE: "NONE",
+  PARK: "PARK",
+  DEEP: "DEEP",
+  SHALLOW: "SHALLOW",
 };

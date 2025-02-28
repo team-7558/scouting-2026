@@ -15,6 +15,7 @@ export const generateKey = (
   return key;
 };
 export const saveMatch = (matchData, searchParams, userToken) => {
+  console.log(matchData);
   const key = generateKey(searchParams, userToken, false);
   localStorage.setItem(key, JSON.stringify(matchData));
   // After saving, popup a QR code with the match data.

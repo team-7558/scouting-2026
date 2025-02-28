@@ -5,6 +5,7 @@ import {
   ACTIONS,
   GAME_PIECES,
   GAME_LOCATIONS,
+  HANG_RESULTS,
 } from "./Constants";
 import { saveMatch } from "../../storage/MatchStorageManager";
 
@@ -189,11 +190,11 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     positions: ["countPin"],
-    label: (match, key) => "Pin count: " + (match.contact.pin_count || 0),
+    label: (match, key) => "Pin count: " + (match.contact.pinCount || 0),
     onClick: (match, key) => {
       match.setContact({
         ...match.contact,
-        pin_count: (match.contact.pin_count || 0) + 1,
+        pinCount: (match.contact.pinCount || 0) + 1,
       });
     },
     color: (match, key) => COLORS.SUCCESS,
@@ -204,11 +205,11 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     positions: ["countFoul"],
-    label: (match, key) => "Foul count: " + (match.contact.foul_count || 0),
+    label: (match, key) => "Foul count: " + (match.contact.pinCount || 0),
     onClick: (match, key) => {
       match.setContact({
         ...match.contact,
-        foul_count: (match.contact.foul_count || 0) + 1,
+        pinCount: (match.contact.pinCount || 0) + 1,
       });
     },
     color: (match, key) => COLORS.WARNING,
@@ -221,11 +222,7 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.TELE],
     id: "hangLevel",
-    positions: [
-      GAME_LOCATIONS.HANG_LEVEL.DEEP,
-      GAME_LOCATIONS.HANG_LEVEL.SHALLOW,
-      GAME_LOCATIONS.HANG_LEVEL.PARK,
-    ],
+    positions: [HANG_RESULTS.SHALLOW, HANG_RESULTS.DEEP],
     label: (match, key) => `${key}`, // or customize label as needed
     onClick: (match, key) => {
       match.setHang({ ...match.hang, cageType: key });
@@ -241,7 +238,7 @@ export const SIDEBAR_CONFIG = [
   // When hang.height is set: show hang state buttons and a cancel button.
   {
     phases: [PHASES.TELE],
-    positions: [GAME_LOCATIONS.HANG_STATE.SUCCEED],
+    positions: ["Hang Complete"],
     label: (match, key) => `${key}`,
     onClick: (match, key) => {
       match.setHang({ ...match.hang, completeTime: match.getCurrentTime() });
@@ -256,11 +253,15 @@ export const SIDEBAR_CONFIG = [
     positions: ["post_match"],
     label: (match, key) => "Submit",
     onClick: (match, key) => {
+      const saveCycles =
+        match.hang.result == null
+          ? match.cycles
+          : [...match.cycles, match.hang];
       saveMatch(
         {
           scoutId: match.userToken.id,
           scoutName: match.userToken.username,
-          cycles: [...match.cycles],
+          cycles: saveCycles,
           endgame: match.endgame,
         },
         {
@@ -271,8 +272,8 @@ export const SIDEBAR_CONFIG = [
         match.userToken
       );
     },
-    isDisabled: (match, key) => false,
-    // match.hang?.enterTime != null && match.hang.result == null,
+    isDisabled: (match, key) =>
+      match.isUnfinished(match.hang.enterTime, match.hang.result),
     show: (match, key) => true,
   },
   // Cancel Button

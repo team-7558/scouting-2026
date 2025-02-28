@@ -34,6 +34,7 @@ import {
   CYCLE_TYPES,
   AUTO_MAX_TIME,
   TELE_MAX_TIME,
+  HANG_RESULTS,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
@@ -104,6 +105,9 @@ const ScoutMatch = () => {
 
   const [matchStartTime, setMatchStartTime] = useState(null);
   const getCurrentTime = () => {
+    if (phase == PHASES.POST_MATCH) {
+      return TELE_MAX_TIME;
+    }
     return Math.min(
       phase == PHASES.AUTO ? AUTO_MAX_TIME : TELE_MAX_TIME,
       matchStartTime == null ? 0 : Date.now() - matchStartTime
@@ -146,8 +150,8 @@ const ScoutMatch = () => {
     startTime: null,
     endTime: null,
     robot: null,
-    pin_count: null,
-    foul_count: null,
+    pinCount: null,
+    pinCount: null,
   });
 
   const [hang, setHang] = useState({
@@ -277,29 +281,22 @@ const ScoutMatch = () => {
     terminateCycle(CYCLE_TYPES.ALGAE, algae.depositTime, () => setAlgae({}));
     terminateCycle(CYCLE_TYPES.DEFENSE, defense.exitTime, () => setDefense({}));
     terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
-    // terminateCycle(CYCLE_TYPES.HANG, hang.result, () => setHang({}));
     clearUnfinished();
-  }, [
-    coral.depositTime,
-    algae.depositTime,
-    defense.exitTime,
-    contact.endTime,
-    hang.result,
-  ]);
+  }, [coral.depositTime, algae.depositTime, defense.exitTime, contact.endTime]);
 
-  useEffect(() => {
-    if (coral.attainedTime != null) {
-      console.log("coral cycle progress: " + JSON.stringify(coral));
-      clearUnfinished();
-    }
-  }, [coral.attainedTime]);
+  // useEffect(() => {
+  //   if (coral.attainedTime != null) {
+  //     console.log("coral cycle progress: " + JSON.stringify(coral));
+  //     clearUnfinished();
+  //   }
+  // }, [coral.attainedTime]);
 
-  useEffect(() => {
-    if (algae.attainedTime != null) {
-      console.log("algae cycle progress: " + JSON.stringify(algae));
-      clearUnfinished();
-    }
-  }, [algae.attainedTime]);
+  // useEffect(() => {
+  //   if (algae.attainedTime != null) {
+  //     console.log("algae cycle progress: " + JSON.stringify(algae));
+  //     clearUnfinished();
+  //   }
+  // }, [algae.attainedTime]);
 
   const hasCoral = () => {
     return coral.attainedTime != null;
@@ -321,10 +318,10 @@ const ScoutMatch = () => {
   const flipY = () => isScoutingRed();
 
   const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
-    // console.log(matchContext);
+    console.log("Clearing unfinished");
     clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
     clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
-    // matchContext.setHang({});
+    matchContext.setHang({});
     matchContext.setContact({});
   };
 
@@ -478,12 +475,17 @@ const ScoutMatch = () => {
           ...getWritableCycle(CYCLE_TYPES.CONTACT),
           endTime: getCurrentTime(),
         },
-        shouldWriteCycle(CYCLE_TYPES.HANG) &&
-          getWritableCycle(CYCLE_TYPES.HANG),
+        // shouldWriteCycle(CYCLE_TYPES.HANG) &&
+        //   getWritableCycle(CYCLE_TYPES.HANG),
       ].filter((x) => x)
     );
     setPhase(PHASES.POST_MATCH);
   };
+
+  const DONT_CLEAR_LOCATIONS = [
+    ...Object.keys(SCOUTING_CONFIG.HANG.positions),
+    ...Object.keys(SCOUTING_CONFIG.GO_POST_MATCH.positions),
+  ];
   // actions is a map of gamepiece transformations to be executed
   const startPendingTasks = (
     location,
@@ -494,7 +496,7 @@ const ScoutMatch = () => {
       return;
     }
     // don't clear unfinished if going to post match.
-    if (!tasks.includes(GO_POST_MATCH)) {
+    if (!DONT_CLEAR_LOCATIONS.includes(location)) {
       clearUnfinished();
     }
     for (let i in tasks) {
@@ -743,36 +745,6 @@ const ScoutMatch = () => {
       "dropoff-algae"
     )
   );
-
-  // let looping = true;
-  // [
-  //   [coral.attainedLocation, coral.attainedTime],
-  //   [coral.depositLocation, coral.depositTime],
-  //   [algae.attainedLocation, algae.attainedTime],
-  //   [algae.depositLocation, algae.depositTime],
-  // ].map((values) => {
-  //   if (
-  //     [PHASES.AUTO, PHASES.TELE].includes(phase) &&
-  //     looping &&
-  //     isUnfinished(values[0], values[1]) &&
-  //     Array.isArray(values[0])
-  //   ) {
-  //     GROUND_PICKUPIcon.push(
-  //       createFieldLocalMatchComponent(
-  //         "disabled",
-  //         values[0][0],
-  //         values[0][1],
-  //         100,
-  //         100,
-  //         (match) => <FieldButton color={COLORS.PRIMARY}></FieldButton>,
-  //         /* dontFlip= */ true
-  //       )
-  //     );
-
-  //     looping = false;
-  //   }
-  // });
-
   const POST_MATCHChildren = [
     createFieldLocalMatchComponent(
       "disabled",
@@ -806,32 +778,52 @@ const ScoutMatch = () => {
       );
     }),
 
-    createFieldLocalMatchComponent("hang", 1150, 100, 500, 150, (match) => (
-      <FieldButton color={COLORS.PRIMARY}>HANG?</FieldButton>
-    )),
-
-    ...[950, 1300].map((x, index) => {
-      const value = ["succeed", "fail"][index];
-      return createFieldLocalMatchComponent(
-        `${index}HangMenu`,
-        x,
-        250,
-        300,
+    hang.cageType != null &&
+      createFieldLocalMatchComponent(
+        "hang",
+        1150,
         100,
+        500,
+        150,
         (match) => (
-          <FieldButton
-            color={COLORS.PENDING}
-            onClick={() => {
-              match.setHang({ ...match.hang, result: value });
-            }}
-            drawBorder={match.hang.result === value}
-          >
-            {value}
+          <FieldButton drawBorder={hang.result == null} color={COLORS.PRIMARY}>
+            HANG SCORING RESULT
           </FieldButton>
         ),
         /* dontFlip= */ !isScoringTableFar()
-      );
-    }),
+      ),
+    ...[
+      hang.cageType != null &&
+        [850, 1120, 1390].map((x, index) => {
+          const value = [HANG_RESULTS.NONE, HANG_RESULTS.PARK, hang.cageType][
+            index
+          ];
+          return createFieldLocalMatchComponent(
+            `${index}HangMenu`,
+            x,
+            250,
+            220,
+            100,
+            (match) => (
+              <FieldButton
+                color={COLORS.PENDING}
+                onClick={() => {
+                  match.setHang({
+                    ...match.hang,
+                    completeTime:
+                      match.hang.completeTime || match.getCurrentTime(),
+                    result: value,
+                  });
+                }}
+                drawBorder={match.hang.result === value}
+              >
+                {value}
+              </FieldButton>
+            ),
+            /* dontFlip= */ !isScoringTableFar()
+          );
+        }),
+    ],
 
     //driver skill
     createFieldLocalMatchComponent(
@@ -1248,7 +1240,7 @@ const ScoutMatch = () => {
             height: "100vh",
           }}
         >
-          <FullscreenDialog />
+          {/* <FullscreenDialog /> */}
           <MissingParamsDialog
             open={searchParamsError != null}
             searchParams={searchParams}

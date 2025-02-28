@@ -193,22 +193,25 @@ const ScoutMatch = () => {
   //TODO: replace with real teams.
   const allies = [7558, 188, 1325];
   const enemies = [1, 2, 3];
-
+  let fetching = false;
   const fetchScoutMatchData = async () => {
-    if (!eventKey || !driverStation || !matchCode) {
+    if (fetching || !eventKey || !driverStation || !matchCode) {
       console.error("Missing eventKey, station, or matchCode in URL.");
       return;
     }
     try {
+      fetching = true;
       const response = await getScoutMatch({
         eventKey,
         station: driverStation,
         matchCode,
       });
+      fetching = false;
       setScoutData(response.data);
       setSearchParamsError(null);
       console.log("Fetched scout match data:", response.data);
     } catch (err) {
+      fetching = false;
       setSearchParamsError(err.response?.data?.message);
       console.error("Error fetching scout match data:", err);
     }
@@ -803,14 +806,9 @@ const ScoutMatch = () => {
       );
     }),
 
-    createFieldLocalMatchComponent(
-      "hang",
-      1150,
-      100,
-      500,
-      150,
-      (match) => <FieldButton color={COLORS.PRIMARY}>HANG?</FieldButton>,
-    ),
+    createFieldLocalMatchComponent("hang", 1150, 100, 500, 150, (match) => (
+      <FieldButton color={COLORS.PRIMARY}>HANG?</FieldButton>
+    )),
 
     ...[950, 1300].map((x, index) => {
       const value = ["succeed", "fail"][index];
@@ -824,7 +822,7 @@ const ScoutMatch = () => {
           <FieldButton
             color={COLORS.PENDING}
             onClick={() => {
-              match.setHang({ ...match.hang, result: value});
+              match.setHang({ ...match.hang, result: value });
             }}
             drawBorder={match.hang.result === value}
           >
@@ -1214,8 +1212,17 @@ const ScoutMatch = () => {
     });
   };
 
-  // Use a useLayoutEffect so measurement occurs before paint
+  const lockOrientation = async () => {
+    try {
+      await window.screen.orientation.lock("landscape");
+      console.log("Orientation locked to landscape");
+    } catch (error) {
+      console.error("Failed to lock orientation:", error);
+    }
+  };
+
   useLayoutEffect(() => {
+    lockOrientation();
     resizeScaledBox();
     window.addEventListener("resize", resizeScaledBox);
     return () => window.removeEventListener("resize", resizeScaledBox);
@@ -1241,7 +1248,7 @@ const ScoutMatch = () => {
             height: "100vh",
           }}
         >
-          {/* <FullscreenDialog /> */}
+          <FullscreenDialog />
           <MissingParamsDialog
             open={searchParamsError != null}
             searchParams={searchParams}

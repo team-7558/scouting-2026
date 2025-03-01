@@ -35,6 +35,7 @@ import {
   AUTO_MAX_TIME,
   TELE_MAX_TIME,
   HANG_RESULTS,
+  DEPOSIT_TYPE,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
@@ -50,6 +51,7 @@ const {
   ACQUIRE,
   DEPOSIT,
   FINISH,
+  DROP,
   HANG_ENTER,
   HANG_CAGE_TOUCH,
   HANG_COMPLETE,
@@ -81,7 +83,7 @@ const ScoutMatch = () => {
   useEffect(() => {
     if (
       !searchParams.get("eventKey") ||
-      !searchParams.get("matchCode") ||
+      !searchParams.get("matchKey") ||
       !searchParams.get("station")
     ) {
       setSearchParamsError("Missing search params");
@@ -90,12 +92,12 @@ const ScoutMatch = () => {
     }
   }, [searchParams]);
 
-  const handleMissingParamsSubmit = ({ eventKey, matchCode, station }) => {
-    setSearchParams({ eventKey, matchCode, station });
+  const handleMissingParamsSubmit = ({ eventKey, matchKey, station }) => {
+    setSearchParams({ eventKey, matchKey, station });
   };
 
   const eventKey = searchParams.get("eventKey");
-  const matchCode = searchParams.get("matchCode");
+  const matchKey = searchParams.get("matchKey");
   const driverStation = searchParams.get("station") || B1;
 
   const scoutPerspective =
@@ -127,37 +129,39 @@ const ScoutMatch = () => {
   const [startingPosition, setStartingPosition] = useState(-1);
 
   const [coral, setCoral] = useState({
-    attainedLocation: null,
-    attainedTime: null,
+    attainedLocation: GAME_LOCATIONS.PRELOAD,
+    startTime: 0,
     depositLocation: null,
-    depositTime: null,
+    depositType: null, // score or drop
+    endTime: null,
   });
 
   const [algae, setAlgae] = useState({
     attainedLocation: null, // if not null, pickup is pending
-    attainedTime: null, // if not null, holding gamepiece
+    startTime: null, // if not null, holding gamepiece
     depositLocation: null,
-    depositTime: null,
+    depositType: null, // score or drop
+    endTime: null,
   });
 
   const [defense, setDefense] = useState({
-    enterTime: null,
-    exitTime: null,
+    startTime: null,
+    endTime: null,
   });
-  const isDefending = () => isUnfinished(defense.enterTime, defense.exitTime);
+  const isDefending = () => isUnfinished(defense.startTime, defense.endTime);
 
   const [contact, setContact] = useState({
     startTime: null,
     endTime: null,
     robot: null,
     pinCount: null,
-    pinCount: null,
+    foulCount: null,
   });
 
   const [hang, setHang] = useState({
-    enterTime: null, // when robot enters under barge
+    startTime: null, // when robot enters under barge
     cageTouchTime: null, // when robot touches cage
-    completeTime: null, // when robot off the floor
+    endTime: null, // when robot off the floor
     cageLocation: null, // LEFT MIDDLE RIGHT
     cageType: null,
     result: null, // will be entered after match score released PARK // SUCCESS
@@ -199,8 +203,8 @@ const ScoutMatch = () => {
   const enemies = [1, 2, 3];
   let fetching = false;
   const fetchScoutMatchData = async () => {
-    if (fetching || !eventKey || !driverStation || !matchCode) {
-      console.error("Missing eventKey, station, or matchCode in URL.");
+    if (fetching || !eventKey || !driverStation || !matchKey) {
+      console.error("Missing eventKey, station, or matchKey in URL.");
       return;
     }
     try {
@@ -208,7 +212,7 @@ const ScoutMatch = () => {
       const response = await getScoutMatch({
         eventKey,
         station: driverStation,
-        matchCode,
+        matchKey,
       });
       fetching = false;
       setScoutData(response.data);
@@ -277,40 +281,40 @@ const ScoutMatch = () => {
   };
 
   useEffect(() => {
-    terminateCycle(CYCLE_TYPES.CORAL, coral.depositTime, () => setCoral({}));
-    terminateCycle(CYCLE_TYPES.ALGAE, algae.depositTime, () => setAlgae({}));
-    terminateCycle(CYCLE_TYPES.DEFENSE, defense.exitTime, () => setDefense({}));
+    terminateCycle(CYCLE_TYPES.CORAL, coral.endTime, () => setCoral({}));
+    terminateCycle(CYCLE_TYPES.ALGAE, algae.endTime, () => setAlgae({}));
+    terminateCycle(CYCLE_TYPES.DEFENSE, defense.endTime, () => setDefense({}));
     terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
     clearUnfinished();
-  }, [coral.depositTime, algae.depositTime, defense.exitTime, contact.endTime]);
+  }, [coral.endTime, algae.endTime, defense.endTime, contact.endTime]);
 
   // useEffect(() => {
-  //   if (coral.attainedTime != null) {
+  //   if (coral.startTime != null) {
   //     console.log("coral cycle progress: " + JSON.stringify(coral));
   //     clearUnfinished();
   //   }
-  // }, [coral.attainedTime]);
+  // }, [coral.startTime]);
 
   // useEffect(() => {
-  //   if (algae.attainedTime != null) {
+  //   if (algae.startTime != null) {
   //     console.log("algae cycle progress: " + JSON.stringify(algae));
   //     clearUnfinished();
   //   }
-  // }, [algae.attainedTime]);
+  // }, [algae.startTime]);
 
   const hasCoral = () => {
-    return coral.attainedTime != null;
+    return coral.startTime != null;
   };
 
   const hasAlgae = () => {
-    return algae.attainedTime != null;
+    return algae.startTime != null;
   };
 
   useEffect(() => {
-    if (hang.completeTime != null) {
+    if (hang.endTime != null) {
       endMatch();
     }
-  }, [hang.completeTime]);
+  }, [hang.endTime]);
 
   const isScoutingRed = () => [R1, R2, R3].includes(driverStation);
   const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
@@ -330,37 +334,34 @@ const ScoutMatch = () => {
     return (
       isUnfinished(
         matchContext.coral.attainedLocation,
-        matchContext.coral.attainedTime
+        matchContext.coral.startTime
       ) ||
       isUnfinished(
         matchContext.coral.depositLocation,
-        matchContext.coral.depositTime
+        matchContext.coral.endTime
       ) ||
       isUnfinished(
         matchContext.algae.attainedLocation,
-        matchContext.algae.attainedTime
+        matchContext.algae.startTime
       ) ||
       isUnfinished(
         matchContext.algae.depositLocation,
-        matchContext.algae.depositTime
+        matchContext.algae.endTime
       ) ||
-      isUnfinished(
-        matchContext.hang.enterTime,
-        matchContext.hang.completeTime
-      ) ||
+      isUnfinished(matchContext.hang.startTime, matchContext.hang.endTime) ||
       isUnfinished(matchContext.contact.startTime, matchContext.contact.endTime)
     );
   };
   const shouldWriteCycle = (cycleType) => {
     switch (cycleType) {
       case CYCLE_TYPES.ALGAE:
-        return isUnfinished(algae.attainedTime, algae.depositTime);
+        return isUnfinished(algae.startTime, algae.endTime);
       case CYCLE_TYPES.CORAL:
-        return isUnfinished(coral.attainedTime, coral.depositTime);
+        return isUnfinished(coral.startTime, coral.endTime);
       case CYCLE_TYPES.CONTACT:
         return isUnfinished(contact.startTime, algae.endTime);
       case CYCLE_TYPES.DEFENSE:
-        return isUnfinished(defense.enterTime, defense.endTime);
+        return isUnfinished(defense.startTime, defense.endTime);
       case CYCLE_TYPES.HANG: // this should never happen probably
         return isUnfinished(hang.startTime, hang.result);
     }
@@ -399,6 +400,7 @@ const ScoutMatch = () => {
     contact,
     setContact,
     userToken,
+    getWritableCycle,
   };
 
   const createTask = (action, gamepiece = null) => ({
@@ -416,11 +418,11 @@ const ScoutMatch = () => {
   };
 
   const clearUnfinishedGamepiece = (gamepieceState, setter) => {
-    if (gamepieceState?.attainedTime == null) {
+    if (gamepieceState?.startTime == null) {
       setter({});
       return;
     }
-    if (gamepieceState?.depositTime == null) {
+    if (gamepieceState?.endTime == null) {
       setter({ ...gamepieceState, depositLocation: null });
       return;
     }
@@ -430,7 +432,7 @@ const ScoutMatch = () => {
   const startAcquireGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     console.log("acquiring: ", gamepiece, location);
-    if (gamepieceState?.attainedTime == null) {
+    if (gamepieceState?.startTime == null) {
       setter({ attainedLocation: location });
     }
   };
@@ -439,22 +441,37 @@ const ScoutMatch = () => {
   const startDepositGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     console.log("depositing: ", gamepiece, location);
-    if (gamepieceState?.attainedTime == null) {
+    if (gamepieceState?.startTime == null) {
       return;
     }
-    setter({ ...gamepieceState, depositLocation: location });
+    setter({
+      ...gamepieceState,
+      depositType: DEPOSIT_TYPE.SCORE,
+      depositLocation: location,
+    });
+  };
+
+  const dropGamePiece = (location, gamepiece, matchContext) => {
+    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
+    if (isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)) {
+      setter({
+        ...gamepieceState,
+        depositType: DEPOSIT_TYPE.DROP,
+        endTime: getCurrentTime(),
+      });
+    }
   };
 
   const finishGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     if (
-      isUnfinished(gamepieceState.attainedLocation, gamepieceState.attainedTime)
+      isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
     ) {
-      setter({ ...gamepieceState, attainedTime: getCurrentTime() });
+      setter({ ...gamepieceState, startTime: getCurrentTime() });
     } else if (
-      isUnfinished(gamepieceState.depositLocation, gamepieceState.depositTime)
+      isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
     ) {
-      setter({ ...gamepieceState, depositTime: getCurrentTime() });
+      setter({ ...gamepieceState, endTime: getCurrentTime() });
     }
   };
 
@@ -469,7 +486,7 @@ const ScoutMatch = () => {
           getWritableCycle(CYCLE_TYPES.CORAL),
         shouldWriteCycle(CYCLE_TYPES.DEFENSE) && {
           ...getWritableCycle(CYCLE_TYPES.DEFENSE),
-          exitTime: getCurrentTime(),
+          endTime: getCurrentTime(),
         },
         shouldWriteCycle(CYCLE_TYPES.CONTACT) && {
           ...getWritableCycle(CYCLE_TYPES.CONTACT),
@@ -512,9 +529,11 @@ const ScoutMatch = () => {
         case FINISH:
           finishGamepiece(location, task.gamepiece, matchContext);
           break;
+        case DROP:
+          dropGamePiece(location, task.gamepiece, matchContext);
         case HANG_ENTER:
           matchContext.setHang({
-            enterTime: getCurrentTime(),
+            startTime: getCurrentTime(),
           });
           break;
         case HANG_CAGE_TOUCH:
@@ -527,7 +546,7 @@ const ScoutMatch = () => {
         case HANG_COMPLETE:
           matchContext.setHang({
             ...matchContext.hang,
-            completeTime: getCurrentTime(),
+            endTime: getCurrentTime(),
           });
           break;
         case GO_TELE:
@@ -536,8 +555,8 @@ const ScoutMatch = () => {
         case GO_DEFENSE:
           matchContext.setDefense(
             matchContext.isDefending()
-              ? { ...matchContext.defense, exitTime: getCurrentTime() }
-              : { enterTime: getCurrentTime() }
+              ? { ...matchContext.defense, endTime: getCurrentTime() }
+              : { startTime: getCurrentTime() }
           );
           break;
         case GO_POST_MATCH:
@@ -810,8 +829,7 @@ const ScoutMatch = () => {
                 onClick={() => {
                   match.setHang({
                     ...match.hang,
-                    completeTime:
-                      match.hang.completeTime || match.getCurrentTime(),
+                    endTime: match.hang.endTime || match.getCurrentTime(),
                     result: value,
                   });
                 }}
@@ -1032,7 +1050,7 @@ const ScoutMatch = () => {
         {scoutData ? (
           <div>
             Scout: {userToken.username} Team: {scoutData.teamNumber} Match:{" "}
-            {getMatchCode()}
+            {getmatchKey()}
           </div>
         ) : (
           <div>No scout data</div>
@@ -1220,7 +1238,7 @@ const ScoutMatch = () => {
     return () => window.removeEventListener("resize", resizeScaledBox);
   }, []);
 
-  const getMatchCode = () => {
+  const getmatchKey = () => {
     if (scoutData) {
       return (
         scoutData.comp_level +

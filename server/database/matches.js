@@ -70,7 +70,7 @@ export const storeMatchesInternal = async (event_code, matches) => {
     await client.release();
   }
 };
-export const getScoutMatchInternal = async (eventKey, station, matchCode) => {
+export const getScoutMatchInternal = async (eventKey, station, matchKey) => {
   // Validate station
   const allowedStations = ["r1", "r2", "r3", "b1", "b2", "b3"];
   if (!allowedStations.includes(station)) {
@@ -89,7 +89,7 @@ export const getScoutMatchInternal = async (eventKey, station, matchCode) => {
       FROM ${tableName}
       WHERE key = $1
     `;
-    const result = await client.query(query, [`${eventKey}_${matchCode}`]);
+    const result = await client.query(query, [`${eventKey}_${matchKey}`]);
     if (result.rows.length === 0) {
       return null;
     }

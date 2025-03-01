@@ -6,6 +6,7 @@ import {
   GAME_PIECES,
   GAME_LOCATIONS,
   HANG_RESULTS,
+  CYCLE_TYPES,
 } from "./Constants";
 import { saveMatch } from "../../storage/MatchStorageManager";
 
@@ -43,7 +44,7 @@ export const SIDEBAR_CONFIG = [
       match.setCoral(
         match.hasCoral()
           ? {}
-          : { attainedLocation: GAME_LOCATIONS.PRELOAD, attainedTime: 0 }
+          : { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }
       );
     },
     color: (match, key) => (match.hasCoral() ? COLORS.SUCCESS : COLORS.PENDING),
@@ -62,25 +63,13 @@ export const SIDEBAR_CONFIG = [
       match.setCoral({
         ...match.coral,
         depositLocation: match.coral.depositLocation + `_L${level}`,
-        depositTime: match.getCurrentTime(),
+        endTime: match.getCurrentTime(),
       });
     },
     color: (match, key) => COLORS.CORALDROPOFF,
     show: (match, key) =>
       match.hasCoral() &&
       Object.values(GAME_LOCATIONS.REEF).includes(match.coral.depositLocation),
-  },
-  // DROP_CORAL Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "DROP_CORAL",
-    positions: ["dropCoral"],
-    label: (match, key) => "DROP CORAL",
-    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)],
-    color: (match, key) => COLORS.WARNING,
-    sx: {},
-    show: (match, key) =>
-      match.isUnfinished(match.coral.depositLocation, match.coral.depositTime),
   },
 
   // PICKUP_CORAL Button
@@ -93,11 +82,21 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.CORALPICKUP,
     sx: {},
     show: (match, key) =>
-      match.isUnfinished(
-        match.coral.attainedLocation,
-        match.coral.attainedTime
-      ),
+      match.isUnfinished(match.coral.attainedLocation, match.coral.startTime),
   },
+  // DROP_CORAL Button
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    id: "DROP_CORAL",
+    positions: ["dropCoral"],
+    label: (match, key) => "DROP CORAL",
+    tasks: [createTask(ACTIONS.DROP, GAME_PIECES.CORAL)],
+    color: (match, key) => COLORS.WARNING,
+    sx: {},
+    show: (match, key) =>
+      match.isUnfinished(match.coral.depositLocation, match.coral.endTime),
+  },
+
   // PICKUP_ALGAE Button
   {
     phases: [PHASES.AUTO, PHASES.TELE],
@@ -108,16 +107,13 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.ALGAEPICKUP,
     sx: {},
     show: (match, key) =>
-      match.isUnfinished(
-        match.algae.attainedLocation,
-        match.algae.attainedTime
-      ),
+      match.isUnfinished(match.algae.attainedLocation, match.algae.startTime),
   },
   // Score Processor/Net Menu Button (conditionally shown)
   {
     phases: [PHASES.AUTO, PHASES.TELE],
-    id: "scoreProcessor",
-    positions: ["scoreProcessor"],
+    id: "scoreAlgae",
+    positions: ["scoreAlgae"],
     label: (match, key) => `Score ${match.algae.depositLocation}`,
     tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
     color: (match, key) => COLORS.ALGAEDROPOFF,
@@ -132,13 +128,11 @@ export const SIDEBAR_CONFIG = [
     id: "DROP_ALGAE",
     positions: ["dropAlgae"],
     label: (match, key) => "DROP ALGAE",
-    onClick: (match, key) => {
-      match.setAlgae({ ...match.algae, depositTime: match.getCurrentTime() });
-    },
+    tasks: [createTask(ACTIONS.DROP, GAME_PIECES.ALGAE)],
     color: (match, key) => COLORS.WARNING,
     sx: {},
     show: (match, key) =>
-      match.isUnfinished(match.algae.depositLocation, match.algae.depositTime),
+      match.isUnfinished(match.algae.depositLocation, match.algae.endTime),
   },
 
   // ---------- DEFENSE Buttons (for AUTO/TELE when defending) ----------
@@ -205,11 +199,11 @@ export const SIDEBAR_CONFIG = [
   {
     phases: [PHASES.AUTO, PHASES.TELE],
     positions: ["countFoul"],
-    label: (match, key) => "Foul count: " + (match.contact.pinCount || 0),
+    label: (match, key) => "Foul count: " + (match.contact.foulCount || 0),
     onClick: (match, key) => {
       match.setContact({
         ...match.contact,
-        pinCount: (match.contact.pinCount || 0) + 1,
+        foulCount: (match.contact.foulCount || 0) + 1,
       });
     },
     color: (match, key) => COLORS.WARNING,
@@ -230,7 +224,7 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.hang?.enterTime != null &&
+      match.hang?.startTime != null &&
       match.hang?.cageType == null &&
       match.hang?.cageLocation != null,
   },
@@ -241,12 +235,12 @@ export const SIDEBAR_CONFIG = [
     positions: ["Hang Complete"],
     label: (match, key) => `${key}`,
     onClick: (match, key) => {
-      match.setHang({ ...match.hang, completeTime: match.getCurrentTime() });
+      match.setHang({ ...match.hang, endTime: match.getCurrentTime() });
     },
     // color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>
-      match.hang?.enterTime != null && match.hang.cageType != null,
+      match.hang?.startTime != null && match.hang.cageType != null,
   },
   {
     phases: [PHASES.POST_MATCH],
@@ -256,9 +250,12 @@ export const SIDEBAR_CONFIG = [
       const saveCycles =
         match.hang.result == null
           ? match.cycles
-          : [...match.cycles, match.hang];
+          : [...match.cycles, match.getWritableCycle(CYCLE_TYPES.HANG)];
       saveMatch(
         {
+          reportId: match.scoutData.reportId,
+          matchStartTime: match.matchStartTime,
+          robot: match.scoutData.teamNumber,
           scoutId: match.userToken.id,
           scoutName: match.userToken.username,
           cycles: saveCycles,
@@ -266,14 +263,14 @@ export const SIDEBAR_CONFIG = [
         },
         {
           eventKey: match.searchParams.get("eventKey"),
-          matchCode: match.searchParams.get("matchCode"),
+          matchKey: match.searchParams.get("matchKey"),
           station: match.searchParams.get("station"),
         },
         match.userToken
       );
     },
     isDisabled: (match, key) =>
-      match.isUnfinished(match.hang.enterTime, match.hang.result),
+      match.isUnfinished(match.hang.startTime, match.hang.result),
     show: (match, key) => true,
   },
   // Cancel Button

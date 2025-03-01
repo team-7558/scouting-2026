@@ -41,10 +41,16 @@ export const COLORS = {
   CANCEL: "cancel",
 };
 
+export const DEPOSIT_TYPE = {
+  SCORE: "SCORE",
+  DROP: "DROP",
+};
+
 export const ACTIONS = {
   ACQUIRE: "acquire",
   DEPOSIT: "deposit",
   FINISH: "finish",
+  DROP: "drop",
   HANG: "hang",
   HANG_ENTER: "hang_enter",
   HANG_CAGE_TOUCH: "hang_cage_touch",

@@ -23,23 +23,23 @@ const MissingParamsDialog = ({
   searchParamsError,
 }) => {
   const initialEventKey = searchParams.get("eventKey") || "";
-  const initialMatchCode = searchParams.get("matchCode") || "";
+  const initialmatchKey = searchParams.get("matchKey") || "";
   const initialStation = searchParams.get("station") || "";
 
   const [eventKey, setEventKey] = useState(initialEventKey);
-  const [matchCode, setMatchCode] = useState(initialMatchCode);
+  const [matchKey, setmatchKey] = useState(initialmatchKey);
   const [station, setStation] = useState(initialStation);
 
   // Update local state when searchParams change.
   useEffect(() => {
     setEventKey(initialEventKey);
-    setMatchCode(initialMatchCode);
+    setmatchKey(initialmatchKey);
     setStation(initialStation);
-  }, [initialEventKey, initialMatchCode, initialStation]);
+  }, [initialEventKey, initialmatchKey, initialStation]);
 
   const handleSubmit = () => {
-    if (eventKey && matchCode && station) {
-      onSubmit({ eventKey, matchCode, station });
+    if (eventKey && matchKey && station) {
+      onSubmit({ eventKey, matchKey, station });
     }
   };
 
@@ -68,9 +68,9 @@ const MissingParamsDialog = ({
           </Select>
         </FormControl>
         <TextField
-          label="Match Code"
-          value={matchCode}
-          onChange={(e) => setMatchCode(e.target.value)}
+          label="Match Key"
+          value={matchKey}
+          onChange={(e) => setmatchKey(e.target.value)}
           fullWidth
           margin="normal"
           helperText="Format: [COMP_LEVEL]m[MATCH_NUMBER]. COMP_LEVEL is one of (qm, ef, qf, sf, f). Append a set number if required."

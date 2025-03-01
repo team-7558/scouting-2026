@@ -5,6 +5,7 @@ export const storeReportInternal = async (eventKey, report) => {
   const tableName = `reports_${eventKey}`;
   const client = await pgClient();
   try {
+    // Updated table schema with unpacked endgame fields.
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS ${tableName} (
         id TEXT PRIMARY KEY,
@@ -12,7 +13,11 @@ export const storeReportInternal = async (eventKey, report) => {
         match_key TEXT,
         match_start_time BIGINT,
         submission_time BIGINT,
-        endgame JSONB,
+        role TEXT,
+        comments TEXT,
+        disabled BOOLEAN,
+        driver_skill TEXT,
+        defense_skill TEXT,
         scout_id INT,
         scout_name TEXT,
         robot TEXT,
@@ -23,20 +28,33 @@ export const storeReportInternal = async (eventKey, report) => {
 
     const insertQuery = `
       INSERT INTO ${tableName} 
-        (id, event_key, match_key, match_start_time, submission_time, endgame, scout_id, scout_name, robot, station)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        (id, event_key, match_key, match_start_time, submission_time, role, comments, disabled, driver_skill, defense_skill, scout_id, scout_name, robot, station)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       ON CONFLICT (id) DO NOTHING
       RETURNING id;
     `;
-    // Use report.matchStartTime (from matchData) and set submissionTime to the current timestamp.
     const submissionTime = Date.now();
+
+    // Unpack the endgame fields with defaults if not present.
+    const {
+      role = null,
+      comments = null,
+      disabled = null,
+      driverSkill = null,
+      defenseSkill = null,
+    } = report.endgame || {};
+
     const values = [
       report.reportId,
       eventKey,
       report.matchKey,
       report.matchStartTime,
       submissionTime,
-      report.endgame,
+      role,
+      comments,
+      disabled,
+      driverSkill,
+      defenseSkill,
       report.scoutId,
       report.scoutName,
       report.robot,
@@ -59,7 +77,7 @@ export const getReportInternal = async (eventKey, matchKey, robot) => {
       WHERE match_key = $1 AND robot = $2
     `;
     const result = await client.query(query, [matchKey, robot]);
-    return result.rows; // returns an array of reports
+    return result.rows;
   } finally {
     await client.release();
   }

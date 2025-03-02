@@ -83,5 +83,39 @@ export const getReportInternal = async (eventKey, matchKey, robot) => {
   }
 };
 
+export const getReportsFilteredInternal = async (eventKey, matchKey, robot) => {
+  const tableName = `reports_${eventKey}`;
+  const client = await pgClient();
+  try {
+    let conditions = ["event_key = $1"];
+    let values = [eventKey];
+    let paramIndex = 2;
+
+    if (matchKey) {
+      conditions.push(`match_key = $${paramIndex}`);
+      values.push(matchKey);
+      paramIndex++;
+    }
+    if (robot) {
+      conditions.push(`robot = $${paramIndex}`);
+      values.push(robot);
+    }
+
+    const query = `
+      SELECT *
+      FROM ${tableName}
+      WHERE ${conditions.join(" AND ")}
+    `;
+    const result = await client.query(query, values);
+    return result.rows;
+  } finally {
+    await client.release();
+  }
+};
+
+export const getReportsFiltered = protectOperation(getReportsFilteredInternal, [
+  "USER",
+]);
+
 export const getReport = protectOperation(getReportInternal, ["USER"]);
 export const storeReport = protectOperation(storeReportInternal, ["USER"]);

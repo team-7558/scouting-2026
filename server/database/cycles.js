@@ -91,32 +91,48 @@ export const storeCyclesInternal = async (
   }
 };
 
-export const getCyclesInternal = async (eventKey, matchKey, robot) => {
+// Helper function to safely parse JSON strings.
+const safeJSONParse = (value) => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        // If parsing fails, just return the original value.
+        return value;
+      }
+    }
+  }
+  return value;
+};
+
+export const getCyclesByReportInternal = async (eventKey, reportId) => {
   const tableName = `cycles_${eventKey}`;
   const client = await pgClient();
   try {
     const query = `
       SELECT *
       FROM ${tableName}
-      WHERE match_key = $1 AND robot = $2
+      WHERE report_id = $1
       ORDER BY cycle_index ASC
     `;
-    const result = await client.query(query, [matchKey, robot]);
-    // Optionally parse JSON columns.
-    const cycles = result.rows.map((row) => ({
+    const result = await client.query(query, [reportId]);
+    return result.rows.map((row) => ({
       ...row,
       attained_location: row.attained_location
-        ? JSON.parse(row.attained_location)
+        ? safeJSONParse(row.attained_location)
         : null,
       deposit_location: row.deposit_location
-        ? JSON.parse(row.deposit_location)
+        ? safeJSONParse(row.deposit_location)
         : null,
     }));
-    return cycles;
   } finally {
     await client.release();
   }
 };
 
-export const getCycles = protectOperation(getCyclesInternal, ["USER"]);
+export const getCyclesByReport = protectOperation(getCyclesByReportInternal, [
+  "USER",
+]);
 export const storeCycles = protectOperation(storeCyclesInternal, ["USER"]);

@@ -295,20 +295,6 @@ const ScoutMatch = () => {
     clearUnfinished();
   }, [coral.endTime, algae.endTime, defense.endTime, contact.endTime]);
 
-  // useEffect(() => {
-  //   if (coral.startTime != null) {
-  //     console.log("coral cycle progress: " + JSON.stringify(coral));
-  //     clearUnfinished();
-  //   }
-  // }, [coral.startTime]);
-
-  // useEffect(() => {
-  //   if (algae.startTime != null) {
-  //     console.log("algae cycle progress: " + JSON.stringify(algae));
-  //     clearUnfinished();
-  //   }
-  // }, [algae.startTime]);
-
   const hasCoral = () => {
     return coral.startTime != null;
   };

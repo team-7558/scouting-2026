@@ -6,7 +6,7 @@ import { getAuthHeaders } from "./AuthRequests.js";
 const SERVER_URL =
   process.env.NODE_ENV === "development" ? "http://localhost:3001/api" : "/api";
 
-const api = new ApiClient("http://localhost:3001/api");
+const api = new ApiClient(SERVER_URL);
 
 export const postImportMatches = async (event_code) => {
   return api.post(
@@ -30,7 +30,7 @@ export const submitMatch = async ({
   matchData,
 }) => {
   return api.post(
-    `${SERVER_URL}/submitMatch`,
+    `${SERVER_URL}/reports/submit`,
     { eventKey, matchKey, station, matchData },
     { headers: getAuthHeaders() }
   );

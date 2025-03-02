@@ -11,6 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
 // Extract user information from the JWT token
 export const extractUserFromRequest = (req) => {
+  console.log(req.headers);
   const token = req.headers["authorization"];
 
   if (!token) {

@@ -150,7 +150,7 @@ const ScoutMatch = () => {
   const [contact, setContact] = useState({
     startTime: null,
     endTime: null,
-    robot: null,
+    contactRobot: null,
     pinCount: null,
     foulCount: null,
   });

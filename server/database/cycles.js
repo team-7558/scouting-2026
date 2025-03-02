@@ -29,7 +29,10 @@ export const storeCyclesInternal = async (
         cage_location TEXT,
         cage_touch_time INT,
         cage_type TEXT,
-        result TEXT
+        result TEXT,
+        contact_robot TEXT,
+        pin_count INT,
+        foul_count INT
       );
     `;
     await client.query(createTableQuery);
@@ -59,10 +62,33 @@ export const storeCyclesInternal = async (
       const cageType = cycle.cageType || null;
       const resultField = cycle.result || null;
 
+      const contactRobot = cycle.contactRobot || null;
+      const pinCount = cycle.pinCount || null;
+      const foulCount = cycle.foulCount || null;
+
       const insertQuery = `
         INSERT INTO ${tableName} 
-          (key, match_key, cycle_index, phase, type, attained_location, start_time, deposit_type, deposit_location, end_time, cycle_time, robot, report_id, cage_location, cage_touch_time, cage_type, result)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+          (key, 
+          match_key,
+          cycle_index,
+          phase, 
+          type, 
+          attained_location, 
+          start_time,
+          deposit_type, 
+          deposit_location,
+          end_time,
+          cycle_time,
+          robot,
+          report_id,
+          cage_location, 
+          cage_touch_time, 
+          cage_type, 
+          result,
+          contact_robot, 
+          pin_count, 
+          foul_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         ON CONFLICT (key) DO NOTHING;
       `;
       const values = [
@@ -83,6 +109,9 @@ export const storeCyclesInternal = async (
         cageTouchTime,
         cageType,
         resultField,
+        contactRobot,
+        pinCount,
+        foulCount,
       ];
       await client.query(insertQuery, values);
     }

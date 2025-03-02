@@ -161,7 +161,7 @@ export const SIDEBAR_CONFIG = [
 
       match.setContact({
         startTime: match.getCurrentTime(),
-        robot: oppenentRobot,
+        contactRobot: oppenentRobot,
       });
     },
     color: (match, key) => COLORS.PENDING,

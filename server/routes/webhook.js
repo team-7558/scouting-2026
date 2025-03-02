@@ -5,7 +5,7 @@ import {
   storeOrUpdateMatches,
   storeOrUpdateMatchesInternal,
 } from "../database/matches.js";
-import { ATTENDING_EVENTS, PRACTICE_EVENTS } from "../constants.js";
+import { ATTENDING_EVENTS, PRACTICE_EVENTS } from "../Constants.js";
 
 const router = express.Router();
 

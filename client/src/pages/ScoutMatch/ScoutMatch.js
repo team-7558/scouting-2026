@@ -123,9 +123,6 @@ const ScoutMatch = () => {
 
   const [cycles, setCycles] = useState([]);
 
-  // robot state
-  // const [isDefending, setIsDefending] = useState(false);
-
   const [startingPosition, setStartingPosition] = useState(-1);
 
   const [coral, setCoral] = useState({
@@ -224,6 +221,17 @@ const ScoutMatch = () => {
       console.error("Error fetching scout match data:", err);
     }
   };
+
+  const format = (milliseconds) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(1, "0")}:${String(seconds).padStart(
+      2,
+      "0"
+    )}`;
+  };
+
   const getDisplayTime = () => {
     let displayTime = null;
     if (phase == PHASES.AUTO) {
@@ -231,8 +239,7 @@ const ScoutMatch = () => {
     } else if (phase == PHASES.TELE) {
       displayTime = TELE_MAX_TIME - getCurrentTime();
     }
-
-    return displayTime != null ? Math.round(displayTime / 1000) : "- - -";
+    return displayTime != null ? format(displayTime) : "- - -";
   };
   useEffect(() => {
     setDisplayTime(getDisplayTime()); //first time
@@ -1243,7 +1250,7 @@ const ScoutMatch = () => {
       return (
         scoutData.comp_level +
         scoutData.match_number +
-        (scoutData.comp_level !== "qm" ? scoutData.set_number : "")
+        (scoutData.comp_level !== "qm" ? "m" + scoutData.set_number : "")
       );
     }
   };

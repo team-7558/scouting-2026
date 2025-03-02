@@ -5,6 +5,7 @@ import {
   storeOrUpdateMatches,
   storeOrUpdateMatchesInternal,
 } from "../database/matches.js";
+import { ATTENDING_EVENTS, PRACTICE_EVENTS } from "../constants.js";
 
 const router = express.Router();
 
@@ -24,6 +25,15 @@ router.post("/", async (req, res) => {
   const { event_key } = message_data;
   if (!event_key || !/^[a-zA-Z0-9_]+$/.test(event_key)) {
     return res.status(400).json({ message: "Invalid or missing event_key" });
+  }
+
+  if (
+    !ATTENDING_EVENTS.includes(event_key) &&
+    !PRACTICE_EVENTS.includes(event_key)
+  ) {
+    return res
+      .status(200)
+      .json({ message: "Event ignored not attending event: " + event_key });
   }
 
   try {

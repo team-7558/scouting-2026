@@ -12,8 +12,9 @@ import {
   Button,
   Typography,
 } from "@mui/material";
+import { ATTENDING_EVENTS, PRACTICE_EVENTS } from "./Constants";
 
-const eventOptions = ["2025week0"]; // example options
+const eventOptions = [...ATTENDING_EVENTS, ...PRACTICE_EVENTS]; // example options
 const stationOptions = ["r1", "r2", "r3", "b1", "b2", "b3"];
 
 const MissingParamsDialog = ({

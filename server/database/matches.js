@@ -9,12 +9,12 @@ const stripFRC = (teamNumber) => {
   return teamNumber;
 };
 
-export const storeMatchesInternal = async (event_code, matches) => {
-  // Define the dynamic table name; note we sanitize event_code in the route so this is safe.
+// database/matches.js
+export const storeOrUpdateMatchesInternal = async (event_code, matches) => {
   const tableName = `matches_${event_code}`;
   const client = await pgClient();
   try {
-    // Create the table if it does not exist
+    // Ensure the table exists
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS ${tableName} (
         key TEXT PRIMARY KEY,
@@ -30,6 +30,79 @@ export const storeMatchesInternal = async (event_code, matches) => {
         event_key TEXT
       );
     `;
+    await client.query(createTableQuery);
+
+    // Iterate through matches and upsert each record.
+    for (const match of matches) {
+      const { key, comp_level, set_number, match_number, event_key } = match;
+      const redTeams = match.alliances?.red?.team_keys || [];
+      const blueTeams = match.alliances?.blue?.team_keys || [];
+
+      const sanitize = (teamKey) =>
+        teamKey ? teamKey.replace(/^frc/, "") : null;
+      const r1 = sanitize(redTeams[0]);
+      const r2 = sanitize(redTeams[1]);
+      const r3 = sanitize(redTeams[2]);
+      const b1 = sanitize(blueTeams[0]);
+      const b2 = sanitize(blueTeams[1]);
+      const b3 = sanitize(blueTeams[2]);
+
+      const upsertQuery = `
+        INSERT INTO ${tableName} 
+        (key, comp_level, set_number, match_number, r1, r2, r3, b1, b2, b3, event_key)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (key) DO UPDATE SET
+          comp_level = EXCLUDED.comp_level,
+          set_number = EXCLUDED.set_number,
+          match_number = EXCLUDED.match_number,
+          r1 = EXCLUDED.r1,
+          r2 = EXCLUDED.r2,
+          r3 = EXCLUDED.r3,
+          b1 = EXCLUDED.b1,
+          b2 = EXCLUDED.b2,
+          b3 = EXCLUDED.b3,
+          event_key = EXCLUDED.event_key;
+      `;
+      await client.query(upsertQuery, [
+        key,
+        comp_level,
+        set_number,
+        match_number,
+        r1,
+        r2,
+        r3,
+        b1,
+        b2,
+        b3,
+        event_key,
+      ]);
+    }
+  } finally {
+    await client.release();
+  }
+};
+
+export const storeMatchesInternal = async (event_code, matches) => {
+  // Define the dynamic table name; note we sanitize event_code in the route so this is safe.
+  const tableName = `matches_${event_code}`;
+  const client = await pgClient();
+  try {
+    // Create the table if it does not exist
+    const createTableQuery = `
+    CREATE TABLE IF NOT EXISTS ${tableName} (
+      key TEXT PRIMARY KEY,
+      comp_level TEXT,
+      set_number INT,
+      match_number INT,
+      r1 TEXT,
+      r2 TEXT,
+      r3 TEXT,
+      b1 TEXT,
+      b2 TEXT,
+      b3 TEXT,
+      event_key TEXT
+      );
+      `;
     await client.query(createTableQuery);
 
     // Loop through each match and insert the data into the table.
@@ -50,7 +123,7 @@ export const storeMatchesInternal = async (event_code, matches) => {
         (key, comp_level, set_number, match_number, r1, r2, r3, b1, b2, b3, event_key)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (key) DO NOTHING;
-      `;
+        `;
       let response = await client.query(insertQuery, [
         key,
         comp_level,
@@ -70,7 +143,7 @@ export const storeMatchesInternal = async (event_code, matches) => {
     await client.release();
   }
 };
-export const getScoutMatchInternal = async (eventKey, station, matchCode) => {
+export const getScoutMatchInternal = async (eventKey, station, matchKey) => {
   // Validate station
   const allowedStations = ["r1", "r2", "r3", "b1", "b2", "b3"];
   if (!allowedStations.includes(station)) {
@@ -88,8 +161,8 @@ export const getScoutMatchInternal = async (eventKey, station, matchCode) => {
       SELECT match_number, comp_level, event_key, set_number, ${station} AS team, r1, r2, r3, b1, b2, b3
       FROM ${tableName}
       WHERE key = $1
-    `;
-    const result = await client.query(query, [`${eventKey}_${matchCode}`]);
+      `;
+    const result = await client.query(query, [`${eventKey}_${matchKey}`]);
     if (result.rows.length === 0) {
       return null;
     }
@@ -106,3 +179,9 @@ export const getScoutMatch = protectOperation(getScoutMatchInternal, [
 export const storeMatches = protectOperation(storeMatchesInternal, [
   USER_ROLES.ADMIN,
 ]);
+
+// Optionally protect the operation.
+export const storeOrUpdateMatches = protectOperation(
+  storeOrUpdateMatchesInternal,
+  [USER_ROLES.ADMIN]
+);

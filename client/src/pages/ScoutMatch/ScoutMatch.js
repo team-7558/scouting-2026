@@ -34,6 +34,8 @@ import {
   CYCLE_TYPES,
   AUTO_MAX_TIME,
   TELE_MAX_TIME,
+  HANG_RESULTS,
+  DEPOSIT_TYPE,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
@@ -49,6 +51,7 @@ const {
   ACQUIRE,
   DEPOSIT,
   FINISH,
+  DROP,
   HANG_ENTER,
   HANG_CAGE_TOUCH,
   HANG_COMPLETE,
@@ -80,7 +83,7 @@ const ScoutMatch = () => {
   useEffect(() => {
     if (
       !searchParams.get("eventKey") ||
-      !searchParams.get("matchCode") ||
+      !searchParams.get("matchKey") ||
       !searchParams.get("station")
     ) {
       setSearchParamsError("Missing search params");
@@ -89,12 +92,12 @@ const ScoutMatch = () => {
     }
   }, [searchParams]);
 
-  const handleMissingParamsSubmit = ({ eventKey, matchCode, station }) => {
-    setSearchParams({ eventKey, matchCode, station });
+  const handleMissingParamsSubmit = ({ eventKey, matchKey, station }) => {
+    setSearchParams({ eventKey, matchKey, station });
   };
 
   const eventKey = searchParams.get("eventKey");
-  const matchCode = searchParams.get("matchCode");
+  const matchKey = searchParams.get("matchKey");
   const driverStation = searchParams.get("station") || B1;
 
   const scoutPerspective =
@@ -104,6 +107,9 @@ const ScoutMatch = () => {
 
   const [matchStartTime, setMatchStartTime] = useState(null);
   const getCurrentTime = () => {
+    if (phase == PHASES.POST_MATCH) {
+      return TELE_MAX_TIME;
+    }
     return Math.min(
       phase == PHASES.AUTO ? AUTO_MAX_TIME : TELE_MAX_TIME,
       matchStartTime == null ? 0 : Date.now() - matchStartTime
@@ -117,43 +123,42 @@ const ScoutMatch = () => {
 
   const [cycles, setCycles] = useState([]);
 
-  // robot state
-  // const [isDefending, setIsDefending] = useState(false);
-
   const [startingPosition, setStartingPosition] = useState(-1);
 
   const [coral, setCoral] = useState({
-    attainedLocation: null,
-    attainedTime: null,
+    attainedLocation: GAME_LOCATIONS.PRELOAD,
+    startTime: 0,
     depositLocation: null,
-    depositTime: null,
+    depositType: null, // score or drop
+    endTime: null,
   });
 
   const [algae, setAlgae] = useState({
     attainedLocation: null, // if not null, pickup is pending
-    attainedTime: null, // if not null, holding gamepiece
+    startTime: null, // if not null, holding gamepiece
     depositLocation: null,
-    depositTime: null,
+    depositType: null, // score or drop
+    endTime: null,
   });
 
   const [defense, setDefense] = useState({
-    enterTime: null,
-    exitTime: null,
+    startTime: null,
+    endTime: null,
   });
-  const isDefending = () => isUnfinished(defense.enterTime, defense.exitTime);
+  const isDefending = () => isUnfinished(defense.startTime, defense.endTime);
 
   const [contact, setContact] = useState({
     startTime: null,
     endTime: null,
     robot: null,
-    pin_count: null,
-    foul_count: null,
+    pinCount: null,
+    foulCount: null,
   });
 
   const [hang, setHang] = useState({
-    enterTime: null, // when robot enters under barge
+    startTime: null, // when robot enters under barge
     cageTouchTime: null, // when robot touches cage
-    completeTime: null, // when robot off the floor
+    endTime: null, // when robot off the floor
     cageLocation: null, // LEFT MIDDLE RIGHT
     cageType: null,
     result: null, // will be entered after match score released PARK // SUCCESS
@@ -195,8 +200,8 @@ const ScoutMatch = () => {
   const enemies = [1, 2, 3];
   let fetching = false;
   const fetchScoutMatchData = async () => {
-    if (fetching || !eventKey || !driverStation || !matchCode) {
-      console.error("Missing eventKey, station, or matchCode in URL.");
+    if (fetching || !eventKey || !driverStation || !matchKey) {
+      console.error("Missing eventKey, station, or matchKey in URL.");
       return;
     }
     try {
@@ -204,7 +209,7 @@ const ScoutMatch = () => {
       const response = await getScoutMatch({
         eventKey,
         station: driverStation,
-        matchCode,
+        matchKey,
       });
       fetching = false;
       setScoutData(response.data);
@@ -216,6 +221,17 @@ const ScoutMatch = () => {
       console.error("Error fetching scout match data:", err);
     }
   };
+
+  const format = (milliseconds) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(1, "0")}:${String(seconds).padStart(
+      2,
+      "0"
+    )}`;
+  };
+
   const getDisplayTime = () => {
     let displayTime = null;
     if (phase == PHASES.AUTO) {
@@ -223,8 +239,7 @@ const ScoutMatch = () => {
     } else if (phase == PHASES.TELE) {
       displayTime = TELE_MAX_TIME - getCurrentTime();
     }
-
-    return displayTime != null ? Math.round(displayTime / 1000) : "- - -";
+    return displayTime != null ? format(displayTime) : "- - -";
   };
   useEffect(() => {
     setDisplayTime(getDisplayTime()); //first time
@@ -273,47 +288,40 @@ const ScoutMatch = () => {
   };
 
   useEffect(() => {
-    terminateCycle(CYCLE_TYPES.CORAL, coral.depositTime, () => setCoral({}));
-    terminateCycle(CYCLE_TYPES.ALGAE, algae.depositTime, () => setAlgae({}));
-    terminateCycle(CYCLE_TYPES.DEFENSE, defense.exitTime, () => setDefense({}));
+    terminateCycle(CYCLE_TYPES.CORAL, coral.endTime, () => setCoral({}));
+    terminateCycle(CYCLE_TYPES.ALGAE, algae.endTime, () => setAlgae({}));
+    terminateCycle(CYCLE_TYPES.DEFENSE, defense.endTime, () => setDefense({}));
     terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
-    // terminateCycle(CYCLE_TYPES.HANG, hang.result, () => setHang({}));
     clearUnfinished();
-  }, [
-    coral.depositTime,
-    algae.depositTime,
-    defense.exitTime,
-    contact.endTime,
-    hang.result,
-  ]);
+  }, [coral.endTime, algae.endTime, defense.endTime, contact.endTime]);
 
-  useEffect(() => {
-    if (coral.attainedTime != null) {
-      console.log("coral cycle progress: " + JSON.stringify(coral));
-      clearUnfinished();
-    }
-  }, [coral.attainedTime]);
+  // useEffect(() => {
+  //   if (coral.startTime != null) {
+  //     console.log("coral cycle progress: " + JSON.stringify(coral));
+  //     clearUnfinished();
+  //   }
+  // }, [coral.startTime]);
 
-  useEffect(() => {
-    if (algae.attainedTime != null) {
-      console.log("algae cycle progress: " + JSON.stringify(algae));
-      clearUnfinished();
-    }
-  }, [algae.attainedTime]);
+  // useEffect(() => {
+  //   if (algae.startTime != null) {
+  //     console.log("algae cycle progress: " + JSON.stringify(algae));
+  //     clearUnfinished();
+  //   }
+  // }, [algae.startTime]);
 
   const hasCoral = () => {
-    return coral.attainedTime != null;
+    return coral.startTime != null;
   };
 
   const hasAlgae = () => {
-    return algae.attainedTime != null;
+    return algae.startTime != null;
   };
 
   useEffect(() => {
-    if (hang.completeTime != null) {
+    if (hang.endTime != null) {
       endMatch();
     }
-  }, [hang.completeTime]);
+  }, [hang.endTime]);
 
   const isScoutingRed = () => [R1, R2, R3].includes(driverStation);
   const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
@@ -321,10 +329,10 @@ const ScoutMatch = () => {
   const flipY = () => isScoutingRed();
 
   const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
-    // console.log(matchContext);
+    console.log("Clearing unfinished");
     clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
     clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
-    // matchContext.setHang({});
+    matchContext.setHang({});
     matchContext.setContact({});
   };
 
@@ -333,37 +341,34 @@ const ScoutMatch = () => {
     return (
       isUnfinished(
         matchContext.coral.attainedLocation,
-        matchContext.coral.attainedTime
+        matchContext.coral.startTime
       ) ||
       isUnfinished(
         matchContext.coral.depositLocation,
-        matchContext.coral.depositTime
+        matchContext.coral.endTime
       ) ||
       isUnfinished(
         matchContext.algae.attainedLocation,
-        matchContext.algae.attainedTime
+        matchContext.algae.startTime
       ) ||
       isUnfinished(
         matchContext.algae.depositLocation,
-        matchContext.algae.depositTime
+        matchContext.algae.endTime
       ) ||
-      isUnfinished(
-        matchContext.hang.enterTime,
-        matchContext.hang.completeTime
-      ) ||
+      isUnfinished(matchContext.hang.startTime, matchContext.hang.endTime) ||
       isUnfinished(matchContext.contact.startTime, matchContext.contact.endTime)
     );
   };
   const shouldWriteCycle = (cycleType) => {
     switch (cycleType) {
       case CYCLE_TYPES.ALGAE:
-        return isUnfinished(algae.attainedTime, algae.depositTime);
+        return isUnfinished(algae.startTime, algae.endTime);
       case CYCLE_TYPES.CORAL:
-        return isUnfinished(coral.attainedTime, coral.depositTime);
+        return isUnfinished(coral.startTime, coral.endTime);
       case CYCLE_TYPES.CONTACT:
         return isUnfinished(contact.startTime, algae.endTime);
       case CYCLE_TYPES.DEFENSE:
-        return isUnfinished(defense.enterTime, defense.endTime);
+        return isUnfinished(defense.startTime, defense.endTime);
       case CYCLE_TYPES.HANG: // this should never happen probably
         return isUnfinished(hang.startTime, hang.result);
     }
@@ -402,6 +407,7 @@ const ScoutMatch = () => {
     contact,
     setContact,
     userToken,
+    getWritableCycle,
   };
 
   const createTask = (action, gamepiece = null) => ({
@@ -419,11 +425,11 @@ const ScoutMatch = () => {
   };
 
   const clearUnfinishedGamepiece = (gamepieceState, setter) => {
-    if (gamepieceState?.attainedTime == null) {
+    if (gamepieceState?.startTime == null) {
       setter({});
       return;
     }
-    if (gamepieceState?.depositTime == null) {
+    if (gamepieceState?.endTime == null) {
       setter({ ...gamepieceState, depositLocation: null });
       return;
     }
@@ -433,7 +439,7 @@ const ScoutMatch = () => {
   const startAcquireGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     console.log("acquiring: ", gamepiece, location);
-    if (gamepieceState?.attainedTime == null) {
+    if (gamepieceState?.startTime == null) {
       setter({ attainedLocation: location });
     }
   };
@@ -442,22 +448,37 @@ const ScoutMatch = () => {
   const startDepositGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     console.log("depositing: ", gamepiece, location);
-    if (gamepieceState?.attainedTime == null) {
+    if (gamepieceState?.startTime == null) {
       return;
     }
-    setter({ ...gamepieceState, depositLocation: location });
+    setter({
+      ...gamepieceState,
+      depositType: DEPOSIT_TYPE.SCORE,
+      depositLocation: location,
+    });
+  };
+
+  const dropGamePiece = (location, gamepiece, matchContext) => {
+    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
+    if (isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)) {
+      setter({
+        ...gamepieceState,
+        depositType: DEPOSIT_TYPE.DROP,
+        endTime: getCurrentTime(),
+      });
+    }
   };
 
   const finishGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     if (
-      isUnfinished(gamepieceState.attainedLocation, gamepieceState.attainedTime)
+      isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
     ) {
-      setter({ ...gamepieceState, attainedTime: getCurrentTime() });
+      setter({ ...gamepieceState, startTime: getCurrentTime() });
     } else if (
-      isUnfinished(gamepieceState.depositLocation, gamepieceState.depositTime)
+      isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
     ) {
-      setter({ ...gamepieceState, depositTime: getCurrentTime() });
+      setter({ ...gamepieceState, endTime: getCurrentTime() });
     }
   };
 
@@ -472,18 +493,23 @@ const ScoutMatch = () => {
           getWritableCycle(CYCLE_TYPES.CORAL),
         shouldWriteCycle(CYCLE_TYPES.DEFENSE) && {
           ...getWritableCycle(CYCLE_TYPES.DEFENSE),
-          exitTime: getCurrentTime(),
+          endTime: getCurrentTime(),
         },
         shouldWriteCycle(CYCLE_TYPES.CONTACT) && {
           ...getWritableCycle(CYCLE_TYPES.CONTACT),
           endTime: getCurrentTime(),
         },
-        shouldWriteCycle(CYCLE_TYPES.HANG) &&
-          getWritableCycle(CYCLE_TYPES.HANG),
+        // shouldWriteCycle(CYCLE_TYPES.HANG) &&
+        //   getWritableCycle(CYCLE_TYPES.HANG),
       ].filter((x) => x)
     );
     setPhase(PHASES.POST_MATCH);
   };
+
+  const DONT_CLEAR_LOCATIONS = [
+    ...Object.keys(SCOUTING_CONFIG.HANG.positions),
+    ...Object.keys(SCOUTING_CONFIG.GO_POST_MATCH.positions),
+  ];
   // actions is a map of gamepiece transformations to be executed
   const startPendingTasks = (
     location,
@@ -494,7 +520,7 @@ const ScoutMatch = () => {
       return;
     }
     // don't clear unfinished if going to post match.
-    if (!tasks.includes(GO_POST_MATCH)) {
+    if (!DONT_CLEAR_LOCATIONS.includes(location)) {
       clearUnfinished();
     }
     for (let i in tasks) {
@@ -510,9 +536,11 @@ const ScoutMatch = () => {
         case FINISH:
           finishGamepiece(location, task.gamepiece, matchContext);
           break;
+        case DROP:
+          dropGamePiece(location, task.gamepiece, matchContext);
         case HANG_ENTER:
           matchContext.setHang({
-            enterTime: getCurrentTime(),
+            startTime: getCurrentTime(),
           });
           break;
         case HANG_CAGE_TOUCH:
@@ -525,7 +553,7 @@ const ScoutMatch = () => {
         case HANG_COMPLETE:
           matchContext.setHang({
             ...matchContext.hang,
-            completeTime: getCurrentTime(),
+            endTime: getCurrentTime(),
           });
           break;
         case GO_TELE:
@@ -534,8 +562,8 @@ const ScoutMatch = () => {
         case GO_DEFENSE:
           matchContext.setDefense(
             matchContext.isDefending()
-              ? { ...matchContext.defense, exitTime: getCurrentTime() }
-              : { enterTime: getCurrentTime() }
+              ? { ...matchContext.defense, endTime: getCurrentTime() }
+              : { startTime: getCurrentTime() }
           );
           break;
         case GO_POST_MATCH:
@@ -743,36 +771,6 @@ const ScoutMatch = () => {
       "dropoff-algae"
     )
   );
-
-  // let looping = true;
-  // [
-  //   [coral.attainedLocation, coral.attainedTime],
-  //   [coral.depositLocation, coral.depositTime],
-  //   [algae.attainedLocation, algae.attainedTime],
-  //   [algae.depositLocation, algae.depositTime],
-  // ].map((values) => {
-  //   if (
-  //     [PHASES.AUTO, PHASES.TELE].includes(phase) &&
-  //     looping &&
-  //     isUnfinished(values[0], values[1]) &&
-  //     Array.isArray(values[0])
-  //   ) {
-  //     GROUND_PICKUPIcon.push(
-  //       createFieldLocalMatchComponent(
-  //         "disabled",
-  //         values[0][0],
-  //         values[0][1],
-  //         100,
-  //         100,
-  //         (match) => <FieldButton color={COLORS.PRIMARY}></FieldButton>,
-  //         /* dontFlip= */ true
-  //       )
-  //     );
-
-  //     looping = false;
-  //   }
-  // });
-
   const POST_MATCHChildren = [
     createFieldLocalMatchComponent(
       "disabled",
@@ -806,32 +804,51 @@ const ScoutMatch = () => {
       );
     }),
 
-    createFieldLocalMatchComponent("hang", 1150, 100, 500, 150, (match) => (
-      <FieldButton color={COLORS.PRIMARY}>HANG?</FieldButton>
-    )),
-
-    ...[950, 1300].map((x, index) => {
-      const value = ["succeed", "fail"][index];
-      return createFieldLocalMatchComponent(
-        `${index}HangMenu`,
-        x,
-        250,
-        300,
+    hang.cageType != null &&
+      createFieldLocalMatchComponent(
+        "hang",
+        1150,
         100,
+        500,
+        150,
         (match) => (
-          <FieldButton
-            color={COLORS.PENDING}
-            onClick={() => {
-              match.setHang({ ...match.hang, result: value });
-            }}
-            drawBorder={match.hang.result === value}
-          >
-            {value}
+          <FieldButton drawBorder={hang.result == null} color={COLORS.PRIMARY}>
+            HANG SCORING RESULT
           </FieldButton>
         ),
         /* dontFlip= */ !isScoringTableFar()
-      );
-    }),
+      ),
+    ...[
+      hang.cageType != null &&
+        [850, 1120, 1390].map((x, index) => {
+          const value = [HANG_RESULTS.NONE, HANG_RESULTS.PARK, hang.cageType][
+            index
+          ];
+          return createFieldLocalMatchComponent(
+            `${index}HangMenu`,
+            x,
+            250,
+            220,
+            100,
+            (match) => (
+              <FieldButton
+                color={COLORS.PENDING}
+                onClick={() => {
+                  match.setHang({
+                    ...match.hang,
+                    endTime: match.hang.endTime || match.getCurrentTime(),
+                    result: value,
+                  });
+                }}
+                drawBorder={match.hang.result === value}
+              >
+                {value}
+              </FieldButton>
+            ),
+            /* dontFlip= */ !isScoringTableFar()
+          );
+        }),
+    ],
 
     //driver skill
     createFieldLocalMatchComponent(
@@ -1040,7 +1057,7 @@ const ScoutMatch = () => {
         {scoutData ? (
           <div>
             Scout: {userToken.username} Team: {scoutData.teamNumber} Match:{" "}
-            {getMatchCode()}
+            {getmatchKey()}
           </div>
         ) : (
           <div>No scout data</div>
@@ -1228,12 +1245,12 @@ const ScoutMatch = () => {
     return () => window.removeEventListener("resize", resizeScaledBox);
   }, []);
 
-  const getMatchCode = () => {
+  const getmatchKey = () => {
     if (scoutData) {
       return (
         scoutData.comp_level +
         scoutData.match_number +
-        (scoutData.comp_level !== "qm" ? scoutData.set_number : "")
+        (scoutData.comp_level !== "qm" ? "m" + scoutData.set_number : "")
       );
     }
   };
@@ -1248,7 +1265,7 @@ const ScoutMatch = () => {
             height: "100vh",
           }}
         >
-          <FullscreenDialog />
+          {/* <FullscreenDialog /> */}
           <MissingParamsDialog
             open={searchParamsError != null}
             searchParams={searchParams}

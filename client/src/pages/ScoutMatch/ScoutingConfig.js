@@ -106,7 +106,7 @@ export const SCOUTING_CONFIG = {
     phases: [PHASES.AUTO, PHASES.TELE],
     drawBorder: (match, key) => match.algae.depositLocation == key,
     disabled: (match, key) => !match.hasAlgae(),
-    showFunction: (match, key) => match.hang.enterTime == null,
+    showFunction: (match, key) => match.hang.startTime == null,
     positions: {
       [GAME_LOCATIONS.NET]: [1755, 525],
     },
@@ -120,8 +120,8 @@ export const SCOUTING_CONFIG = {
 
   START_HANG: {
     phases: [PHASES.TELE],
-    disabled: (match, key) => match.hang.enterTime != null,
-    showFunction: (match, key) => match.hang.enterTime == null,
+    disabled: (match, key) => match.hang.startTime != null,
+    showFunction: (match, key) => match.hang.startTime == null,
     positions: {
       START_HANG: [1755, 125],
     },
@@ -137,8 +137,8 @@ export const SCOUTING_CONFIG = {
   HANG: {
     phases: [PHASES.TELE],
     drawBorder: (match, key) => match.hang?.cageLocation == key,
-    disabled: (match, key) => match.hang.enterTime == null,
-    showFunction: (match, key) => match.hang.enterTime != null,
+    disabled: (match, key) => match.hang.startTime == null,
+    showFunction: (match, key) => match.hang.startTime != null,
     positions: {
       [GAME_LOCATIONS.HANG.LEFT]: [1755, 140],
       [GAME_LOCATIONS.HANG.MIDDLE]: [1755, 370],

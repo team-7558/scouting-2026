@@ -16,11 +16,22 @@ export const postImportMatches = async (event_code) => {
   );
 };
 
-export const getScoutMatch = async ({ eventKey, station, matchCode }) => {
+export const getScoutMatch = async ({ eventKey, station, matchKey }) => {
   return api.get(`${SERVER_URL}/getScoutMatch`, {
-    params: { eventKey, station, matchCode },
+    params: { eventKey, station, matchKey },
     headers: getAuthHeaders(),
   });
 };
 
-export const submitMatch = async () => {};
+export const submitMatch = async ({
+  eventKey,
+  matchKey,
+  station,
+  matchData,
+}) => {
+  return api.post(
+    `${SERVER_URL}/submitMatch`,
+    { eventKey, matchKey, station, matchData },
+    { headers: getAuthHeaders() }
+  );
+};

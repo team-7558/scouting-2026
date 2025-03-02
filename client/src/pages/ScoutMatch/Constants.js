@@ -1,3 +1,7 @@
+//update in server too
+export const PRACTICE_EVENTS = ["2025week0", "2025onnew"];
+export const ATTENDING_EVENTS = ["2025onsca", "2025ontor", "2025oncmp"];
+
 export const FIELD_VIRTUAL_HEIGHT = 1610;
 export const FIELD_VIRTUAL_WIDTH = 3510;
 export const FIELD_ASPECT_RATIO = FIELD_VIRTUAL_WIDTH / FIELD_VIRTUAL_HEIGHT;
@@ -41,10 +45,16 @@ export const COLORS = {
   CANCEL: "cancel",
 };
 
+export const DEPOSIT_TYPE = {
+  SCORE: "SCORE",
+  DROP: "DROP",
+};
+
 export const ACTIONS = {
   ACQUIRE: "acquire",
   DEPOSIT: "deposit",
   FINISH: "finish",
+  DROP: "drop",
   HANG: "hang",
   HANG_ENTER: "hang_enter",
   HANG_CAGE_TOUCH: "hang_cage_touch",
@@ -98,14 +108,13 @@ export const GAME_LOCATIONS = {
     MIDDLE: "HANG_MIDDLE",
     RIGHT: "HANG_RIGHT",
   },
-  HANG_LEVEL: {
-    PARK: "PARK",
-    DEEP: "DEEP",
-    SHALLOW: "SHALLOW",
-  },
-  HANG_STATE: {
-    FAIL: "FAIL",
-    SUCCEED: "SUCCEED",
-  },
+
   STARTING_LINE: "STARTING_LINE",
+};
+
+export const HANG_RESULTS = {
+  NONE: "NONE",
+  PARK: "PARK",
+  DEEP: "DEEP",
+  SHALLOW: "SHALLOW",
 };

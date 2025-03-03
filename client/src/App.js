@@ -12,6 +12,7 @@ import AdminPage from "./pages/Admin/Admin.js";
 import { ProtectedRoute } from "./TokenUtils.js";
 import MatchStrategy from "./pages/Strategy/MatchStrategy.js";
 import ViewReports from "./pages/Strategy/ViewReports.js";
+import Overview from "./pages/Strategy/Overview.js";
 
 const App = () => {
   return (
@@ -57,6 +58,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <ViewReports requiredParamKeys={["eventKey", "matchKey"]} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/overview"
+            element={
+              <ProtectedRoute>
+                <Overview />
               </ProtectedRoute>
             }
           />

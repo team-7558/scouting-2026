@@ -4,6 +4,7 @@ import {
   getReportsAndCyclesFiltered,
   storeReportAndCycles,
 } from "../database/matchReportHelper.js";
+import { calculateAverageMetrics } from "../metrics/reports.js";
 
 const router = express.Router();
 
@@ -29,7 +30,11 @@ router.get("/", async (req, res) => {
       matchKey,
       robot
     );
-    res.json(reports);
+    if (robot != null && matchKey == null) {
+      res.json({ averages: calculateAverageMetrics(reports), reports });
+    } else {
+      res.json({ reports });
+    }
   } catch (error) {
     console.error("Error fetching filtered reports with cycles:", error);
     res.status(500).json({ error: "Server error" });

@@ -35,3 +35,10 @@ export const submitMatch = async ({
     { headers: getAuthHeaders() }
   );
 };
+
+export const getReports = async ({ eventKey, matchKey, robot }) => {
+  return api.get(`${SERVER_URL}/reports/`, {
+    params: { eventKey, matchKey, robot },
+    headers: getAuthHeaders(),
+  });
+};

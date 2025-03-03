@@ -1,5 +1,6 @@
 import { storeReport, getReportsFiltered } from "./reports.js";
 import { storeCycles, getCyclesByReport } from "./cycles.js";
+import { calculateReportTotals } from "../metrics/reports.js";
 
 /*
  * Stores a report and its associated cycles.
@@ -60,6 +61,7 @@ export const getReportsAndCyclesFiltered = async (
   for (let report of reports) {
     // Attach cycles using the report's id.
     report.cycles = await getCyclesByReport(req, eventKey, report.id);
+    report.totals = calculateReportTotals(report);
   }
   return reports;
 };

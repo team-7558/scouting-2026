@@ -251,7 +251,7 @@ const FieldCanvas = forwardRef(
         canvas.height,
         perspective
       );
-      if (isClick) {
+      if (isClick && onClick != null) {
         onClick(coords.fieldX, coords.fieldY);
       } else {
         setCursorCoordinates({ canvasX: x, canvasY: y, ...coords });

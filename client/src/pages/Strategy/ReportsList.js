@@ -8,20 +8,19 @@ import {
   Paper,
   Typography,
 } from "@mui/material";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import LoginIcon from "@mui/icons-material/Login";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import ThumbUpIcon from "@mui/icons-material/ThumbUp";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import StarIcon from "@mui/icons-material/Star";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CallMissedOutgoingIcon from "@mui/icons-material/CallMissedOutgoing";
 import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
 import SpeedIcon from "@mui/icons-material/Speed";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import { Link, useSearchParams } from "react-router-dom";
+import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Import your CyclesFieldCanvas component
 
 // ------------------- Shared Constants and Helpers -------------------
 
@@ -35,7 +34,7 @@ const groupColors = {
 };
 
 // Helper: Determine station color based on station code.
-// If station starts with "r", returns "error" (red); if "b", returns "primary" (blue); else "default".
+// If station starts with "r", returns red (#d32f2f); if "b", returns blue (#1976d2); else "default".
 const getStationColor = (station) => {
   if (!station) return "default";
   const s = station.toLowerCase();
@@ -83,11 +82,11 @@ const getFormattedValue = (group, field, value) => {
 const averageMetricMapping = {
   attainedCount: {
     label: "Attained",
-    icon: <ExitToAppIcon fontSize="medium" color="action" />,
+    icon: <TrendingUpIcon fontSize="medium" color="action" />,
   },
   scoredCount: {
     label: "Scored",
-    icon: <CheckCircleIcon fontSize="medium" color="action" />,
+    icon: <StarIcon fontSize="medium" color="action" />,
   },
   avgScoringCycleTime: {
     label: "Cycle Time",
@@ -95,7 +94,7 @@ const averageMetricMapping = {
   },
   droppedCount: {
     label: "Dropped",
-    icon: <CallMissedOutgoingIcon fontSize="medium" color="action" />,
+    icon: <RemoveCircleOutlineIcon fontSize="medium" color="action" />,
   },
   scoringRate: {
     label: "Scoring Rate",
@@ -193,6 +192,7 @@ const AveragesSummary = ({ averages }) => {
 // Displays an individual report as a fixed (unexpandable) card.
 // It groups metrics by category using friendly labels/icons and colors.
 // The header is styled with a bottom border in the station color.
+// Now, it also renders the CyclesFieldCanvas component to preview cycles.
 const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   const flatData = flattenData(report.totals);
   flatData["matchKey"] = report.match_key;
@@ -207,7 +207,6 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
     groupedData[group][metric] = flatData[key];
   });
 
-  // Get the station color using our helper.
   const stationColor = getStationColor(report.station);
 
   return (
@@ -218,7 +217,7 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
       <Box
         sx={{
           mb: 2,
-          borderBottom: `2px solid ${getStationColor(report.station)}`,
+          borderBottom: `2px solid ${stationColor}`,
         }}
       >
         <Button
@@ -237,7 +236,7 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             fontSize: "1.2rem",
             fontWeight: 700,
             textTransform: "none",
-            color: getStationColor(report.station),
+            color: stationColor,
           }}
         >
           {isMatchQuery ? report.robot : report.match_key}
@@ -290,6 +289,13 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
           </Grid>
         </Paper>
       ))}
+      {/* Render the cycles preview below the report metrics */}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+          Cycles
+        </Typography>
+        <CyclesFieldCanvas report={report} width={400} height={300} />
+      </Box>
     </Paper>
   );
 };
@@ -349,7 +355,6 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
       {reports.map((report, i) => {
         const header = isMatchQuery ? report.robot : report.match_key;
         const stationColor = getStationColor(report.station);
-
         return (
           <Chip
             key={report.id}
@@ -358,7 +363,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
             sx={{
               backgroundColor: stationColor,
               flexShrink: 0,
-              border: i === index ? `2px solid` : "none",
+              border: i === index ? `2px solid ${stationColor}` : "none",
             }}
           />
         );

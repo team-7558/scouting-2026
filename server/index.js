@@ -8,6 +8,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.js";
 import apiRoutes from "./routes/api.js";
 import webhookRoutes from "./routes/webhook.js";
+import reportsRoutes from "./routes/reports.js";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -32,6 +33,7 @@ app.use(cors());
 // console.log(app);
 
 // Use the auth routes
+app.use("/api/reports", reportsRoutes);
 app.use("/api", apiRoutes);
 app.use("/auth", authRoutes);
 app.use("/webhook", webhookRoutes);

@@ -1,8 +1,8 @@
-// server/database/matchReportHelper.js
-import { storeReport } from "./reports.js";
-import { storeCycles } from "./cycles.js";
+import { storeReport, getReportsFiltered } from "./reports.js";
+import { storeCycles, getCyclesByReport } from "./cycles.js";
+import { calculateReportTotals } from "../metrics/reports.js";
 
-/**
+/*
  * Stores a report and its associated cycles.
  *
  * @param {Object} req - The request object (for auth extraction by protectOperation)
@@ -39,4 +39,29 @@ export const storeReportAndCycles = async (
   });
 
   return report;
+};
+
+/**
+ * Fetch reports filtered by eventKey, optional matchKey, and/or optional robot.
+ * For each report, fetch and attach its cycles.
+ *
+ * @param {string} eventKey - The event identifier.
+ * @param {string|null} matchKey - (Optional) The match key to filter reports.
+ * @param {string|null} robot - (Optional) The robot identifier to filter reports.
+ * @returns {Promise<Array>} A promise that resolves to an array of reports with cycles attached.
+ */
+export const getReportsAndCyclesFiltered = async (
+  req,
+  eventKey,
+  matchKey,
+  robot
+) => {
+  // getReportsFiltered should build the query dynamically based on provided filters.
+  const reports = await getReportsFiltered(req, eventKey, matchKey, robot);
+  for (let report of reports) {
+    // Attach cycles using the report's id.
+    report.cycles = await getCyclesByReport(req, eventKey, report.id);
+    report.totals = calculateReportTotals(report);
+  }
+  return reports;
 };

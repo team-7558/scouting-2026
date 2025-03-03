@@ -29,7 +29,10 @@ export const storeCyclesInternal = async (
         cage_location TEXT,
         cage_touch_time INT,
         cage_type TEXT,
-        result TEXT
+        result TEXT,
+        contact_robot TEXT,
+        pin_count INT,
+        foul_count INT
       );
     `;
     await client.query(createTableQuery);
@@ -59,30 +62,56 @@ export const storeCyclesInternal = async (
       const cageType = cycle.cageType || null;
       const resultField = cycle.result || null;
 
+      const contactRobot = cycle.contactRobot || null;
+      const pinCount = cycle.pinCount || null;
+      const foulCount = cycle.foulCount || null;
+
       const insertQuery = `
         INSERT INTO ${tableName} 
-          (key, match_key, cycle_index, phase, type, attained_location, start_time, deposit_type, deposit_location, end_time, cycle_time, robot, report_id, cage_location, cage_touch_time, cage_type, result)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+          (key, 
+          match_key,
+          cycle_index,
+          phase, 
+          type, 
+          attained_location, 
+          start_time,
+          deposit_type, 
+          deposit_location,
+          end_time,
+          cycle_time,
+          robot,
+          report_id,
+          cage_location, 
+          cage_touch_time, 
+          cage_type, 
+          result,
+          contact_robot, 
+          pin_count, 
+          foul_count)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
         ON CONFLICT (key) DO NOTHING;
       `;
       const values = [
         key,
         matchKey,
         i,
-        cycle.phase || null,
-        cycle.type || null,
+        cycle.phase,
+        cycle.type,
         attainedLocation,
-        cycle.startTime || null,
-        cycle.depositType || null,
+        cycle.startTime,
+        cycle.depositType,
         depositLocation,
-        cycle.endTime || null,
+        cycle.endTime,
         cycleTime,
-        additionalData.robot || null,
-        additionalData.reportId || null,
+        additionalData.robot,
+        additionalData.reportId,
         cageLocation,
         cageTouchTime,
         cageType,
         resultField,
+        contactRobot,
+        pinCount,
+        foulCount,
       ];
       await client.query(insertQuery, values);
     }
@@ -91,32 +120,48 @@ export const storeCyclesInternal = async (
   }
 };
 
-export const getCyclesInternal = async (eventKey, matchKey, robot) => {
+// Helper function to safely parse JSON strings.
+const safeJSONParse = (value) => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        return JSON.parse(value);
+      } catch (e) {
+        // If parsing fails, just return the original value.
+        return value;
+      }
+    }
+  }
+  return value;
+};
+
+export const getCyclesByReportInternal = async (eventKey, reportId) => {
   const tableName = `cycles_${eventKey}`;
   const client = await pgClient();
   try {
     const query = `
       SELECT *
       FROM ${tableName}
-      WHERE match_key = $1 AND robot = $2
+      WHERE report_id = $1
       ORDER BY cycle_index ASC
     `;
-    const result = await client.query(query, [matchKey, robot]);
-    // Optionally parse JSON columns.
-    const cycles = result.rows.map((row) => ({
+    const result = await client.query(query, [reportId]);
+    return result.rows.map((row) => ({
       ...row,
       attained_location: row.attained_location
-        ? JSON.parse(row.attained_location)
+        ? safeJSONParse(row.attained_location)
         : null,
       deposit_location: row.deposit_location
-        ? JSON.parse(row.deposit_location)
+        ? safeJSONParse(row.deposit_location)
         : null,
     }));
-    return cycles;
   } finally {
     await client.release();
   }
 };
 
-export const getCycles = protectOperation(getCyclesInternal, ["USER"]);
+export const getCyclesByReport = protectOperation(getCyclesByReportInternal, [
+  "USER",
+]);
 export const storeCycles = protectOperation(storeCyclesInternal, ["USER"]);

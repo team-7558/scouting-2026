@@ -150,7 +150,7 @@ const ScoutMatch = () => {
   const [contact, setContact] = useState({
     startTime: null,
     endTime: null,
-    robot: null,
+    contactRobot: null,
     pinCount: null,
     foulCount: null,
   });
@@ -294,20 +294,6 @@ const ScoutMatch = () => {
     terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
     clearUnfinished();
   }, [coral.endTime, algae.endTime, defense.endTime, contact.endTime]);
-
-  // useEffect(() => {
-  //   if (coral.startTime != null) {
-  //     console.log("coral cycle progress: " + JSON.stringify(coral));
-  //     clearUnfinished();
-  //   }
-  // }, [coral.startTime]);
-
-  // useEffect(() => {
-  //   if (algae.startTime != null) {
-  //     console.log("algae cycle progress: " + JSON.stringify(algae));
-  //     clearUnfinished();
-  //   }
-  // }, [algae.startTime]);
 
   const hasCoral = () => {
     return coral.startTime != null;

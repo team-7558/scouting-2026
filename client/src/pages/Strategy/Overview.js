@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getReports } from "../../requests/ApiRequests";
 
-import { Box, Typography, Grid, Icon } from '@mui/material';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp'; //Example Icons
-import StarIcon from '@mui/icons-material/Star';
+import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 
 import {
     GAME_PIECES,
@@ -14,17 +13,33 @@ import {
     GAME_LOCATIONS
   } from "./../ScoutMatch/Constants.js";
 
-console.log("overview loaded");
-
 const Overview = () => {
     const [robotData, setRobotData] = useState(null);
+    const [paramsProvided, setParamsProvided] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    console.log("here");
+    const eventKey = searchParams.get('eventKey');
+    useEffect(() => {
+        const eventKey = searchParams.get('eventKey');
+        if (eventKey) {
+          setParamsProvided(true);
+        } else {
+          setParamsProvided(false); 
+        }
+      }, [eventKey]); 
+
+    const handleDialogSubmit = (values) => {
+        const currentParams = {};
+        for (const key of searchParams.keys()) {
+          currentParams[key] = searchParams.get(key);
+        }
+        setSearchParams({ ...currentParams, ...values });
+      };
     
     useEffect(() => {
         const fetchData = async () => {
             try {
-              const response = await getReports({ eventKey: "2025week0" });
+              const response = await getReports({ eventKey: eventKey });
               setRobotData(response.data); // Store fetched data in state
               console.log(response.data);
               
@@ -32,9 +47,10 @@ const Overview = () => {
               console.error("Error fetching robot data:", error);
             }
           };
-      
-          fetchData();
-    }, []);
+          if (paramsProvided){
+            fetchData();
+          }
+    }, [paramsProvided]);
 
     const calculateAverageTeamPoints = (reports) => {                
           
@@ -124,6 +140,16 @@ const Overview = () => {
               ))}
             </ol>
           );
+    } else if (!paramsProvided){
+        return(
+            <RequiredParamsDialog
+                open={true}
+                onSubmit={handleDialogSubmit}
+                searchParams={searchParams}
+                searchParamsError=""
+                requiredParamKeys={["eventKey"]}
+            />
+        );
     }
     return (
         <p>STILL LOADING</p>

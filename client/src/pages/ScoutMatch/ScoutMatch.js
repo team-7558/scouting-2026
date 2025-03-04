@@ -1278,14 +1278,7 @@ const ScoutMatch = () => {
   }, []);
 
   const getmatchKey = () => {
-    if (scoutData) {
-      return (
-        scoutData.comp_level +
-        (scoutData.comp_level !== "qm" ? scoutData.set_number : "") +
-        "m" +
-        scoutData.match_number
-      );
-    }
+    return searchParams.get("matchKey");
   };
 
   return (

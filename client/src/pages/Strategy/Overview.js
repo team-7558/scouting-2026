@@ -9,6 +9,17 @@ import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+  } from '@mui/material';
+import { Input, Menu } from "@mui/material";
+import { styled } from '@mui/system';
 
 import {
     GAME_PIECES,
@@ -18,7 +29,6 @@ import {
     AUTO_MAX_TIME,
     GAME_LOCATIONS
   } from "./../ScoutMatch/Constants.js";
-import { Input, Menu } from "@mui/material";
 
 const Overview = () => {
     const [robotData, setRobotData] = useState(null);
@@ -38,16 +48,32 @@ const Overview = () => {
     const [teamsList, setTeamsList] = useState([]);
 
     const SEARCH_FILTER_VALUES = {
-        POINTS: (robot) => robot.points[0]/robot.points[1],
-        CORAL_SCORED: (robot) => robot.coral.scoredCount[0]/robot.coral.scoredCount[1],
-        CORAL_CYCLE_TIME: (robot) => (robot.coral.avgScoringCycleTime[0]/robot.coral.avgScoringCycleTime[1]) / 1000,
-        CORAL_ACCURACY: (robot) => ((robot.coral.scoredCount[0]/robot.coral.scoredCount[1]) / (robot.coral.attainedCount[0]/robot.coral.attainedCount[1]))*100,
-        ALGAE_SCORED: (robot) => robot.algae.scoredCount[0]/robot.algae.scoredCount[1],
-        ALAAE_CYCLE_TIME: (robot) => (robot.algae.avgScoringCycleTime[0]/robot.algae.avgScoringCycleTime[1]) / 1000,
-        ALGAE_ACCURACY: (robot) => ((robot.algae.scoredCount[0]/robot.algae.scoredCount[1]) / (robot.algae.attainedCount[0]/robot.algae.attainedCount[1]))*100,
+        POINTS: {
+            function: (robot) => robot.points[0]/robot.points[1]
+        },
+        CORAL_SCORED: {
+            function: (robot) => robot.coral.scoredCount[0]/robot.coral.scoredCount[1]
+        },
+        CORAL_CYCLE_TIME: {
+            function: (robot) => (robot.coral.avgScoringCycleTime[0]/robot.coral.avgScoringCycleTime[1]) / 1000
+        },
+        CORAL_ACCURACY: {
+            function: (robot) => ((robot.coral.scoredCount[0]/robot.coral.scoredCount[1]) / (robot.coral.attainedCount[0]/robot.coral.attainedCount[1]))*100
+        },
+        ALGAE_SCORED: {
+            function: (robot) => robot.algae.scoredCount[0]/robot.algae.scoredCount[1]
+        },
+        ALGAE_CYCLE_TIME: {
+            function: (robot) => (robot.algae.avgScoringCycleTime[0]/robot.algae.avgScoringCycleTime[1]) / 1000
+        },
+        ALGAE_ACCURACY: {
+            function: (robot) => ((robot.algae.scoredCount[0]/robot.algae.scoredCount[1]) / (robot.algae.attainedCount[0]/robot.algae.attainedCount[1]))*100
+        },
     }
 
     const eventKey = searchParams.get('eventKey');
+
+    //update paramsprovided based on params
     useEffect(() => {
         const eventKey = searchParams.get('eventKey');
         if (eventKey) {
@@ -65,6 +91,7 @@ const Overview = () => {
         setSearchParams({ ...currentParams, ...values });
       };
     
+    //fetch the data from server when params change
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -81,84 +108,7 @@ const Overview = () => {
           }
     }, [paramsProvided]);
 
-    const calculateAverageTeamPoints = (reports) => {                
-        const teamPoints = {};
-    
-        if (!reports || !Array.isArray(reports)) {
-            return {};
-        }
-    
-        reports.forEach(report => {
-            if (!report || typeof report !== 'object' || !report.robot || typeof report.robot !== 'string') {
-                return;
-            }
-    
-            const teamNumber = report.robot;
-            let totalPoints = 0;
-    
-            if (report.cycles && Array.isArray(report.cycles)) {
-                report.cycles.forEach(cycle => {
-                    switch (cycle.type) {
-                        case CYCLE_TYPES.CORAL: {
-                            let pointValues = {};
-                            if (cycle.end_time <= AUTO_MAX_TIME) {
-                                pointValues = { 
-                                  "L4": 7, "L3": 6, "L2": 4, "L1": 3
-                                }; 
-                            } else {
-                                pointValues = { 
-                                    "L4":5, "L3": 4, "L2": 3, "L1": 2
-                                  }; 
-                            }
-                            if (cycle.deposit_location?.slice(-2)) {
-                                totalPoints += pointValues[cycle.deposit_location.slice(-2)] || 0;
-                            }
-                            break;
-                        }
-    
-                        case CYCLE_TYPES.ALGAE: {
-                            if (cycle.deposit_location === GAME_LOCATIONS.NET) {
-                                totalPoints += 4;
-                            } else if (cycle.deposit_location === GAME_LOCATIONS.PROCESSOR) {
-                                totalPoints += 6; 
-                            }
-                            break;
-                        }
-    
-                        case CYCLE_TYPES.HANG: {
-                            if (cycle.result === HANG_RESULTS.PARK) {
-                                totalPoints += 2;
-                            } else if (cycle.result === HANG_RESULTS.SHALLOW) {
-                                totalPoints += 6;
-                            } else if (cycle.result === HANG_RESULTS.DEEP) {
-                                totalPoints += 12;
-                            }
-                                break;
-                            }
-    
-                        default: {
-                             break;
-                        }
-                    }
-                });
-            }
-    
-            if (teamPoints[teamNumber]) {
-                teamPoints[teamNumber].total += totalPoints;
-                teamPoints[teamNumber].count += 1;
-            } else {
-                teamPoints[teamNumber] = { total: totalPoints, count: 1 };
-            }
-        });
-    
-        const averageTeamPoints = {};
-        for (const team in teamPoints) {
-            averageTeamPoints[team] = teamPoints[team].total / teamPoints[team].count;
-        }
-    
-        return averageTeamPoints;
-    };
-
+    //calculate points given one report
     const calculatePoints = (report) => {
         let totalPoints = 0;
         report.cycles.forEach(cycle => {
@@ -208,6 +158,7 @@ const Overview = () => {
         return totalPoints;
     }
 
+    //given a report and robot it adds report values to the robot
     function addReportTotalsToRobot(robot, report, points) {
         // Ensure that robot.algae, robot.contact, robot.coral, robot.defense, and robot.hang exist as objects
         // Create or initialize groups on the robot object if they don't exist
@@ -258,6 +209,7 @@ const Overview = () => {
         return robot;
     }
 
+    //calls calculatepoints and addreporttotalstorobot to parse the server data
     const parseData = (reports) => {
         let parsedData = {};
 
@@ -271,18 +223,20 @@ const Overview = () => {
         return parsedData;
     }
 
+    //call parseData when server data changes
     useEffect(() => {
         if (!robotData) return;
         setParsedData(parseData(robotData.reports));
     }, [robotData]);
 
+    //when data or searchfilter changes, re-filter the teams
     useEffect(() => {
         console.log("parsedData: ", parsedData);
         if (parsedData){
             const newTeamsList = {}
             for (let team in parsedData){
                 if (SEARCH_FILTER_VALUES[searchFilter]){
-                    newTeamsList[team] = SEARCH_FILTER_VALUES[searchFilter](parsedData[team]);
+                    newTeamsList[team] = SEARCH_FILTER_VALUES[searchFilter].function(parsedData[team]);
                 }else{
                     console.log(searchFilter, " not found");
                 }
@@ -292,31 +246,106 @@ const Overview = () => {
             setTeamsList(newTeamsList);
         }
     }, [searchFilter, parsedData]);
+
+    const StyledPaper = styled(Paper)(({ theme }) => ({
+        padding: theme.spacing(2), // Increased padding
+        marginBottom: theme.spacing(1), // Added spacing between items
+        backgroundColor: theme.palette.grey[700], // Slightly lighter background for contrast
+        borderRadius: theme.shape.borderRadius, // Rounded corners for a softer look
+        transition: 'transform 0.2s ease-in-out', // Subtle hover effect
+        '&:hover': {
+          transform: 'scale(1.02)',
+        },
+      }));
     
+    // const TeamCard = ({team, value}) => {
+    //     return(
+    //         <StyledPaper 
+    //             variant="elevation"
+    //             elevation={15}
+    //             sx={{
+    //                 marginTop: '2%',
+    //                 height: '7vh',
+    //                 display: 'flex',
+    //                 alignItems: 'center',
+    //                 width: '90vw',
+    //                 marginLeft: '5vw'
+    //             }}
+    //         >
+    //             <Typography variant="h4" component="h3" sx={{marginLeft: '2%'}}> 
+    //                 <span style={{color: 'red'}}>{team}</span>: {value}
+    //             </Typography>
+    //         </StyledPaper>
+    //     );
+    // }
     
-    if (robotData){
+    if (robotData){ //main
         return (<>
-            <FormControl sx={{width: '10%', marginTop: '5%', marginLeft: '5%'}}>
-                <InputLabel>SEARCH FILTER</InputLabel>
+            {/* search filters dropdown */}
+            <FormControl sx={{width: '70%', marginTop: '2%', marginLeft: '15%'}}>
+                <InputLabel sx={{
+                    transform: 'translate(5px, -16px) scale(0.75)', // Adjust these values
+                }}>
+                    SEARCH FILTER
+                </InputLabel>
                 <Select
                     value={searchFilter}
                     label="Age"
                     onChange={(e) => setSearchFilter(e.target.value)}
+                    sx={{
+                        color: 'white', // Text color inside Select
+                        '.MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'white', // Border color of the Select
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'lightgray', // Border color on hover
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'white', // Border color when focused
+                        },
+                      }}
                 >
                     {Object.keys(SEARCH_FILTERS).map((key) => (
-                        <MenuItem key={key} value={SEARCH_FILTERS[key]}>{SEARCH_FILTERS[key]}</MenuItem>
+                        <MenuItem key={key} value={SEARCH_FILTERS[key]}>{SEARCH_FILTERS[key].replaceAll("_", " ")}</MenuItem>
                     ))}
                 </Select>
             </FormControl>
-            <ol>
-                {Object.entries(teamsList).sort((a, b) => {
-                    return b[1] - a[1]
-                }).map((value) => (
-                    <li key={value[0]}>{value[0]}: {Math.round(value[1]*10)/10}</li>
-                ))}
-            </ol>
-            </>);
-    } else if (!paramsProvided){
+            <Table aria-label="basic table" sx={{
+                width: '90vw',
+                marginLeft: '5vw',
+                marginTop: '4vw'
+            }}>
+                <TableHead>
+                <TableRow>
+                    <TableCell sx={{fontWeight: 900, fontSize: 40}}>Team</TableCell>
+                    <TableCell sx={{fontWeight: 900, fontSize: 40}}>{searchFilter.replaceAll("_", " ")}</TableCell>
+                </TableRow>
+                </TableHead>
+                <TableBody>
+                    {Object.entries(teamsList).sort((a, b) => {
+                        return b[1] - a[1]
+                            }).map((value) => (
+                                <TableRow 
+                                    key={value[0]}
+                                    sx={{
+                                        backgroundColor: 'rgba(138, 138, 138, 0.05)',
+                                        '&:nth-of-type(even)': {  // Select even rows
+                                            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                                        },
+                                    }}
+                                >
+                                    <TableCell sx={{fontSize: 20}}>
+                                        {value[0]}
+                                    </TableCell>
+                                    <TableCell sx={{fontSize: 20}}>
+                                        {Math.round(value[1]*10)/10}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                </TableBody>
+            </Table>
+        </>);
+    } else if (!paramsProvided){ //params not provided dialog
         return(
             <RequiredParamsDialog
                 open={true}
@@ -327,7 +356,7 @@ const Overview = () => {
             />
         );
     }
-    return (
+    return ( //loading dialog
         <p>STILL LOADING</p>
     )
     

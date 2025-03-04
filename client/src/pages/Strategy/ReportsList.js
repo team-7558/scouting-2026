@@ -26,10 +26,10 @@ import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Import your CyclesFieldC
 
 // Group colors used for styling group headers.
 const groupColors = {
-  coral: "#d32f2f", // darker red
+  coral: "#7e57c2", // darker red
   algae: "#388e3c", // darker green
   hang: "#1976d2", // darker blue
-  defense: "#7e57c2", // darker purple
+  defense: "#d32f2f", // darker purple
   contact: "#f57c00", // darker orange
 };
 
@@ -294,7 +294,7 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
           Cycles
         </Typography>
-        <CyclesFieldCanvas report={report} width={400} height={300} />
+        <CyclesFieldCanvas report={report} />
       </Box>
     </Paper>
   );
@@ -363,7 +363,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
             sx={{
               backgroundColor: stationColor,
               flexShrink: 0,
-              border: i === index ? `2px solid ${stationColor}` : "none",
+              border: i === index ? "3px solid" : "none",
             }}
           />
         );
@@ -400,10 +400,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
         {reports.map((report) => (
           <Box
             key={report.match_key}
-            sx={{
-              flex: "0 0 90%",
-              mx: "5%",
-            }}
+            sx={{ width: 0, flex: "0 0 90%", mx: "5%" }}
           >
             <ReportCard
               report={report}

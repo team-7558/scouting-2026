@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useState, useLayoutEffect, useEffect, useRef } from "react";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas";
 import { SCOUTING_CONFIG } from "../ScoutMatch/ScoutingConfig";
 import { ImageIcon } from "../ScoutMatch/CustomFieldComponents";
 import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
 import AlgaeIcon from "../../assets/scouting-2025/algaeIcon.png";
+import CrossIcon from "../../assets/scouting-2025/crossIcon.webp";
+import CheckIcon from "../../assets/scouting-2025/checkIcon.png";
+import { FIELD_ASPECT_RATIO } from "../ScoutMatch/Constants";
 
 // Build a positions mapping from the SCOUTING_CONFIG positions.
 const buildPositionsMapping = () => {
@@ -39,32 +42,22 @@ const getPosition = (location) => {
 
 /**
  * Converts a cycle into a stroke object.
- * Each stroke has a "points" array (with virtual field coordinates)
- * and a "color" based on the cycle type.
  */
 const getCycleStroke = (cycle) => {
-  // Determine attained and deposit coordinates.
   let attained = cycle.attained_location;
   let deposit = cycle.deposit_location;
-  // Only draw completed cycles.
-  if (!cycle.end_time) {
-    return null;
-  }
+  if (!cycle.end_time) return null;
 
-  console.log("getting stroke for", attained, deposit);
   if (!Array.isArray(attained)) {
     attained = getPosition(attained);
   }
   if (!Array.isArray(deposit)) {
     deposit = getPosition(deposit);
   }
-  console.log(attained, deposit);
-  // If we don't have both coordinates, skip drawing this cycle.
   if (!attained || !deposit) return null;
 
-  // Define stroke color based on cycle type.
   let strokeColor = "#000";
-  if (cycle.type === "CORAL") strokeColor = "#d32f2f";
+  if (cycle.type === "CORAL") strokeColor = "#1976d2";
   else if (cycle.type === "ALGAE") strokeColor = "#388e3c";
 
   return {
@@ -77,20 +70,18 @@ const getCycleStroke = (cycle) => {
 };
 
 /**
- * Generates icon components for each completed cycle.
- * Icons are rendered at the attained location of the cycle.
+ * Renders icons at the attained locations.
  */
 const getCycleIcons = (cycles) => {
   return cycles
     .map((cycle, index) => {
-      if (!cycle.end_time) return null; // only process completed cycles
+      if (!cycle.end_time) return null;
       let attained = cycle.attained_location;
       if (!Array.isArray(attained)) {
         attained = getPosition(attained);
       }
       if (!attained) return null;
 
-      // Choose the icon based on cycle type.
       const iconSrc =
         cycle.type === "CORAL"
           ? CoralIcon
@@ -104,8 +95,8 @@ const getCycleIcons = (cycles) => {
           key={`cycle-icon-${index}`}
           fieldX={attained[0]}
           fieldY={attained[1]}
-          fieldWidth={100} // adjust width as needed
-          fieldHeight={100} // adjust height as needed
+          fieldWidth={100}
+          fieldHeight={100}
           perspective="default"
         >
           {ImageIcon(iconSrc)}
@@ -116,21 +107,97 @@ const getCycleIcons = (cycles) => {
 };
 
 /**
- * CyclesFieldCanvas takes in a report (with a cycles array) and draws strokes on the field.
- * It uses FieldCanvas (which already supports a strokes prop) to render the field.
- * In addition, it adds dynamic icons at the attained locations using custom field components.
+ * Renders icons at the deposit locations.
+ */
+const getDepositIcons = (cycles) => {
+  return cycles
+    .map((cycle, index) => {
+      if (!cycle.end_time) return null;
+      let deposit = cycle.deposit_location;
+      if (!Array.isArray(deposit)) {
+        deposit = getPosition(deposit);
+      }
+      if (!deposit) return null;
+
+      let depositIcon = null;
+      if (cycle.deposit_type === "SCORE") {
+        depositIcon = CheckIcon;
+      } else if (cycle.deposit_type === "DROP") {
+        depositIcon = CrossIcon;
+      }
+      if (!depositIcon) return null;
+
+      return (
+        <FieldLocalComponent
+          key={`deposit-icon-${index}`}
+          fieldX={deposit[0]}
+          fieldY={deposit[1]}
+          fieldWidth={100}
+          fieldHeight={100}
+          perspective="default"
+        >
+          {ImageIcon(depositIcon)}
+        </FieldLocalComponent>
+      );
+    })
+    .filter(Boolean);
+};
+
+/**
+ * CyclesFieldCanvas scales its height dynamically based on the parent container's width.
+ * The FieldCanvas is forced to re-mount on canvasHeight change via a dynamic key.
  */
 const CyclesFieldCanvas = ({ report, ...props }) => {
-  console.log("cycles field canvas", report);
+  const containerRef = useRef(null);
+  const [canvasHeight, setCanvasHeight] = useState(300);
+
+  const updateHeight = () => {
+    if (containerRef.current) {
+      const width = containerRef.current.offsetWidth;
+      const height = width / FIELD_ASPECT_RATIO;
+      setCanvasHeight(height);
+    }
+  };
+
+  // useLayoutEffect ensures initial measurement happens before painting.
+  useLayoutEffect(() => {
+    updateHeight();
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight();
+    });
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("resize", updateHeight);
+    return () => {
+      window.removeEventListener("resize", updateHeight);
+    };
+  }, []);
+
   const strokes = report.cycles
     .map(getCycleStroke)
     .filter((stroke) => stroke !== null);
-  const icons = getCycleIcons(report.cycles);
+  const attainedIcons = getCycleIcons(report.cycles);
+  const depositIcons = getDepositIcons(report.cycles);
 
   return (
-    <FieldCanvas strokes={strokes} {...props}>
-      {icons}
-    </FieldCanvas>
+    <div ref={containerRef} style={{ width: "100%" }}>
+      <FieldCanvas
+        key={canvasHeight} // Force re-mount when canvasHeight changes
+        strokes={strokes}
+        height={canvasHeight}
+        {...props}
+      >
+        {attainedIcons}
+        {depositIcons}
+      </FieldCanvas>
+    </div>
   );
 };
 

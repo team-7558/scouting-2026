@@ -40,9 +40,9 @@ import {
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
 import { ImageIcon } from "./CustomFieldComponents.js";
-import MissingParamsDialog from "./MissingParamsDialog.js";
 import { SIDEBAR_CONFIG } from "./SidebarConfig.js";
 import { getSignedInUser } from "../../TokenUtils.js";
+import RequiredParamsDialog from "../Common/RequiredParamsDialog.js";
 
 const { B1, R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -58,6 +58,7 @@ const {
   GO_TELE,
   GO_DEFENSE,
   GO_POST_MATCH,
+  ROBOT_LEFT_STARTING,
 } = ACTIONS;
 const { CORAL, ALGAE } = GAME_PIECES;
 
@@ -93,7 +94,11 @@ const ScoutMatch = () => {
   }, [searchParams]);
 
   const handleMissingParamsSubmit = ({ eventKey, matchKey, station }) => {
-    setSearchParams({ eventKey, matchKey, station });
+    setSearchParams({
+      eventKey: eventKey.toLowerCase(),
+      matchKey: matchKey.toLowerCase(),
+      station,
+    });
   };
 
   const eventKey = searchParams.get("eventKey");
@@ -124,6 +129,11 @@ const ScoutMatch = () => {
   const [cycles, setCycles] = useState([]);
 
   const [startingPosition, setStartingPosition] = useState(-1);
+
+  const [autoMovement, setAutoMovement] = useState({
+    startTime: 0,
+    endTime: null,
+  });
 
   const [coral, setCoral] = useState({
     attainedLocation: GAME_LOCATIONS.PRELOAD,
@@ -172,6 +182,20 @@ const ScoutMatch = () => {
     comments: "",
   });
 
+  const resetMatchState = () => {
+    setPhase(PHASES.PRE_MATCH);
+    setStartingPosition(-1);
+    setMatchStartTime(null);
+    setDisplayTime(null);
+    setCycles([]);
+    setAutoMovement({ startTime: 0 });
+    setCoral({ attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 });
+    setAlgae({});
+    setDefense({});
+    setContact({});
+    setHang({});
+    setEndgame({});
+  };
   const fieldCanvasRef = useRef(null);
   const scaledBoxRef = useRef(null);
   // Initialize scaledBoxRect with nonzero default values based on current window dimensions
@@ -215,6 +239,7 @@ const ScoutMatch = () => {
       setScoutData(response.data);
       setSearchParamsError(null);
       console.log("Fetched scout match data:", response.data);
+      resetMatchState();
     } catch (err) {
       fetching = false;
       setSearchParamsError(err.response?.data?.message);
@@ -252,6 +277,8 @@ const ScoutMatch = () => {
 
   const getCycle = (cycleType) => {
     switch (cycleType) {
+      case CYCLE_TYPES.AUTO_MOVEMENT:
+        return autoMovement;
       case CYCLE_TYPES.ALGAE:
         return algae;
       case CYCLE_TYPES.CORAL:
@@ -288,12 +315,21 @@ const ScoutMatch = () => {
   };
 
   useEffect(() => {
+    terminateCycle(CYCLE_TYPES.AUTO_MOVEMENT, autoMovement.endTime, () =>
+      setAutoMovement({})
+    );
     terminateCycle(CYCLE_TYPES.CORAL, coral.endTime, () => setCoral({}));
     terminateCycle(CYCLE_TYPES.ALGAE, algae.endTime, () => setAlgae({}));
     terminateCycle(CYCLE_TYPES.DEFENSE, defense.endTime, () => setDefense({}));
     terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
     clearUnfinished();
-  }, [coral.endTime, algae.endTime, defense.endTime, contact.endTime]);
+  }, [
+    coral.endTime,
+    algae.endTime,
+    defense.endTime,
+    contact.endTime,
+    autoMovement.endTime,
+  ]);
 
   const hasCoral = () => {
     return coral.startTime != null;
@@ -368,9 +404,12 @@ const ScoutMatch = () => {
     setPhase,
     isDefending,
     searchParams,
+    setSearchParams,
     startingPosition,
     cycles,
     setStartingPosition,
+    autoMovement,
+    setAutoMovement,
     coral,
     setCoral,
     algae,
@@ -390,6 +429,7 @@ const ScoutMatch = () => {
     clearUnfinished,
     hasUnfinished,
     scoutData,
+    setScoutData,
     contact,
     setContact,
     userToken,
@@ -513,6 +553,9 @@ const ScoutMatch = () => {
       // console.log(tasks[i]);
       let task = tasks[i];
       switch (task.action) {
+        case ROBOT_LEFT_STARTING:
+          setAutoMovement({ ...autoMovement, endTime: getCurrentTime() });
+          break;
         case ACQUIRE:
           startAcquireGamepiece(location, task.gamepiece, matchContext);
           break;
@@ -568,7 +611,7 @@ const ScoutMatch = () => {
     fieldHeight,
     componentFunction,
     dontFlip = false,
-    isDisabled = false
+    noPointerEvents = false
   ) => {
     if (!dontFlip) {
       fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
@@ -583,7 +626,7 @@ const ScoutMatch = () => {
             fieldWidth={fieldWidth}
             fieldHeight={fieldHeight}
             perspective={scoutPerspective}
-            sx={{ pointerEvents: isDisabled ? "none" : "auto" }}
+            sx={{ pointerEvents: noPointerEvents ? "none" : "auto" }}
           >
             {componentFunction(match)}
           </FieldLocalComponent>
@@ -626,8 +669,10 @@ const ScoutMatch = () => {
           config.dimensions.width,
           config.dimensions.height,
           (match) => {
+            const isNotShowing =
+              config.showFunction && !config.showFunction(match, key);
             const isDisabled = config.disabled && config.disabled(match, key);
-            if (config.showFunction && !config.showFunction(match, key)) {
+            if (isNotShowing) {
               return;
             }
             return config.componentFunction != null ? (
@@ -635,7 +680,7 @@ const ScoutMatch = () => {
             ) : (
               <FieldButton
                 sx={{
-                  pointerEvents: isDisabled ? "none" : "auto",
+                  pointerEvents: isDisabled || isNotShowing ? "none" : "auto",
                   borderRadius: config.isCircle ? "50%" : "2%",
                 }}
                 drawBorder={config.drawBorder && config.drawBorder(match, key)}
@@ -650,8 +695,9 @@ const ScoutMatch = () => {
             );
           },
           /*dontFlip= */ false,
-          /*isDisabled=*/ config.disabled &&
-            config.disabled(CONTEXT_WRAPPER, key)
+          /*isDisabled=*/ (config.disabled &&
+            config.disabled(CONTEXT_WRAPPER, key)) ||
+            (config.showFunction && !config.showFunction(CONTEXT_WRAPPER, key))
         )
       : null;
   };
@@ -1235,8 +1281,9 @@ const ScoutMatch = () => {
     if (scoutData) {
       return (
         scoutData.comp_level +
-        scoutData.match_number +
-        (scoutData.comp_level !== "qm" ? "m" + scoutData.set_number : "")
+        (scoutData.comp_level !== "qm" ? scoutData.set_number : "") +
+        "m" +
+        scoutData.match_number
       );
     }
   };
@@ -1252,11 +1299,12 @@ const ScoutMatch = () => {
           }}
         >
           {/* <FullscreenDialog /> */}
-          <MissingParamsDialog
+          <RequiredParamsDialog
             open={searchParamsError != null}
             searchParams={searchParams}
             searchParamsError={searchParamsError}
             onSubmit={handleMissingParamsSubmit}
+            requiredParamKeys={["eventKey", "matchKey", "station"]}
           />
           <Box
             ref={scaledBoxRef}

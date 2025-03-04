@@ -61,6 +61,15 @@ router.get("/getScoutMatch", async (req, res) => {
       opponents = { b1: matchData.b1, b2: matchData.b2, b3: matchData.b3 };
     }
 
+    // TOOD handle einstein
+    let nextMatchKey = matchData.comp_level + (matchData.match_number + 1);
+    if (matchData.comp_level == "sf") {
+      // round robin only increases set number
+      nextMatchKey = "sf" + (matchData.set_number + 1) + "m1";
+    } else if (matchData.comp_level == "f") {
+      // finals only has one set
+      nextMatchKey = "f1m" + (matchData.match_number + 1);
+    }
     res.json({
       teamNumber,
       match_number: matchData.match_number,
@@ -68,6 +77,7 @@ router.get("/getScoutMatch", async (req, res) => {
       eventKey: matchData.eventKey,
       set_number: matchData.set_number,
       opponents,
+      nextMatchKey,
       reportId: nanoid(),
     });
   } catch (error) {

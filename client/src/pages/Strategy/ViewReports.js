@@ -32,6 +32,7 @@ const ViewReports = ({ requiredParamKeys = ["eventKey", "robot"] }) => {
         requiredParamKeys.forEach((key) => {
           params[key] = searchParams.get(key);
         });
+        console.log("params: ", params);
         const res = await getReports(params);
         setReportData(res.data);
       } catch (err) {

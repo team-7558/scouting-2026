@@ -48,7 +48,7 @@ export const calculateReportTotals = (report) => {
   // Process each cycle using a switch statement
   report.cycles.forEach((cycle) => {
     const cycleType = cycle.type;
-    const phase = cycle.phase;
+    let phase = cycle.phase;
     const startTime =
       cycle.attained_location == "PRELOAD" ? 0 : cycle.start_time;
     const endTime = cycle.end_time;
@@ -56,61 +56,61 @@ export const calculateReportTotals = (report) => {
     const depositType = cycle.deposit_type;
     const attainedLocation = cycle.attained_location;
 
-    const phaseResults = results[phase];
-    switch (cycleType) {
-      case "AUTO_MOVEMENT":
-        if (phase == "auto") {
-          phaseResults.movement.movementTime = cycleTime;
-          phaseResults.movement.movementRate = 1;
-        }
-        break;
-      case "CORAL":
-        if (attainedLocation !== null && startTime !== null) {
-          phaseResults.coral.attainedCount++;
-        }
-        if (depositType === "SCORE" && endTime !== null) {
-          phaseResults.coral.scoredCount++;
-          coralScoringTimes.push(cycleTime);
-        }
-        break;
+    const phaseResults = results[phase=="post_match" ? "tele" : phase];
+      switch (cycleType) {
+        case "AUTO_MOVEMENT":
+          if (phase == "auto") {
+            phaseResults.movement.movementTime = cycleTime;
+            phaseResults.movement.movementRate = 1;
+          }
+          break;
+        case "CORAL":
+          if (attainedLocation !== null && startTime !== null) {
+            phaseResults.coral.attainedCount++;
+          }
+          if (depositType === "SCORE" && endTime !== null) {
+            phaseResults.coral.scoredCount++;
+            coralScoringTimes.push(cycleTime);
+          }
+          break;
 
-      case "ALGAE":
-        if (attainedLocation !== null && startTime !== null) {
-          phaseResults.algae.attainedCount++;
-        }
-        if (depositType === "SCORE" && endTime !== null) {
-          phaseResults.algae.scoredCount++;
-          algaeScoringTimes.push(cycleTime);
-        }
-        break;
+        case "ALGAE":
+          if (attainedLocation !== null && startTime !== null) {
+            phaseResults.algae.attainedCount++;
+          }
+          if (depositType === "SCORE" && endTime !== null) {
+            phaseResults.algae.scoredCount++;
+            algaeScoringTimes.push(cycleTime);
+          }
+          break;
 
-      case "HANG":
-        phaseResults.hang.startTime = cycle.start_time;
-        phaseResults.hang.cycleTime = cycleTime;
-        break;
+        case "HANG":
+          phaseResults.hang.startTime = cycle.start_time;
+          phaseResults.hang.cycleTime = cycleTime;
+          break;
 
-      case "DEFENSE":
-        if (cycleTime !== null) {
-          phaseResults.defense.totalTime += cycleTime;
-        }
-        break;
+        case "DEFENSE":
+          if (cycleTime !== null) {
+            phaseResults.defense.totalTime += cycleTime;
+          }
+          break;
 
-      case "CONTACT":
-        if (cycleTime !== null) {
-          phaseResults.contact.totalTime += cycleTime;
-        }
+        case "CONTACT":
+          if (cycleTime !== null) {
+            phaseResults.contact.totalTime += cycleTime;
+          }
 
-        phaseResults.contact.pinCount +=
-          cycle.pin_count !== null ? cycle.pin_count : 0;
-        phaseResults.contact.foulCount +=
-          cycle.foul_count !== null ? cycle.foul_count : 0;
-        break;
+          phaseResults.contact.pinCount +=
+            cycle.pin_count !== null ? cycle.pin_count : 0;
+          phaseResults.contact.foulCount +=
+            cycle.foul_count !== null ? cycle.foul_count : 0;
+          break;
 
-      default:
-        // Do nothing for unknown cycle types.
-        break;
-      // }
-    }
+        default:
+          // Do nothing for unknown cycle types.
+          break;
+        // }
+      }
   });
 
   for (let phase of ["auto", "tele"]) {

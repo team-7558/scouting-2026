@@ -1,4 +1,5 @@
 // server/database/cycles.js
+import { USER_ROLES } from "./auth.js";
 import { pgClient, protectOperation } from "./PgClient.js";
 
 export const storeCyclesInternal = async (
@@ -162,6 +163,8 @@ export const getCyclesByReportInternal = async (eventKey, reportId) => {
 };
 
 export const getCyclesByReport = protectOperation(getCyclesByReportInternal, [
-  "USER",
+  USER_ROLES.USER,
 ]);
-export const storeCycles = protectOperation(storeCyclesInternal, ["USER"]);
+export const storeCycles = protectOperation(storeCyclesInternal, [
+  USER_ROLES.USER,
+]);

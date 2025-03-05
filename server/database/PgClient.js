@@ -12,11 +12,11 @@ const DATABASE_URL =
     : process.env.DATABASE_URL;
 
 const config = {
-  // connectionString: DATABASE_URL,
-  connectionString: process.env.LOCAL_DATABASE_URL,
-  // ssl: {
-  //   rejectUnauthorized: false,
-  // },
+  connectionString: DATABASE_URL,
+  // connectionString: process.env.LOCAL_DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 };
 
 const pool = new Pool(config);

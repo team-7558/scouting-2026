@@ -6,13 +6,13 @@ import { USER_ROLES } from "./auth.js";
 
 // Database URI
 
-const DATABASE_URL =
-  process.env.NODE_ENV === "development"
-    ? process.env.LOCAL_DATABASE_URL
-    : process.env.DATABASE_URL;
+// const DATABASE_URL =
+//   process.env.NODE_ENV === "development"
+//     ? process.env.LOCAL_DATABASE_URL
+//     : process.env.DATABASE_URL;
 
 const config = {
-  connectionString: DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
   // connectionString: process.env.LOCAL_DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,

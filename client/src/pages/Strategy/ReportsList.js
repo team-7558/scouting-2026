@@ -230,6 +230,14 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
   );
 };
 
+const formatTimestamp = (timestamp) =>
+  new Intl.DateTimeFormat(undefined, {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "2-digit",
+  }).format(new Date(parseInt(timestamp)));
 // ------------------- ReportCard Component -------------------
 
 const ReportCard = ({ report, isMatchQuery, eventKey }) => {
@@ -274,7 +282,9 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
         >
           {isMatchQuery ? report.robot : report.match_key}
         </Button>
-        {`${report.scout_name} @ ${report.submission_time}`}
+        {`Scouted by ${report.scout_name} at ${formatTimestamp(
+          report.match_start_time
+        )}, submitted at ${formatTimestamp(report.submission_time)}`}
       </Box>
       {["auto", "tele"].map(
         (phase) =>

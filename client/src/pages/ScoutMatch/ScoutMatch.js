@@ -88,7 +88,11 @@ const ScoutMatch = () => {
       !searchParams.get("station")
     ) {
       setSearchParamsError("Missing search params");
-    } else if (!scoutData) {
+    } else if (
+      !scoutData ||
+      scoutData.matchKey != searchParams.get("matchKey") ||
+      scoutData.station != searchParams.get("station")
+    ) {
       fetchScoutMatchData();
     }
   }, [searchParams]);

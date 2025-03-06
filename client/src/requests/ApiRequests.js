@@ -9,15 +9,11 @@ const SERVER_URL =
 const api = new ApiClient(SERVER_URL);
 
 export const postImportMatches = async (event_code) => {
-  return api.post(
-    `${SERVER_URL}/matches`,
-    { event_code },
-    { headers: getAuthHeaders() }
-  );
+  return api.post(`/matches`, { event_code }, { headers: getAuthHeaders() });
 };
 
 export const getScoutMatch = async ({ eventKey, station, matchKey }) => {
-  return api.get(`${SERVER_URL}/getScoutMatch`, {
+  return api.get(`/getScoutMatch`, {
     params: { eventKey, station, matchKey },
     headers: getAuthHeaders(),
   });
@@ -30,14 +26,14 @@ export const submitMatch = async ({
   matchData,
 }) => {
   return api.post(
-    `${SERVER_URL}/reports/submit`,
+    `/reports/submit`,
     { eventKey, matchKey, station, matchData },
     { headers: getAuthHeaders() }
   );
 };
 
 export const getReports = async ({ eventKey, matchKey, robot }) => {
-  return api.get(`${SERVER_URL}/reports/`, {
+  return api.get(`/reports/`, {
     params: { eventKey, matchKey, robot },
     headers: getAuthHeaders(),
   });

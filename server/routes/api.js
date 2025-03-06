@@ -74,6 +74,7 @@ router.get("/getScoutMatch", async (req, res) => {
       teamNumber,
       match_number: matchData.match_number,
       comp_level: matchData.comp_level,
+      matchKey: matchKey,
       eventKey: matchData.eventKey,
       set_number: matchData.set_number,
       opponents,

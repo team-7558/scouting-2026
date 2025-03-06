@@ -13,6 +13,7 @@ export const calculateReportTotals = (report) => {
     },
     algae: {
       attainedCount: 0,
+      scoredCount: 0,
       scoredNetCount: 0,
       scoredProcessorCount: 0,
       scoredOpponentProcessorCount: 0,

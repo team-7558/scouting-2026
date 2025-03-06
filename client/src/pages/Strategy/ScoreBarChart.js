@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
@@ -18,7 +19,6 @@ const CHART_KEY_LABELS = {
 const ScoreBarChart = ({
   scoreData,
   chartKeys,
-  width = 500,
   height = 300,
   barColor = "#8884d8",
 }) => {
@@ -27,19 +27,21 @@ const ScoreBarChart = ({
 
   // Build the chart data based on the provided keys
   const data = chartKeys.map((key) => ({
-    name: CHART_KEY_LABELS[key] ? CHART_KEY_LABELS[key] : key,
+    name: CHART_KEY_LABELS[key] || key,
     value: extractValue(scoreData[key]),
   }));
 
   return (
-    <BarChart width={width} height={height} data={data}>
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="name" />
-      <YAxis />
-      <Tooltip />
-      <Legend />
-      <Bar dataKey="value" fill={barColor} name="Count" />
-    </BarChart>
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Bar dataKey="value" fill={barColor} name="Count" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
 

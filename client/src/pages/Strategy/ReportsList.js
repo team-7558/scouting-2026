@@ -3,11 +3,13 @@ import {
   Box,
   Button,
   Chip,
+  Divider,
   Grid,
   IconButton,
   Paper,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
@@ -126,9 +128,44 @@ const averageMetricMapping = {
   },
 };
 
+// ------------------- New MetricRow Component -------------------
+// Each metric row now shows a left-aligned label (with an icon) and a right-aligned value.
+const MetricRow = ({ icon, label, value }) => (
+  <Box
+    display="flex"
+    alignItems="center"
+    justifyContent="space-between"
+    p={1}
+    mb={1}
+    sx={(theme) => ({
+      backgroundColor: theme.palette.background.paper,
+      borderRadius: theme.shape.borderRadius,
+      boxShadow: theme.shadows[1],
+    })}
+  >
+    <Box display="flex" alignItems="center">
+      {icon && <Box mr={0.5}>{icon}</Box>}
+      <Typography
+        variant="body1"
+        sx={{
+          fontWeight: "bold",
+          color: (theme) => theme.palette.text.primary,
+        }}
+      >
+        {label}
+      </Typography>
+    </Box>
+    <Typography
+      variant="body1"
+      sx={{ color: (theme) => theme.palette.text.secondary }}
+    >
+      {value}
+    </Typography>
+  </Box>
+);
+
 // ------------------- AveragesSummary Component -------------------
-// Renders metrics by group. For the "coral" and "algae" groups, after the metrics
-// grid it shows a ScoreBarChart using a custom set of keys.
+// Renders metrics by group with the new MetricRow. Also displays custom charts for coral and algae.
 const AveragesSummary = ({ phase, averages, showEverything = false }) => {
   const visibleFieldsForCA = [
     "attainedCount",
@@ -158,15 +195,21 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
           <Paper
             key={group}
             variant="outlined"
-            sx={{
+            sx={(theme) => ({
               p: 2,
               mb: 1,
-              borderLeft: `6px solid ${groupColors[group] || "#000"}`,
-            }}
+              borderLeft: `6px solid ${
+                groupColors[group] || theme.palette.text.primary
+              }`,
+              backgroundColor: theme.palette.background.paper,
+            })}
           >
             <Typography
               variant="subtitle1"
-              sx={{ color: groupColors[group] || "inherit", mb: 1 }}
+              sx={(theme) => ({
+                color: groupColors[group] || theme.palette.text.primary,
+                mb: 1,
+              })}
             >
               {group.toUpperCase()}
             </Typography>
@@ -175,52 +218,53 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
                 if (chartKeys[group] && chartKeys[group].includes(field)) {
                   return null;
                 }
-                const key = `${group}.${field}`;
                 const mapping = averageMetricMapping[field] || {
                   label: field,
                   icon: null,
                 };
                 return (
-                  <Grid item xs={12} sm={4} key={key}>
-                    <Typography variant="h6" display="flex" alignItems="start">
-                      {mapping.icon && <Box mr={0.5}>{mapping.icon}</Box>}
-                      <span style={{ fontWeight: 600, marginRight: 4 }}>
-                        {mapping.label}:
-                      </span>{" "}
-                      {groupData[field] != null
-                        ? getFormattedValue(group, field, groupData[field])
-                        : "-"}
-                    </Typography>
+                  <Grid item xs={12} key={`${group}.${field}`}>
+                    <MetricRow
+                      icon={mapping.icon}
+                      label={mapping.label}
+                      value={
+                        groupData[field] != null
+                          ? getFormattedValue(group, field, groupData[field])
+                          : "-"
+                      }
+                    />
                   </Grid>
                 );
               })}
             </Grid>
-            {/* For the coral group, show the custom ScoreBarChart using keys for coral levels */}
             {group === "coral" && groupData.L1 != null && (
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mt: 2, width: "100%" }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                   Coral Levels
                 </Typography>
-                <ScoreBarChart
-                  scoreData={groupData}
-                  chartKeys={chartKeys[group]}
-                />
+                <Box sx={{ width: "100%" }}>
+                  <ScoreBarChart
+                    scoreData={groupData}
+                    chartKeys={chartKeys[group]}
+                  />
+                </Box>
               </Box>
             )}
-            {/* For the algae group, show a breakdown using the new scored keys */}
             {group === "algae" && groupData.scoredProcessorCount != null && (
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mt: 2, width: "100%" }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                   Algae Scored Breakdown
                 </Typography>
-                <ScoreBarChart
-                  scoreData={groupData}
-                  chartKeys={[
-                    "scoredProcessorCount",
-                    "scoredNetCount",
-                    "scoredOpponentProcessorCount",
-                  ]}
-                />
+                <Box sx={{ width: "100%" }}>
+                  <ScoreBarChart
+                    scoreData={groupData}
+                    chartKeys={[
+                      "scoredProcessorCount",
+                      "scoredNetCount",
+                      "scoredOpponentProcessorCount",
+                    ]}
+                  />
+                </Box>
               </Box>
             )}
           </Paper>
@@ -238,8 +282,9 @@ const formatTimestamp = (timestamp) =>
     minute: "numeric",
     second: "2-digit",
   }).format(new Date(parseInt(timestamp)));
-// ------------------- ReportCard Component -------------------
 
+// ------------------- ReportCard Component -------------------
+// The header now uses a full-width clickable area with an added "go to" icon.
 const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   const flatData = flattenData(report.totals);
   flatData["matchKey"] = report.match_key;
@@ -258,34 +303,57 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   return (
     <Paper
       variant="outlined"
-      sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 2 }}
+      sx={(theme) => ({
+        p: 2,
+        mb: 2,
+        borderRadius: theme.shape.borderRadius,
+        boxShadow: theme.shadows[2],
+      })}
     >
-      <Box sx={{ mb: 2, borderBottom: `2px solid ${stationColor}` }}>
-        <Button
-          variant="text"
-          component={Link}
-          to={
-            isMatchQuery
-              ? `/robots?eventKey=${encodeURIComponent(
-                  eventKey
-                )}&&robot=${encodeURIComponent(report.robot)}`
-              : `/matches?eventKey=${encodeURIComponent(
-                  eventKey
-                )}&&matchKey=${encodeURIComponent(report.match_key)}`
-          }
-          sx={{
-            fontSize: "1.2rem",
-            fontWeight: 700,
+      <Box
+        component={Link}
+        to={
+          isMatchQuery
+            ? `/robots?eventKey=${encodeURIComponent(
+                eventKey
+              )}&&robot=${encodeURIComponent(report.robot)}`
+            : `/matches?eventKey=${encodeURIComponent(
+                eventKey
+              )}&&matchKey=${encodeURIComponent(report.match_key)}`
+        }
+        sx={(theme) => ({
+          p: 1,
+          mb: 2,
+          backgroundColor: stationColor,
+          borderRadius: theme.shape.borderRadius,
+          textAlign: "center",
+          textDecoration: "none",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        })}
+      >
+        <Typography
+          variant="button"
+          sx={(theme) => ({
             textTransform: "none",
-            color: stationColor,
-          }}
+            color: theme.palette.common.white,
+            fontWeight: 700,
+            fontSize: "1.2rem",
+          })}
         >
           {isMatchQuery ? report.robot : report.match_key}
-        </Button>
+        </Typography>
+        <ArrowForwardIosIcon
+          fontSize="small"
+          sx={{ ml: 1, color: (theme) => theme.palette.common.white }}
+        />
+      </Box>
+      <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
         {`Scouted by ${report.scout_name} at ${formatTimestamp(
           report.match_start_time
         )}, submitted at ${formatTimestamp(report.submission_time)}`}
-      </Box>
+      </Typography>
       {["auto", "tele"].map(
         (phase) =>
           report.totals[phase] && (
@@ -308,7 +376,6 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
 };
 
 // ------------------- ReportCarousel Component -------------------
-
 const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   const [index, setIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -356,11 +423,13 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
             key={report.id}
             label={header}
             onClick={() => setIndex(i)}
-            sx={{
+            sx={(theme) => ({
               backgroundColor: stationColor,
               flexShrink: 0,
-              border: i === index ? "3px solid" : "none",
-            }}
+              borderRadius: theme.shape.borderRadius,
+              color: theme.palette.common.white,
+              "&:hover": { opacity: 0.85 },
+            })}
           />
         );
       })}
@@ -406,27 +475,31 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
       </Box>
       <IconButton
         onClick={handlePrev}
-        sx={{
+        sx={(theme) => ({
           position: "absolute",
           top: "50%",
           left: 0,
           transform: "translateY(-50%)",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          "&:hover": { backgroundColor: "rgba(255,255,255,1)" },
-        }}
+          backgroundColor: alpha(theme.palette.background.paper, 0.8),
+          "&:hover": {
+            backgroundColor: alpha(theme.palette.background.paper, 1),
+          },
+        })}
       >
         <ArrowBackIosIcon />
       </IconButton>
       <IconButton
         onClick={handleNext}
-        sx={{
+        sx={(theme) => ({
           position: "absolute",
           top: "50%",
           right: 0,
           transform: "translateY(-50%)",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          "&:hover": { backgroundColor: "rgba(255,255,255,1)" },
-        }}
+          backgroundColor: alpha(theme.palette.background.paper, 0.8),
+          "&:hover": {
+            backgroundColor: alpha(theme.palette.background.paper, 1),
+          },
+        })}
       >
         <ArrowForwardIosIcon />
       </IconButton>
@@ -435,7 +508,6 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
 };
 
 // ------------------- ReportsList Component -------------------
-
 const ReportsList = ({ data }) => {
   const { averages, reports } = data;
   const [searchParams] = useSearchParams();

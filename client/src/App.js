@@ -1,5 +1,5 @@
 import * as React from "react";
-import { theme } from "./AppTheme.js";
+import { lightTheme, darkTheme } from "./AppTheme.js";
 import { ThemeProvider } from "@mui/material/styles";
 
 import { Routes, Route } from "react-router-dom";
@@ -17,7 +17,7 @@ import Overview from "./pages/Strategy/Overview.js";
 const App = () => {
   return (
     <React.Fragment>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={lightTheme}>
         <CssBaseline />
         <Routes>
           <Route path="/signIn" element={<SignInPage />} />

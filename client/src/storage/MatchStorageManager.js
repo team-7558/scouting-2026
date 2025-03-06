@@ -21,7 +21,8 @@ export const saveMatch = (
   matchData,
   searchParams,
   userToken,
-  submitAfter = true
+  submitAfter = true,
+  postSubmitCallback = null
 ) => {
   const syncedKey = generateKey(
     matchData.reportId,
@@ -43,7 +44,7 @@ export const saveMatch = (
   );
   localStorage.setItem(unsyncedKey, JSON.stringify(matchData));
   submitAfter
-    ? submitMatch(matchData, searchParams, userToken)
+    ? submitMatch(matchData, searchParams, userToken, postSubmitCallback)
     : showQRCodePopup(matchData);
 };
 
@@ -58,7 +59,12 @@ export const loadMatch = (
   return data ? JSON.parse(data) : null;
 };
 
-export const submitMatch = async (matchData, searchParams, userToken) => {
+export const submitMatch = async (
+  matchData,
+  searchParams,
+  userToken,
+  postSubmitCallback = null
+) => {
   const unsyncedKey = generateKey(
     matchData.reportId,
     searchParams,
@@ -93,6 +99,9 @@ export const submitMatch = async (matchData, searchParams, userToken) => {
     if (response?.status === 200) {
       localStorage.removeItem(unsyncedKey);
       localStorage.setItem(syncedKey, JSON.stringify(matchData));
+    }
+    if (postSubmitCallback) {
+      postSubmitCallback(response);
     }
     return response;
   } catch (err) {

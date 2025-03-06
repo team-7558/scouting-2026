@@ -1,6 +1,5 @@
 export const calculateReportTotals = (report) => {
-  // Initialize result structure
-  const results = {
+  const DEFAULT_PHASE_STRUCTURE = {
     coral: {
       attainedCount: 0,
       scoredCount: 0,
@@ -15,17 +14,30 @@ export const calculateReportTotals = (report) => {
       avgScoringCycleTime: null,
       scoringRate: null,
     },
-    hang: {
-      startTime: null,
-      cycleTime: null,
+  };
+  // Initialize result structure
+  const results = {
+    auto: {
+      movement: {
+        movementTime: 0,
+        movementRate: 0,
+      },
+      ...DEFAULT_PHASE_STRUCTURE,
     },
-    defense: {
-      totalTime: 0,
-    },
-    contact: {
-      totalTime: 0,
-      foulCount: 0,
-      pinCount: 0,
+    tele: {
+      ...DEFAULT_PHASE_STRUCTURE,
+      hang: {
+        startTime: null,
+        cycleTime: null,
+      },
+      defense: {
+        totalTime: 0,
+      },
+      contact: {
+        totalTime: 0,
+        foulCount: 0,
+        pinCount: 0,
+      },
     },
   };
 
@@ -36,6 +48,7 @@ export const calculateReportTotals = (report) => {
   // Process each cycle using a switch statement
   report.cycles.forEach((cycle) => {
     const cycleType = cycle.type;
+    let phase = cycle.phase;
     const startTime =
       cycle.attained_location == "PRELOAD" ? 0 : cycle.start_time;
     const endTime = cycle.end_time;
@@ -43,79 +56,96 @@ export const calculateReportTotals = (report) => {
     const depositType = cycle.deposit_type;
     const attainedLocation = cycle.attained_location;
 
-    switch (cycleType) {
-      case "CORAL":
-        if (attainedLocation !== null && startTime !== null) {
-          results.coral.attainedCount++;
-        }
-        if (depositType === "SCORE" && endTime !== null) {
-          results.coral.scoredCount++;
-          coralScoringTimes.push(cycleTime);
-        }
-        break;
+    const phaseResults = results[phase=="post_match" ? "tele" : phase];
+      switch (cycleType) {
+        case "AUTO_MOVEMENT":
+          if (phase == "auto") {
+            phaseResults.movement.movementTime = cycleTime;
+            phaseResults.movement.movementRate = 1;
+          }
+          break;
+        case "CORAL":
+          if (attainedLocation !== null && startTime !== null) {
+            phaseResults.coral.attainedCount++;
+          }
+          if (depositType === "SCORE" && endTime !== null) {
+            phaseResults.coral.scoredCount++;
+            coralScoringTimes.push(cycleTime);
+          }
+          break;
 
-      case "ALGAE":
-        if (attainedLocation !== null && startTime !== null) {
-          results.algae.attainedCount++;
-        }
-        if (depositType === "SCORE" && endTime !== null) {
-          results.algae.scoredCount++;
-          algaeScoringTimes.push(cycleTime);
-        }
-        break;
+        case "ALGAE":
+          if (attainedLocation !== null && startTime !== null) {
+            phaseResults.algae.attainedCount++;
+          }
+          if (depositType === "SCORE" && endTime !== null) {
+            phaseResults.algae.scoredCount++;
+            algaeScoringTimes.push(cycleTime);
+          }
+          break;
 
-      case "HANG":
-        results.hang.startTime = cycle.start_time;
-        results.hang.cycleTime = cycleTime;
-        break;
+        case "HANG":
+          phaseResults.hang.startTime = cycle.start_time;
+          phaseResults.hang.cycleTime = cycleTime;
+          break;
 
-      case "DEFENSE":
-        if (cycleTime !== null) {
-          results.defense.totalTime += cycleTime;
-        }
-        break;
+        case "DEFENSE":
+          if (cycleTime !== null) {
+            phaseResults.defense.totalTime += cycleTime;
+          }
+          break;
 
-      case "CONTACT":
-        if (cycleTime !== null) {
-          results.contact.totalTime += cycleTime;
-        }
+        case "CONTACT":
+          if (cycleTime !== null) {
+            phaseResults.contact.totalTime += cycleTime;
+          }
 
-        results.contact.pinCount +=
-          cycle.pin_count !== null ? cycle.pin_count : 0;
-        results.contact.foulCount +=
-          cycle.foul_count !== null ? cycle.foul_count : 0;
-        break;
+          phaseResults.contact.pinCount +=
+            cycle.pin_count !== null ? cycle.pin_count : 0;
+          phaseResults.contact.foulCount +=
+            cycle.foul_count !== null ? cycle.foul_count : 0;
+          break;
 
-      default:
-        // Do nothing for unknown cycle types.
-        break;
-    }
+        default:
+          // Do nothing for unknown cycle types.
+          break;
+        // }
+      }
   });
 
-  // Compute derived metrics for Coral
-  results.coral.droppedCount =
-    results.coral.attainedCount - results.coral.scoredCount;
-  if (coralScoringTimes.length > 0) {
-    const totalCoralTime = coralScoringTimes.reduce((acc, cur) => acc + cur, 0);
-    results.coral.avgScoringCycleTime =
-      totalCoralTime / coralScoringTimes.length;
-  }
-  if (results.coral.scoredCount > 0) {
-    results.coral.scoringRate =
-      results.coral.attainedCount / results.coral.scoredCount;
-  }
+  for (let phase of ["auto", "tele"]) {
+    const phaseResults = results[phase];
+    // Compute derived metrics for Coral
+    phaseResults.coral.droppedCount =
+      phaseResults.coral.attainedCount - phaseResults.coral.scoredCount;
+    if (coralScoringTimes.length > 0) {
+      const totalCoralTime = coralScoringTimes.reduce(
+        (acc, cur) => acc + cur,
+        0
+      );
+      phaseResults.coral.avgScoringCycleTime =
+        totalCoralTime / coralScoringTimes.length;
+    }
+    if (phaseResults.coral.scoredCount > 0) {
+      phaseResults.coral.scoringRate =
+        phaseResults.coral.attainedCount / phaseResults.coral.scoredCount;
+    }
 
-  // Compute derived metrics for Algae
-  results.algae.droppedCount =
-    results.algae.attainedCount - results.algae.scoredCount;
-  if (algaeScoringTimes.length > 0) {
-    const totalAlgaeTime = algaeScoringTimes.reduce((acc, cur) => acc + cur, 0);
-    results.algae.avgScoringCycleTime =
-      totalAlgaeTime / algaeScoringTimes.length;
-  }
-  if (results.algae.scoredCount > 0) {
-    results.algae.scoringRate =
-      results.algae.attainedCount / results.algae.scoredCount;
+    // Compute derived metrics for Algae
+    phaseResults.algae.droppedCount =
+      phaseResults.algae.attainedCount - phaseResults.algae.scoredCount;
+    if (algaeScoringTimes.length > 0) {
+      const totalAlgaeTime = algaeScoringTimes.reduce(
+        (acc, cur) => acc + cur,
+        0
+      );
+      phaseResults.algae.avgScoringCycleTime =
+        totalAlgaeTime / algaeScoringTimes.length;
+    }
+    if (phaseResults.algae.scoredCount > 0) {
+      phaseResults.algae.scoringRate =
+        phaseResults.algae.attainedCount / phaseResults.algae.scoredCount;
+    }
   }
 
   return results;
@@ -126,33 +156,36 @@ export const calculateAverageMetrics = (reports) => {
   // Return an empty object if no report metrics provided
   if (!reports.length) return {};
 
-  // Build the averageMetrics object dynamically based on keys from the first report
-  const averageMetrics = {};
-  // Loop over each category (e.g., coral, algae, hang, defense, contact)
-  Object.keys(reports[0].totals).forEach((category) => {
-    averageMetrics[category] = {};
+  const averageMetrics = { auto: {}, tele: {} };
+  for (let phase of ["auto", "tele"]) {
+    // Build the averageMetrics object dynamically based on keys from the first report
+    // Loop over each category (e.g., coral, algae, hang, defense, contact)
+    Object.keys(reports[0].totals[phase]).forEach((category) => {
+      averageMetrics[phase][category] = {};
 
-    // Get all keys for this category from the first report
-    Object.keys(reports[0].totals[category]).forEach((key) => {
-      let sum = 0;
-      let count = 0;
+      // Get all keys for this category from the first report
+      Object.keys(reports[0].totals[phase][category]).forEach((key) => {
+        let sum = 0;
+        let count = 0;
 
-      // Loop over each report and accumulate the value if it is a number
-      reports.forEach((report) => {
-        const value = report.totals[category] && report.totals[category][key];
-        if (typeof value === "number") {
-          sum += value;
-          count++;
-        }
+        // Loop over each report and accumulate the value if it is a number
+        reports.forEach((report) => {
+          const value =
+            report.totals[phase][category] &&
+            report.totals[phase][category][key];
+          if (typeof value === "number") {
+            sum += value;
+            count++;
+          }
+        });
+
+        // Store both calculations in an array:
+        // [0]: Sum divided by the total number of reports
+        // [1]: Sum divided by the number of valid values (count)
+        averageMetrics[phase][category][key] =
+          count > 0 ? [sum / reports.length, sum / count] : null;
       });
-
-      // Store both calculations in an array:
-      // [0]: Sum divided by the total number of reports
-      // [1]: Sum divided by the number of valid values (count)
-      averageMetrics[category][key] =
-        count > 0 ? [sum / reports.length, sum / count] : null;
     });
-  });
-
+  }
   return averageMetrics;
 };

@@ -204,4 +204,18 @@ export const SCOUTING_CONFIG = {
     tasks: [createTask(ACTIONS.GO_POST_MATCH)],
     textFunction: (match, key) => "POST MATCH",
   },
+
+  ROBOT_LEFT_STARTING: {
+    showFunction: (match, key) => match.autoMovement.startTime != null,
+    phases: [PHASES.AUTO],
+    positions: {
+      ROBOT_LEFT_STARTING: [756, 805],
+    },
+    dimensions: {
+      width: 1515,
+      height: 1610,
+    },
+    tasks: [createTask(ACTIONS.ROBOT_LEFT_STARTING)],
+    textFunction: (match, key) => "ROBOT LEFT STARTING ZONE",
+  },
 };

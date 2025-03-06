@@ -251,6 +251,7 @@ export const SIDEBAR_CONFIG = [
         match.hang.result == null
           ? match.cycles
           : [...match.cycles, match.getWritableCycle(CYCLE_TYPES.HANG)];
+
       saveMatch(
         {
           reportId: match.scoutData.reportId,
@@ -266,7 +267,17 @@ export const SIDEBAR_CONFIG = [
           matchKey: match.searchParams.get("matchKey"),
           station: match.searchParams.get("station"),
         },
-        match.userToken
+        match.userToken,
+        /* submitAfter= */ true,
+        (response) => {
+          console.log("successfully saved:", response);
+          match.setScoutData(null);
+          match.setSearchParams({
+            eventKey: match.searchParams.get("eventKey"),
+            matchKey: match.scoutData.nextMatchKey,
+            station: match.searchParams.get("station"),
+          });
+        }
       );
     },
     isDisabled: (match, key) =>

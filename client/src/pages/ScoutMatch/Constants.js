@@ -15,6 +15,7 @@ export const CYCLE_TYPES = {
   HANG: "HANG",
   DEFENSE: "DEFENSE",
   CONTACT: "CONTACT",
+  AUTO_MOVEMENT: "AUTO_MOVEMENT",
 };
 
 export const DRIVER_STATIONS = {
@@ -62,6 +63,7 @@ export const ACTIONS = {
   GO_TELE: "go_tele",
   GO_DEFENSE: "go_defense",
   GO_POST_MATCH: "go_post_match",
+  ROBOT_LEFT_STARTING: "left_starting_zone",
 };
 export const GAME_PIECES = { CORAL: "coral", ALGAE: "algae" };
 export const PHASES = {

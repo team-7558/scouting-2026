@@ -26,10 +26,11 @@ import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Import your CyclesFieldC
 
 // Group colors used for styling group headers.
 const groupColors = {
-  coral: "#d32f2f", // darker red
+  movement: "#c7cf00", // yellow
+  coral: "#7e57c2", // darker red
   algae: "#388e3c", // darker green
   hang: "#1976d2", // darker blue
-  defense: "#7e57c2", // darker purple
+  defense: "#d32f2f", // darker purple
   contact: "#f57c00", // darker orange
 };
 
@@ -126,7 +127,7 @@ const averageMetricMapping = {
 // Displays averages grouped by their category.
 // For "coral" and "algae", only a predetermined set of fields is shown;
 // for other groups, all available metrics are shown.
-const AveragesSummary = ({ averages }) => {
+const AveragesSummary = ({ phase, averages, showEverything = false }) => {
   const visibleFieldsForCA = [
     "attainedCount",
     "scoredCount",
@@ -134,13 +135,13 @@ const AveragesSummary = ({ averages }) => {
   ];
   return (
     <Box sx={{ mb: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Averages
+      <Typography variant="h7" gutterBottom>
+        {phase && phase.toUpperCase()}
       </Typography>
       {Object.keys(averages).map((group) => {
         const groupData = averages[group];
         const fieldsToDisplay =
-          group === "coral" || group === "algae"
+          (group === "coral" || group === "algae") && !showEverything
             ? visibleFieldsForCA
             : Object.keys(groupData);
         return (
@@ -168,7 +169,7 @@ const AveragesSummary = ({ averages }) => {
                 };
                 return (
                   <Grid item xs={12} sm={4} key={key}>
-                    <Typography variant="h6" display="flex" alignItems="center">
+                    <Typography variant="h6" display="flex" alignItems="start">
                       {mapping.icon && <Box mr={0.5}>{mapping.icon}</Box>}
                       <span style={{ fontWeight: 600, marginRight: 4 }}>
                         {mapping.label}:
@@ -241,8 +242,19 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
         >
           {isMatchQuery ? report.robot : report.match_key}
         </Button>
+        {`${report.scout_name} @ ${report.submission_time}`}
       </Box>
-      {Object.keys(groupedData).map((group) => (
+      {["auto", "tele"].map(
+        (phase) =>
+          report.totals[phase] && (
+            <AveragesSummary
+              phase={phase}
+              averages={report.totals[phase]}
+              showEverything={true}
+            />
+          )
+      )}
+      {/* {Object.keys(groupedData).map((group) => (
         <Paper
           key={group}
           variant="outlined"
@@ -288,13 +300,13 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             })}
           </Grid>
         </Paper>
-      ))}
+      ))} */}
       {/* Render the cycles preview below the report metrics */}
       <Box sx={{ mt: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
           Cycles
         </Typography>
-        <CyclesFieldCanvas report={report} width={400} height={300} />
+        <CyclesFieldCanvas report={report} />
       </Box>
     </Paper>
   );
@@ -363,7 +375,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
             sx={{
               backgroundColor: stationColor,
               flexShrink: 0,
-              border: i === index ? `2px solid ${stationColor}` : "none",
+              border: i === index ? "3px solid" : "none",
             }}
           />
         );
@@ -400,10 +412,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
         {reports.map((report) => (
           <Box
             key={report.match_key}
-            sx={{
-              flex: "0 0 90%",
-              mx: "5%",
-            }}
+            sx={{ width: 0, flex: "0 0 90%", mx: "5%" }}
           >
             <ReportCard
               report={report}
@@ -453,7 +462,12 @@ const ReportsList = ({ data }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      {averages && <AveragesSummary averages={averages} />}
+      {["auto", "tele"].map(
+        (phase) =>
+          averages[phase] && (
+            <AveragesSummary phase={phase} averages={averages[phase]} />
+          )
+      )}
       {reports && reports.length > 0 && (
         <ReportCarousel
           reports={reports}

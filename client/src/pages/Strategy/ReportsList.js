@@ -133,11 +133,22 @@ const renderMetricChip = (group, field, groupData, theme) => {
     groupData[field] != null
       ? getFormattedValue(group, field, groupData[field])
       : "-";
-  // Determine chip color based on metric type.
   const lower = field.toLowerCase();
   let chipColor = theme.palette.primary.main;
-  if (lower.includes("time")) chipColor = theme.palette.info.main;
-  else if (lower.includes("rate")) chipColor = theme.palette.success.main;
+
+  // Specific colors for "attained" and "scored"
+  if (field === "attainedCount") {
+    chipColor = theme.palette.warning.main;
+  } else if (field === "scoredCount") {
+    chipColor = theme.palette.secondary.main;
+  }
+  // Distinct colors for times and rates
+  else if (lower.includes("time")) {
+    chipColor = theme.palette.info.main;
+  } else if (lower.includes("rate")) {
+    chipColor = theme.palette.success.main;
+  }
+
   return (
     <Chip
       key={`${group}.${field}`}
@@ -154,11 +165,12 @@ const renderMetricChip = (group, field, groupData, theme) => {
 
 // ------------------- AveragesSummary Component -------------------
 // The phase header is static (e.g., "Auto" or "Tele"). Each category is collapsible.
-// When collapsed, the top three metrics are shown as colored chips. For "coral" and "algae",
-// the expand option is always shown so that the hidden chart can be revealed.
+// When collapsed, the top three metrics are shown as colored chips.
+// For "coral" and "algae", chips corresponding to the chartKeys are hidden.
 const AveragesSummary = ({ phase, averages, showEverything = false }) => {
   const theme = useTheme();
   const [expandedGroups, setExpandedGroups] = useState({});
+  // Only show these fields when not showing everything (and these fields do not include chartKeys)
   const visibleFieldsForCA = [
     "attainedCount",
     "scoredCount",
@@ -184,15 +196,25 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
       </Typography>
       {Object.keys(averages).map((group) => {
         const groupData = averages[group];
-        const fieldsToDisplay =
-          (group === "coral" || group === "algae") && !showEverything
-            ? visibleFieldsForCA
-            : Object.keys(groupData);
+        let fieldsToDisplay;
+        if ((group === "coral" || group === "algae") && !showEverything) {
+          // When not showing everything for coral/algae, use a preset list.
+          fieldsToDisplay = visibleFieldsForCA;
+        } else {
+          // Otherwise, use all keys, but filter out any that are rendered by the chart.
+          fieldsToDisplay = Object.keys(groupData);
+          if (group === "coral" || group === "algae") {
+            const keysToHide = chartKeys[group] || [];
+            fieldsToDisplay = fieldsToDisplay.filter(
+              (key) => !keysToHide.includes(key)
+            );
+          }
+        }
         // When collapsed, show top 3 metrics.
         const metricsToShow = expandedGroups[group]
           ? fieldsToDisplay
           : fieldsToDisplay.slice(0, 3);
-        // Always show expand option for coral and algae, otherwise if more than 3 metrics.
+        // Always show expand option for coral and algae, or if there are more than 3 metrics.
         const showExpandOption =
           group === "coral" || group === "algae" || fieldsToDisplay.length > 3;
 
@@ -238,6 +260,7 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
                     gap: 1,
                     alignItems: "center",
                     flexWrap: "wrap",
+                    justifyContent: { xs: "center", sm: "flex-start" },
                   })}
                 >
                   {metricsToShow.map((field) =>
@@ -270,6 +293,7 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
                   flexWrap: "wrap",
                   gap: 1,
                   mb: 1,
+                  justifyContent: { xs: "center", sm: "flex-start" },
                 })}
               >
                 {fieldsToDisplay.map((field) =>
@@ -505,28 +529,46 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
     touchStartX.current = null;
   };
 
-  const renderNavBar = () => (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2, pb: 1 }}>
-      {reports.map((report, i) => {
-        const header = isMatchQuery ? report.robot : report.match_key;
-        const stationColor = getStationColor(report.station);
-        return (
-          <Chip
-            key={report.id}
-            label={header}
-            onClick={() => setIndex(i)}
-            sx={(theme) => ({
-              backgroundColor: stationColor,
-              flexShrink: 0,
-              borderRadius: theme.shape.borderRadius,
-              color: theme.palette.common.white,
-              "&:hover": { opacity: 0.85 },
-            })}
-          />
-        );
-      })}
-    </Box>
-  );
+  const renderNavBar = () => {
+    const navTitle = isMatchQuery ? "Robots" : "Matches";
+    return (
+      <Box sx={{ mb: 2 }}>
+        <Typography
+          variant="subtitle1"
+          sx={{ mb: 1, textAlign: { xs: "center", sm: "left" } }}
+        >
+          {navTitle}
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 1,
+            justifyContent: { xs: "center", sm: "flex-start" },
+          }}
+        >
+          {reports.map((report, i) => {
+            const header = isMatchQuery ? report.robot : report.match_key;
+            const stationColor = getStationColor(report.station);
+            return (
+              <Chip
+                key={report.id}
+                label={header}
+                onClick={() => setIndex(i)}
+                sx={(theme) => ({
+                  backgroundColor: stationColor,
+                  flexShrink: 0,
+                  borderRadius: theme.shape.borderRadius,
+                  color: theme.palette.common.white,
+                  "&:hover": { opacity: 0.85 },
+                })}
+              />
+            );
+          })}
+        </Box>
+      </Box>
+    );
+  };
 
   if (reports.length === 0) return null;
 

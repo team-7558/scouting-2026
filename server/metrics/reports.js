@@ -29,10 +29,10 @@ export const calculateReportTotals = (report) => {
         movementTime: 0,
         movementRate: 0,
       },
-      ...DEFAULT_PHASE_STRUCTURE,
+      ...structuredClone(DEFAULT_PHASE_STRUCTURE),
     },
     tele: {
-      ...DEFAULT_PHASE_STRUCTURE,
+      ...structuredClone(DEFAULT_PHASE_STRUCTURE),
       hang: {
         startTime: null,
         cycleTime: null,
@@ -49,8 +49,8 @@ export const calculateReportTotals = (report) => {
   };
 
   // Arrays to store cycle times for scoring (for averaging)
-  const coralScoringTimes = [];
-  const algaeScoringTimes = [];
+  const coralScoringTimes = { auto: [], tele: [] };
+  const algaeScoringTimes = { auto: [], tele: [] };
 
   // Process each cycle using a switch statement
   report.cycles.forEach((cycle) => {
@@ -78,7 +78,7 @@ export const calculateReportTotals = (report) => {
         }
         if (depositType === "SCORE" && endTime !== null) {
           phaseResults.coral.scoredCount++;
-          coralScoringTimes.push(cycleTime);
+          coralScoringTimes[phase].push(cycleTime);
           const reef_level = depositLocation.split("_")[2];
           phaseResults.coral[reef_level] += 1;
         }
@@ -101,7 +101,7 @@ export const calculateReportTotals = (report) => {
               break;
           }
           phaseResults.algae.scoredCount++;
-          algaeScoringTimes.push(cycleTime);
+          algaeScoringTimes[phase].push(cycleTime);
         }
         break;
 
@@ -139,34 +139,34 @@ export const calculateReportTotals = (report) => {
     // Compute derived metrics for Coral
     phaseResults.coral.droppedCount =
       phaseResults.coral.attainedCount - phaseResults.coral.scoredCount;
-    if (coralScoringTimes.length > 0) {
-      const totalCoralTime = coralScoringTimes.reduce(
+    if (coralScoringTimes[phase].length > 0) {
+      const totalCoralTime = coralScoringTimes[phase].reduce(
         (acc, cur) => acc + cur,
         0
       );
       phaseResults.coral.avgScoringCycleTime =
-        totalCoralTime / coralScoringTimes.length;
+        totalCoralTime / coralScoringTimes[phase].length;
     }
-    if (phaseResults.coral.scoredCount > 0) {
-      phaseResults.coral.scoringRate =
-        phaseResults.coral.scoredCount / phaseResults.coral.attainedCount;
-    }
+
+    phaseResults.coral.scoringRate = phaseResults.coral.scoredCount
+      ? phaseResults.coral.scoredCount / phaseResults.coral.attainedCount
+      : 0;
 
     // Compute derived metrics for Algae
     phaseResults.algae.droppedCount =
       phaseResults.algae.attainedCount - phaseResults.algae.scoredCount;
-    if (algaeScoringTimes.length > 0) {
-      const totalAlgaeTime = algaeScoringTimes.reduce(
+    if (algaeScoringTimes[phase].length > 0) {
+      const totalAlgaeTime = algaeScoringTimes[phase].reduce(
         (acc, cur) => acc + cur,
         0
       );
       phaseResults.algae.avgScoringCycleTime =
-        totalAlgaeTime / algaeScoringTimes.length;
+        totalAlgaeTime / algaeScoringTimes[phase].length;
     }
-    if (phaseResults.algae.scoredCount > 0) {
-      phaseResults.algae.scoringRate =
-        phaseResults.algae.attainedCount / phaseResults.algae.scoredCount;
-    }
+
+    phaseResults.algae.scoringRate = phaseResults.algae.scoredCount
+      ? phaseResults.algae.scoredCount / phaseResults.algae.attainedCount
+      : 0;
   }
 
   return results;

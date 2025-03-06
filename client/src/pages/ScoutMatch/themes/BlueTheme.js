@@ -33,5 +33,8 @@ export const BlueTheme = createTheme({
     autoBackground: {
       main: "#ffbc42",
     },
+    opponent: {
+      main: "#b30202",
+    },
   },
 });

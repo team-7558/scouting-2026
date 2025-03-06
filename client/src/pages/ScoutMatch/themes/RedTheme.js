@@ -33,5 +33,8 @@ export const RedTheme = createTheme({
     autoBackground: {
       main: "#ffbc42",
     },
+    opponent: {
+      main: "#3f51b5",
+    },
   },
 });

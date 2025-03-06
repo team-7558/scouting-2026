@@ -20,22 +20,20 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import { Link, useSearchParams } from "react-router-dom";
-import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Import your CyclesFieldCanvas component
-import CoralBarChart from "./CoralBarChart"; // Import your CoralBarChart component
+import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Your CyclesFieldCanvas component
+import ScoreBarChart from "./ScoreBarChart"; // Reusable chart component
 
 // ------------------- Shared Constants and Helpers -------------------
 
-// Group colors used for styling group headers.
 const groupColors = {
-  movement: "#c7cf00", // yellow
-  coral: "#7e57c2", // darker red
-  algae: "#388e3c", // darker green
-  hang: "#1976d2", // darker blue
-  defense: "#d32f2f", // darker purple
-  contact: "#f57c00", // darker orange
+  movement: "#c7cf00",
+  coral: "#7e57c2",
+  algae: "#388e3c",
+  hang: "#1976d2",
+  defense: "#d32f2f",
+  contact: "#f57c00",
 };
 
-// Helper: Determine station color based on station code.
 const getStationColor = (station) => {
   if (!station) return "default";
   const s = station.toLowerCase();
@@ -44,8 +42,6 @@ const getStationColor = (station) => {
   return "default";
 };
 
-// Flattens an object by iterating over each group and returning each field’s value.
-// For arrays, it returns the second element.
 const flattenData = (obj) => {
   const flat = {};
   Object.keys(obj).forEach((group) => {
@@ -59,8 +55,6 @@ const flattenData = (obj) => {
   return flat;
 };
 
-// Formats a numeric value to always have 2 decimals.
-// If the field contains "time", converts milliseconds to seconds.
 const formatValue = (colKey, value) => {
   if (typeof value !== "number") return value;
   let num = value;
@@ -69,29 +63,15 @@ const formatValue = (colKey, value) => {
     num = num / 1000;
     return num.toFixed(2) + "s";
   }
-  if (field.toLowerCase().includes("rate")) {
-    num = num * 100;
-    return num.toFixed(2) + "%";
-  }
   return num.toFixed(2);
 };
 
-// Helper for averages: if a value is an array, use its second element before formatting.
 const getFormattedValue = (group, field, value) => {
   const v = Array.isArray(value) ? value[1] : value;
   return formatValue(`${group}.${field}`, v);
 };
 
-// Mapping for friendly metric names and icons.
 const averageMetricMapping = {
-  movementTime: {
-    label: "Left Zone time",
-    icon: <TrendingUpIcon fontSize="medium" color="action" />,
-  },
-  movementRate: {
-    label: "Movement Rate",
-    icon: <TrendingUpIcon fontSize="medium" color="action" />,
-  },
   attainedCount: {
     label: "Attained",
     icon: <TrendingUpIcon fontSize="medium" color="action" />,
@@ -135,15 +115,22 @@ const averageMetricMapping = {
 };
 
 // ------------------- AveragesSummary Component -------------------
-// Displays averages grouped by category.
-// For "coral" (and "algae") it shows a limited set of fields by default.
-// For the "coral" category, we now also display the CoralBarChart below the metrics.
+// Renders metrics by group. For the "coral" and "algae" groups, after the metrics
+// grid it shows a ScoreBarChart using a custom set of keys.
 const AveragesSummary = ({ phase, averages, showEverything = false }) => {
   const visibleFieldsForCA = [
     "attainedCount",
     "scoredCount",
     "avgScoringCycleTime",
   ];
+  const chartKeys = {
+    coral: ["L1", "L2", "L3", "L4"],
+    algae: [
+      "scoredProcessorCount",
+      "scoredNetCount",
+      "scoredOpponentProcessorCount",
+    ],
+  };
   return (
     <Box sx={{ mb: 3 }}>
       <Typography variant="h7" gutterBottom>
@@ -173,6 +160,9 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
             </Typography>
             <Grid container spacing={1}>
               {fieldsToDisplay.map((field) => {
+                if (chartKeys[group] && chartKeys[group].includes(field)) {
+                  return null;
+                }
                 const key = `${group}.${field}`;
                 const mapping = averageMetricMapping[field] || {
                   label: field,
@@ -193,13 +183,32 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
                 );
               })}
             </Grid>
-            {/* Insert CoralBarChart inside the coral category */}
-            {group == "coral" && groupData.L1 != null && (
+            {/* For the coral group, show the custom ScoreBarChart using keys for coral levels */}
+            {group === "coral" && groupData.L1 != null && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                   Coral Levels
                 </Typography>
-                <CoralBarChart coralData={groupData} />
+                <ScoreBarChart
+                  scoreData={groupData}
+                  chartKeys={chartKeys[group]}
+                />
+              </Box>
+            )}
+            {/* For the algae group, show a breakdown using the new scored keys */}
+            {group === "algae" && groupData.scoredProcessorCount != null && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Algae Scored Breakdown
+                </Typography>
+                <ScoreBarChart
+                  scoreData={groupData}
+                  chartKeys={[
+                    "scoredProcessorCount",
+                    "scoredNetCount",
+                    "scoredOpponentProcessorCount",
+                  ]}
+                />
               </Box>
             )}
           </Paper>
@@ -210,15 +219,12 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
 };
 
 // ------------------- ReportCard Component -------------------
-// Displays an individual report as a fixed card.
-// Groups metrics by category with friendly labels and colors.
-// Also renders the CyclesFieldCanvas component for cycle previews.
+
 const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   const flatData = flattenData(report.totals);
   flatData["matchKey"] = report.match_key;
   flatData["robot"] = report.robot;
 
-  // Group flattened data by category.
   const groupedData = {};
   Object.keys(flatData).forEach((key) => {
     if (key === "matchKey" || key === "robot") return;
@@ -234,12 +240,7 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
       variant="outlined"
       sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 2 }}
     >
-      <Box
-        sx={{
-          mb: 2,
-          borderBottom: `2px solid ${stationColor}`,
-        }}
-      >
+      <Box sx={{ mb: 2, borderBottom: `2px solid ${stationColor}` }}>
         <Button
           variant="text"
           component={Link}
@@ -274,7 +275,6 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             />
           )
       )}
-      {/* Render the cycles preview below the report metrics */}
       <Box sx={{ mt: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
           Cycles
@@ -286,7 +286,7 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
 };
 
 // ------------------- ReportCarousel Component -------------------
-// Displays reports in a horizontal carousel with a preview of next/previous cards.
+
 const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   const [index, setIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -314,7 +314,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   };
 
   const onTouchEnd = () => {
-    const threshold = 50; // Minimum distance to trigger swipe
+    const threshold = 50;
     if (dragOffset < -threshold) {
       handleNext();
     } else if (dragOffset > threshold) {
@@ -324,17 +324,8 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
     touchStartX.current = null;
   };
 
-  // Render a navigation bar of report headers as Chips.
   const renderNavBar = () => (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 1,
-        mb: 2,
-        pb: 1,
-      }}
-    >
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2, pb: 1 }}>
       {reports.map((report, i) => {
         const header = isMatchQuery ? report.robot : report.match_key;
         const stationColor = getStationColor(report.station);
@@ -356,7 +347,6 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
 
   if (reports.length === 0) return null;
 
-  // Calculate transform based on index and dragOffset.
   const cardWidthPercent = 90;
   const gapPercent = 10;
   const baseTranslate = -index * (cardWidthPercent + gapPercent);
@@ -423,8 +413,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
 };
 
 // ------------------- ReportsList Component -------------------
-// Renders the AveragesSummary (with embedded CoralBarChart in the coral category)
-// and then a ReportCarousel to navigate reports.
+
 const ReportsList = ({ data }) => {
   const { averages, reports } = data;
   const [searchParams] = useSearchParams();

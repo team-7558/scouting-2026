@@ -13,7 +13,9 @@ export const calculateReportTotals = (report) => {
     },
     algae: {
       attainedCount: 0,
-      scoredCount: 0,
+      scoredNetCount: 0,
+      scoredProcessorCount: 0,
+      scoredOpponentProcessorCount: 0,
       droppedCount: 0,
       avgScoringCycleTime: null,
       scoringRate: null,
@@ -86,6 +88,17 @@ export const calculateReportTotals = (report) => {
           phaseResults.algae.attainedCount++;
         }
         if (depositType === "SCORE" && endTime !== null) {
+          switch (depositLocation) {
+            case "NET":
+              phaseResults.algae.scoredNetCount++;
+              break;
+            case "PROCESSOR":
+              phaseResults.algae.scoredProcessorCount++;
+              break;
+            case "OPPONENT_PROCESSOR":
+              phaseResults.algae.scoredOpponentProcessorCount++;
+              break;
+          }
           phaseResults.algae.scoredCount++;
           algaeScoringTimes.push(cycleTime);
         }

@@ -102,6 +102,22 @@ export const SCOUTING_CONFIG = {
     textFunction: (match, key) => key,
   },
 
+  OPPONENT_PROCESSOR: {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    drawBorder: (match, key) => match.algae.depositLocation == key,
+    color: COLORS.OPPONENT,
+    disabled: (match, key) => !match.hasAlgae(),
+    positions: {
+      [GAME_LOCATIONS.OPPONENT_PROCESSOR]: [2310, 100],
+    },
+    dimensions: {
+      width: 500,
+      height: 200,
+    },
+    tasks: [createTask(ACTIONS.DEPOSIT, GAME_PIECES.ALGAE)],
+    textFunction: (match, key) => key.replace("_", " "),
+  },
+
   [GAME_LOCATIONS.NET]: {
     phases: [PHASES.AUTO, PHASES.TELE],
     drawBorder: (match, key) => match.algae.depositLocation == key,

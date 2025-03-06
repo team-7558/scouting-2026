@@ -37,38 +37,62 @@ const Overview = () => {
     const [parsedData, setParsedData] = useState({});
     const SEARCH_FILTERS = {
         POINTS: "POINTS", 
-        CORAL_SCORED: "CORAL_SCORED",
-        CORAL_CYCLE_TIME: "CORAL_CYCLE_TIME",
+        AUTO_POINTS: "AUTO_POINTS",
+        TELE_POINTS: "TELE_POINTS",
+        HANG: "HANG",
+        CORAL_POINTS: "CORAL_POINTS",
+        ALGAE_POINTS: "ALGAE_POINTS",
+        HANG_POINTS: "HANG_POINTS",
         CORAL_ACCURACY: "CORAL_ACCURACY",
-        ALGAE_SCORED: "ALGAE_SCORED",
-        ALGAE_CYCLE_TIME: "ALGAE_CYCLE_TIME",
-        ALGAE_ACCURACY: "ALGAE_ACCURACY"
+        ALGAE_ACCURACY: "ALGAE_ACCURACY",
+        DEFENSE_TIME: "DEFENSE_TIME",
+        FOUL_COUNT: "FOUL_COUNT",
+        PIN_COUNT: "PIN_COUNT"
     };
     const [searchFilter, setSearchFilter] = useState(SEARCH_FILTERS.POINTS);
     const [teamsList, setTeamsList] = useState([]);
 
+    const getAvg = (val) => {
+        return val[0]/val[1]
+    }
+
     const SEARCH_FILTER_VALUES = {
         POINTS: {
-            function: (robot) => robot.totalPoints[0]/robot.totalPoints[1]
+            function: (robot) => getAvg(robot.totalPoints)
         },
-        CORAL_SCORED: {
-            function: (robot) => robot.coral.scoredCount[0]/robot.coral.scoredCount[1]
+        AUTO_POINTS: {
+            function: (robot) => getAvg(robot.auto.totalPoints)
         },
-        CORAL_CYCLE_TIME: {
-            function: (robot) => (robot.coral.avgScoringCycleTime[0]/robot.coral.avgScoringCycleTime[1]) / 1000
+        TELE_POINTS: {
+            function: (robot) => getAvg(robot.tele.totalPoints)
+        },
+        HANG: {
+            function: (robot) => (robot.tele.hang.deepHangs[0]>0) ? 2 : (robot.tele.hang.shallowHangs[0]>0) ? 1 : 0
+        },
+        CORAL_POINTS: {
+            function: (robot) => getAvg(robot.auto.coral.totalPoints) + getAvg(robot.tele.coral.totalPoints)
+        },
+        ALGAE_POINTS: {
+            function: (robot) => getAvg(robot.auto.algae.totalPoints) + getAvg(robot.tele.algae.totalPoints)
+        },
+        HANG_POINTS: {
+            function: (robot) => getAvg(robot.tele.hang.totalPoints)
         },
         CORAL_ACCURACY: {
-            function: (robot) => ((robot.coral.scoredCount[0]/robot.coral.scoredCount[1]) / (robot.coral.attainedCount[0]/robot.coral.attainedCount[1]))*100
-        },
-        ALGAE_SCORED: {
-            function: (robot) => robot.algae.scoredCount[0]/robot.algae.scoredCount[1]
-        },
-        ALGAE_CYCLE_TIME: {
-            function: (robot) => (robot.algae.avgScoringCycleTime[0]/robot.algae.avgScoringCycleTime[1]) / 1000
+            function: (robot) => ((getAvg(robot.auto.coral.scoredCount)/getAvg(robot.auto.coral.attainedCount)) + (getAvg(robot.tele.coral.scoredCount)/getAvg(robot.tele.coral.attainedCount)))*50
         },
         ALGAE_ACCURACY: {
-            function: (robot) => ((robot.algae.scoredCount[0]/robot.algae.scoredCount[1]) / (robot.algae.attainedCount[0]/robot.algae.attainedCount[1]))*100
+            function: (robot) => ((getAvg(robot.auto.algae.scoredCount)/getAvg(robot.auto.algae.attainedCount)) + (getAvg(robot.tele.algae.scoredCount)/getAvg(robot.tele.algae.attainedCount)))*50
         },
+        DEFENSE_TIME: {
+            function: (robot) => getAvg(robot.tele.defense.totalTime)/1000
+        },
+        FOUL_COUNT: {
+            function: (robot) => getAvg(robot.tele.contact.foulCount)
+        },
+        PIN_COUNT: {
+            function: (robot) => getAvg(robot.tele.contact.pinCount)
+        }
     }
 
     const eventKey = searchParams.get('eventKey');

@@ -63,6 +63,10 @@ const formatValue = (colKey, value) => {
     num = num / 1000;
     return num.toFixed(2) + "s";
   }
+  if (field.toLowerCase().includes("rate")) {
+    num = num * 100;
+    return num.toFixed(2) + "%";
+  }
   return num.toFixed(2);
 };
 
@@ -72,6 +76,14 @@ const getFormattedValue = (group, field, value) => {
 };
 
 const averageMetricMapping = {
+  movementTime: {
+    label: "Leave time",
+    icon: <TrendingUpIcon fontSize="medium" color="action" />,
+  },
+  movementRate: {
+    label: "Leave rate",
+    icon: <TrendingUpIcon fontSize="medium" color="action" />,
+  },
   attainedCount: {
     label: "Attained",
     icon: <TrendingUpIcon fontSize="medium" color="action" />,

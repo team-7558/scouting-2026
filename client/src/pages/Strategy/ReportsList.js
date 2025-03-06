@@ -21,6 +21,7 @@ import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import { Link, useSearchParams } from "react-router-dom";
 import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Import your CyclesFieldCanvas component
+import CoralBarChart from "./CoralBarChart"; // Import your CoralBarChart component
 
 // ------------------- Shared Constants and Helpers -------------------
 
@@ -35,7 +36,6 @@ const groupColors = {
 };
 
 // Helper: Determine station color based on station code.
-// If station starts with "r", returns red (#d32f2f); if "b", returns blue (#1976d2); else "default".
 const getStationColor = (station) => {
   if (!station) return "default";
   const s = station.toLowerCase();
@@ -60,8 +60,7 @@ const flattenData = (obj) => {
 };
 
 // Formats a numeric value to always have 2 decimals.
-// If the field (extracted from colKey) contains "time" (case-insensitive),
-// it converts the value from milliseconds to seconds and appends "s".
+// If the field contains "time", converts milliseconds to seconds.
 const formatValue = (colKey, value) => {
   if (typeof value !== "number") return value;
   let num = value;
@@ -69,6 +68,10 @@ const formatValue = (colKey, value) => {
   if (field.toLowerCase().includes("time")) {
     num = num / 1000;
     return num.toFixed(2) + "s";
+  }
+  if (field.toLowerCase().includes("rate")) {
+    num = num * 100;
+    return num.toFixed(2) + "%";
   }
   return num.toFixed(2);
 };
@@ -79,8 +82,16 @@ const getFormattedValue = (group, field, value) => {
   return formatValue(`${group}.${field}`, v);
 };
 
-// Mapping for friendly metric names and icons (used in both averages and report details).
+// Mapping for friendly metric names and icons.
 const averageMetricMapping = {
+  movementTime: {
+    label: "Left Zone time",
+    icon: <TrendingUpIcon fontSize="medium" color="action" />,
+  },
+  movementRate: {
+    label: "Movement Rate",
+    icon: <TrendingUpIcon fontSize="medium" color="action" />,
+  },
   attainedCount: {
     label: "Attained",
     icon: <TrendingUpIcon fontSize="medium" color="action" />,
@@ -124,9 +135,9 @@ const averageMetricMapping = {
 };
 
 // ------------------- AveragesSummary Component -------------------
-// Displays averages grouped by their category.
-// For "coral" and "algae", only a predetermined set of fields is shown;
-// for other groups, all available metrics are shown.
+// Displays averages grouped by category.
+// For "coral" (and "algae") it shows a limited set of fields by default.
+// For the "coral" category, we now also display the CoralBarChart below the metrics.
 const AveragesSummary = ({ phase, averages, showEverything = false }) => {
   const visibleFieldsForCA = [
     "attainedCount",
@@ -182,6 +193,15 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
                 );
               })}
             </Grid>
+            {/* Insert CoralBarChart inside the coral category */}
+            {group == "coral" && groupData.L1 != null && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+                  Coral Levels
+                </Typography>
+                <CoralBarChart coralData={groupData} />
+              </Box>
+            )}
           </Paper>
         );
       })}
@@ -190,16 +210,15 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
 };
 
 // ------------------- ReportCard Component -------------------
-// Displays an individual report as a fixed (unexpandable) card.
-// It groups metrics by category using friendly labels/icons and colors.
-// The header is styled with a bottom border in the station color.
-// Now, it also renders the CyclesFieldCanvas component to preview cycles.
+// Displays an individual report as a fixed card.
+// Groups metrics by category with friendly labels and colors.
+// Also renders the CyclesFieldCanvas component for cycle previews.
 const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   const flatData = flattenData(report.totals);
   flatData["matchKey"] = report.match_key;
   flatData["robot"] = report.robot;
 
-  // Group the flattened data by category (prefix before the dot), excluding "matchKey" and "robot".
+  // Group flattened data by category.
   const groupedData = {};
   Object.keys(flatData).forEach((key) => {
     if (key === "matchKey" || key === "robot") return;
@@ -248,59 +267,13 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
         (phase) =>
           report.totals[phase] && (
             <AveragesSummary
+              key={phase}
               phase={phase}
               averages={report.totals[phase]}
               showEverything={true}
             />
           )
       )}
-      {/* {Object.keys(groupedData).map((group) => (
-        <Paper
-          key={group}
-          variant="outlined"
-          sx={{
-            p: 1,
-            mb: 1,
-            borderLeft: `4px solid ${groupColors[group] || "#000"}`,
-          }}
-        >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: groupColors[group] || "inherit",
-              fontWeight: 600,
-              mb: 0.5,
-            }}
-          >
-            {group.toUpperCase()}
-          </Typography>
-          <Grid container spacing={1}>
-            {Object.keys(groupedData[group]).map((metric) => {
-              const mapping = averageMetricMapping[metric] || {
-                label: metric,
-                icon: null,
-              };
-              const value = groupedData[group][metric];
-              return (
-                <Grid item xs={12} sm={6} key={`${group}.${metric}`}>
-                  <Typography
-                    variant="body1"
-                    display="flex"
-                    alignItems="center"
-                    sx={{ fontSize: "1rem" }}
-                  >
-                    {mapping.icon && <Box mr={0.5}>{mapping.icon}</Box>}
-                    <Box component="span" sx={{ fontWeight: 600, mr: 0.5 }}>
-                      {mapping.label}:
-                    </Box>
-                    {formatValue(`${group}.${metric}`, value)}
-                  </Typography>
-                </Grid>
-              );
-            })}
-          </Grid>
-        </Paper>
-      ))} */}
       {/* Render the cycles preview below the report metrics */}
       <Box sx={{ mt: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
@@ -314,8 +287,6 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
 
 // ------------------- ReportCarousel Component -------------------
 // Displays reports in a horizontal carousel with a preview of next/previous cards.
-// A navigation bar on top shows a Chip for each report header for quick jumping.
-// Swipe gestures are supported and the transform updates smoothly as you drag.
 const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   const [index, setIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -386,9 +357,8 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   if (reports.length === 0) return null;
 
   // Calculate transform based on index and dragOffset.
-  // Each card takes 90% of the container width, with 5% margin on each side.
   const cardWidthPercent = 90;
-  const gapPercent = 10; // total gap between cards (5% left, 5% right)
+  const gapPercent = 10;
   const baseTranslate = -index * (cardWidthPercent + gapPercent);
   const dragTranslate = (dragOffset / window.innerWidth) * 100;
   const totalTranslate = baseTranslate + dragTranslate;
@@ -452,8 +422,9 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   );
 };
 
-// ------------------- ReportAccordionList Component -------------------
-// Renders the AveragesSummary (if available) and then a ReportCarousel to navigate reports horizontally.
+// ------------------- ReportsList Component -------------------
+// Renders the AveragesSummary (with embedded CoralBarChart in the coral category)
+// and then a ReportCarousel to navigate reports.
 const ReportsList = ({ data }) => {
   const { averages, reports } = data;
   const [searchParams] = useSearchParams();
@@ -462,12 +433,15 @@ const ReportsList = ({ data }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      {["auto", "tele"].map(
-        (phase) =>
-          averages[phase] && (
-            <AveragesSummary phase={phase} averages={averages[phase]} />
-          )
-      )}
+      {averages != null &&
+        ["auto", "tele"].map(
+          (phase) =>
+            averages[phase] && (
+              <Box key={phase}>
+                <AveragesSummary phase={phase} averages={averages[phase]} />
+              </Box>
+            )
+        )}
       {reports && reports.length > 0 && (
         <ReportCarousel
           reports={reports}

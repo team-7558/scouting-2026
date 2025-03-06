@@ -37,6 +37,7 @@ export const COLORS = {
   SUCCESS: "success",
   DISABLED: "disabled",
   ACTIVE: "primary",
+  OPPONENT: "opponent",
   CORALPICKUP: "coralPickup",
   ALGAEPICKUP: "algaePickup",
   CORALDROPOFF: "coralDropoff",
@@ -105,6 +106,7 @@ export const GAME_LOCATIONS = {
   },
   NET: "NET",
   PROCESSOR: "PROCESSOR",
+  OPPONENT_PROCESSOR: "OPPONENT_PROCESSOR",
   HANG: {
     LEFT: "HANG_LEFT",
     MIDDLE: "HANG_MIDDLE",

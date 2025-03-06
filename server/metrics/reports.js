@@ -6,10 +6,17 @@ export const calculateReportTotals = (report) => {
       droppedCount: 0,
       avgScoringCycleTime: null,
       scoringRate: null,
+      L1: 0,
+      L2: 0,
+      L3: 0,
+      L4: 0,
     },
     algae: {
       attainedCount: 0,
       scoredCount: 0,
+      scoredNetCount: 0,
+      scoredProcessorCount: 0,
+      scoredOpponentProcessorCount: 0,
       droppedCount: 0,
       avgScoringCycleTime: null,
       scoringRate: null,
@@ -54,63 +61,77 @@ export const calculateReportTotals = (report) => {
     const endTime = cycle.end_time;
     const cycleTime = cycle.cycle_time;
     const depositType = cycle.deposit_type;
+    const depositLocation = cycle.deposit_location;
     const attainedLocation = cycle.attained_location;
 
-    const phaseResults = results[phase=="post_match" ? "tele" : phase];
-      switch (cycleType) {
-        case "AUTO_MOVEMENT":
-          if (phase == "auto") {
-            phaseResults.movement.movementTime = cycleTime;
-            phaseResults.movement.movementRate = 1;
-          }
-          break;
-        case "CORAL":
-          if (attainedLocation !== null && startTime !== null) {
-            phaseResults.coral.attainedCount++;
-          }
-          if (depositType === "SCORE" && endTime !== null) {
-            phaseResults.coral.scoredCount++;
-            coralScoringTimes.push(cycleTime);
-          }
-          break;
+    const phaseResults = results[phase == "post_match" ? "tele" : phase];
+    switch (cycleType) {
+      case "AUTO_MOVEMENT":
+        if (phase == "auto") {
+          phaseResults.movement.movementTime = cycleTime;
+          phaseResults.movement.movementRate = 1;
+        }
+        break;
+      case "CORAL":
+        if (attainedLocation !== null && startTime !== null) {
+          phaseResults.coral.attainedCount++;
+        }
+        if (depositType === "SCORE" && endTime !== null) {
+          phaseResults.coral.scoredCount++;
+          coralScoringTimes.push(cycleTime);
+          const reef_level = depositLocation.split("_")[2];
+          phaseResults.coral[reef_level] += 1;
+        }
+        break;
 
-        case "ALGAE":
-          if (attainedLocation !== null && startTime !== null) {
-            phaseResults.algae.attainedCount++;
+      case "ALGAE":
+        if (attainedLocation !== null && startTime !== null) {
+          phaseResults.algae.attainedCount++;
+        }
+        if (depositType === "SCORE" && endTime !== null) {
+          switch (depositLocation) {
+            case "NET":
+              phaseResults.algae.scoredNetCount++;
+              break;
+            case "PROCESSOR":
+              phaseResults.algae.scoredProcessorCount++;
+              break;
+            case "OPPONENT_PROCESSOR":
+              phaseResults.algae.scoredOpponentProcessorCount++;
+              break;
           }
-          if (depositType === "SCORE" && endTime !== null) {
-            phaseResults.algae.scoredCount++;
-            algaeScoringTimes.push(cycleTime);
-          }
-          break;
+          phaseResults.algae.scoredCount++;
+          algaeScoringTimes.push(cycleTime);
+        }
+        break;
 
-        case "HANG":
-          phaseResults.hang.startTime = cycle.start_time;
-          phaseResults.hang.cycleTime = cycleTime;
-          break;
+      case "HANG":
+        phaseResults.hang.startTime = cycle.start_time;
+        phaseResults.hang.cycleTime = cycleTime;
+        break;
 
-        case "DEFENSE":
-          if (cycleTime !== null) {
-            phaseResults.defense.totalTime += cycleTime;
-          }
-          break;
+      case "DEFENSE":
+        if (cycleTime !== null) {
+          phaseResults.defense.totalTime += cycleTime;
+        }
+        break;
 
-        case "CONTACT":
-          if (cycleTime !== null) {
-            phaseResults.contact.totalTime += cycleTime;
-          }
+      case "CONTACT":
+        if (cycleTime !== null) {
+          phaseResults.contact.totalTime += cycleTime;
+        }
 
-          phaseResults.contact.pinCount +=
-            cycle.pin_count !== null ? cycle.pin_count : 0;
-          phaseResults.contact.foulCount +=
-            cycle.foul_count !== null ? cycle.foul_count : 0;
-          break;
+        phaseResults.contact.pinCount +=
+          cycle.pin_count !== null ? cycle.pin_count : 0;
+        phaseResults.contact.foulCount +=
+          cycle.foul_count !== null ? cycle.foul_count : 0;
+        break;
 
-        default:
-          // Do nothing for unknown cycle types.
-          break;
-        // }
-      }
+      default:
+        // Do nothing for unknown cycle types.
+        break;
+      // }
+    }
   });
 
   for (let phase of ["auto", "tele"]) {
@@ -128,7 +149,7 @@ export const calculateReportTotals = (report) => {
     }
     if (phaseResults.coral.scoredCount > 0) {
       phaseResults.coral.scoringRate =
-        phaseResults.coral.attainedCount / phaseResults.coral.scoredCount;
+        phaseResults.coral.scoredCount / phaseResults.coral.attainedCount;
     }
 
     // Compute derived metrics for Algae

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { Box, Button, Drawer, TextField } from "@mui/material";
@@ -17,6 +17,10 @@ const Sidebar = ({
   const [matchKeyEntry, setMatchKeyEntry] = useState(
     searchParams.get("matchKey")
   );
+
+  useEffect(() => {
+    setMatchKeyEntry(searchParams.get("matchKey"));
+  }, [searchParams]);
   const createButtonsFromList = (list, width, paramName, color, drawBorder) => {
     return (
       <Box key={JSON.stringify(list)}>

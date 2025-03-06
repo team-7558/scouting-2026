@@ -3,15 +3,15 @@ import {
   Box,
   Button,
   Chip,
+  Collapse,
   Grid,
   IconButton,
   Paper,
   Typography,
 } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import StarIcon from "@mui/icons-material/Star";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -20,22 +20,20 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import { Link, useSearchParams } from "react-router-dom";
-import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Import your CyclesFieldCanvas component
+import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Your CyclesFieldCanvas component
+import ScoreBarChart from "./ScoreBarChart"; // Reusable chart component
 
 // ------------------- Shared Constants and Helpers -------------------
 
-// Group colors used for styling group headers.
 const groupColors = {
-  movement: "#c7cf00", // yellow
-  coral: "#7e57c2", // darker red
-  algae: "#388e3c", // darker green
-  hang: "#1976d2", // darker blue
-  defense: "#d32f2f", // darker purple
-  contact: "#f57c00", // darker orange
+  movement: "#c7cf00",
+  coral: "#7e57c2",
+  algae: "#388e3c",
+  hang: "#1976d2",
+  defense: "#d32f2f",
+  contact: "#f57c00",
 };
 
-// Helper: Determine station color based on station code.
-// If station starts with "r", returns red (#d32f2f); if "b", returns blue (#1976d2); else "default".
 const getStationColor = (station) => {
   if (!station) return "default";
   const s = station.toLowerCase();
@@ -44,8 +42,6 @@ const getStationColor = (station) => {
   return "default";
 };
 
-// Flattens an object by iterating over each group and returning each field’s value.
-// For arrays, it returns the second element.
 const flattenData = (obj) => {
   const flat = {};
   Object.keys(obj).forEach((group) => {
@@ -59,9 +55,6 @@ const flattenData = (obj) => {
   return flat;
 };
 
-// Formats a numeric value to always have 2 decimals.
-// If the field (extracted from colKey) contains "time" (case-insensitive),
-// it converts the value from milliseconds to seconds and appends "s".
 const formatValue = (colKey, value) => {
   if (typeof value !== "number") return value;
   let num = value;
@@ -70,17 +63,27 @@ const formatValue = (colKey, value) => {
     num = num / 1000;
     return num.toFixed(2) + "s";
   }
+  if (field.toLowerCase().includes("rate")) {
+    num = num * 100;
+    return num.toFixed(2) + "%";
+  }
   return num.toFixed(2);
 };
 
-// Helper for averages: if a value is an array, use its second element before formatting.
 const getFormattedValue = (group, field, value) => {
   const v = Array.isArray(value) ? value[1] : value;
   return formatValue(`${group}.${field}`, v);
 };
 
-// Mapping for friendly metric names and icons (used in both averages and report details).
 const averageMetricMapping = {
+  movementTime: {
+    label: "Leave time",
+    icon: <TrendingUpIcon fontSize="medium" color="action" />,
+  },
+  movementRate: {
+    label: "Leave rate",
+    icon: <TrendingUpIcon fontSize="medium" color="action" />,
+  },
   attainedCount: {
     label: "Attained",
     icon: <TrendingUpIcon fontSize="medium" color="action" />,
@@ -123,20 +126,61 @@ const averageMetricMapping = {
   },
 };
 
+// ------------------- Helper: Render a Metric Chip -------------------
+const renderMetricChip = (group, field, groupData, theme) => {
+  const mapping = averageMetricMapping[field] || { label: field };
+  const value =
+    groupData[field] != null
+      ? getFormattedValue(group, field, groupData[field])
+      : "-";
+  // Determine chip color based on metric type.
+  const lower = field.toLowerCase();
+  let chipColor = theme.palette.primary.main;
+  if (lower.includes("time")) chipColor = theme.palette.info.main;
+  else if (lower.includes("rate")) chipColor = theme.palette.success.main;
+  return (
+    <Chip
+      key={`${group}.${field}`}
+      size="small"
+      label={`${mapping.label}: ${value}`}
+      sx={{
+        backgroundColor: chipColor,
+        color: theme.palette.getContrastText(chipColor),
+        fontWeight: "bold",
+      }}
+    />
+  );
+};
+
 // ------------------- AveragesSummary Component -------------------
-// Displays averages grouped by their category.
-// For "coral" and "algae", only a predetermined set of fields is shown;
-// for other groups, all available metrics are shown.
+// The phase header is static (e.g., "Auto" or "Tele"). Each category is collapsible.
+// When collapsed, the top three metrics are shown as colored chips. For "coral" and "algae",
+// the expand option is always shown so that the hidden chart can be revealed.
 const AveragesSummary = ({ phase, averages, showEverything = false }) => {
+  const theme = useTheme();
+  const [expandedGroups, setExpandedGroups] = useState({});
   const visibleFieldsForCA = [
     "attainedCount",
     "scoredCount",
     "avgScoringCycleTime",
   ];
+  const chartKeys = {
+    coral: ["L1", "L2", "L3", "L4"],
+    algae: [
+      "scoredProcessorCount",
+      "scoredNetCount",
+      "scoredOpponentProcessorCount",
+    ],
+  };
+
+  // Phase header: "Auto" or "Tele"
+  const phaseHeader =
+    phase === "auto" ? "AUTO" : phase === "tele" ? "TELE" : phase.toUpperCase();
+
   return (
     <Box sx={{ mb: 3 }}>
-      <Typography variant="h7" gutterBottom>
-        {phase && phase.toUpperCase()}
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        {phaseHeader}
       </Typography>
       {Object.keys(averages).map((group) => {
         const groupData = averages[group];
@@ -144,44 +188,171 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
           (group === "coral" || group === "algae") && !showEverything
             ? visibleFieldsForCA
             : Object.keys(groupData);
+        // When collapsed, show top 3 metrics.
+        const metricsToShow = expandedGroups[group]
+          ? fieldsToDisplay
+          : fieldsToDisplay.slice(0, 3);
+        // Always show expand option for coral and algae, otherwise if more than 3 metrics.
+        const showExpandOption =
+          group === "coral" || group === "algae" || fieldsToDisplay.length > 3;
+
         return (
           <Paper
             key={group}
             variant="outlined"
-            sx={{
+            sx={(theme) => ({
               p: 2,
               mb: 1,
-              borderLeft: `6px solid ${groupColors[group] || "#000"}`,
-            }}
+              borderLeft: `6px solid ${
+                groupColors[group] || theme.palette.text.primary
+              }`,
+              backgroundColor: theme.palette.background.paper,
+            })}
           >
-            <Typography
-              variant="subtitle1"
-              sx={{ color: groupColors[group] || "inherit", mb: 1 }}
+            {/* Category header with inline chips when collapsed */}
+            <Box
+              onClick={() =>
+                setExpandedGroups((prev) => ({
+                  ...prev,
+                  [group]: !prev[group],
+                }))
+              }
+              sx={{
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 1,
+              }}
             >
-              {group.toUpperCase()}
-            </Typography>
-            <Grid container spacing={1}>
-              {fieldsToDisplay.map((field) => {
-                const key = `${group}.${field}`;
-                const mapping = averageMetricMapping[field] || {
-                  label: field,
-                  icon: null,
-                };
-                return (
-                  <Grid item xs={12} sm={4} key={key}>
-                    <Typography variant="h6" display="flex" alignItems="start">
-                      {mapping.icon && <Box mr={0.5}>{mapping.icon}</Box>}
-                      <span style={{ fontWeight: 600, marginRight: 4 }}>
-                        {mapping.label}:
-                      </span>{" "}
-                      {groupData[field] != null
-                        ? getFormattedValue(group, field, groupData[field])
-                        : "-"}
+              <Typography
+                variant="subtitle1"
+                sx={{ color: groupColors[group] }}
+              >
+                {group.toUpperCase()}
+              </Typography>
+              {!expandedGroups[group] && (
+                <Box
+                  sx={(theme) => ({
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  })}
+                >
+                  {metricsToShow.map((field) =>
+                    renderMetricChip(group, field, groupData, theme)
+                  )}
+                  {showExpandOption && (
+                    <Typography
+                      variant="subtitle2"
+                      sx={(theme) => ({ color: theme.palette.text.secondary })}
+                    >
+                      ▼
                     </Typography>
-                  </Grid>
-                );
-              })}
-            </Grid>
+                  )}
+                </Box>
+              )}
+              {expandedGroups[group] && (
+                <Typography
+                  variant="subtitle2"
+                  sx={(theme) => ({ color: theme.palette.text.secondary })}
+                >
+                  ▲
+                </Typography>
+              )}
+            </Box>
+            {/* Animated full content when expanded */}
+            <Collapse in={!!expandedGroups[group]} timeout="auto" unmountOnExit>
+              <Box
+                sx={(theme) => ({
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  mb: 1,
+                })}
+              >
+                {fieldsToDisplay.map((field) =>
+                  renderMetricChip(group, field, groupData, theme)
+                )}
+              </Box>
+              {showExpandOption && (
+                <Button
+                  onClick={() =>
+                    setExpandedGroups((prev) => ({
+                      ...prev,
+                      [group]: false,
+                    }))
+                  }
+                  sx={{ mt: 1 }}
+                >
+                  Show less
+                </Button>
+              )}
+              {/* Show chart for coral/algae when expanded */}
+              {expandedGroups[group] &&
+                group === "coral" &&
+                groupData.L1 != null && (
+                  <Box sx={{ mt: 2, width: "100%" }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={(theme) => ({
+                        mb: 1,
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                      })}
+                    >
+                      Coral Levels
+                    </Typography>
+                    <Box sx={{ width: "100%" }}>
+                      <ScoreBarChart
+                        scoreData={groupData}
+                        chartKeys={chartKeys[group]}
+                      />
+                    </Box>
+                  </Box>
+                )}
+              {expandedGroups[group] &&
+                group === "algae" &&
+                groupData.scoredProcessorCount != null && (
+                  <Box sx={{ mt: 2, width: "100%" }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={(theme) => ({
+                        mb: 1,
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                      })}
+                    >
+                      Algae Scored Breakdown
+                    </Typography>
+                    <Box sx={{ width: "100%" }}>
+                      <ScoreBarChart
+                        scoreData={groupData}
+                        chartKeys={[
+                          "scoredProcessorCount",
+                          "scoredNetCount",
+                          "scoredOpponentProcessorCount",
+                        ]}
+                      />
+                    </Box>
+                  </Box>
+                )}
+            </Collapse>
+            {/* If collapsed and there are more than 3 metrics, show a "Show more" button */}
+            {!expandedGroups[group] && showExpandOption && (
+              <Button
+                onClick={() =>
+                  setExpandedGroups((prev) => ({
+                    ...prev,
+                    [group]: true,
+                  }))
+                }
+                sx={{ mt: 1 }}
+              >
+                Show more
+              </Button>
+            )}
           </Paper>
         );
       })}
@@ -190,16 +361,12 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
 };
 
 // ------------------- ReportCard Component -------------------
-// Displays an individual report as a fixed (unexpandable) card.
-// It groups metrics by category using friendly labels/icons and colors.
-// The header is styled with a bottom border in the station color.
-// Now, it also renders the CyclesFieldCanvas component to preview cycles.
+// The header now uses a full-width clickable area with an added "go to" icon.
 const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   const flatData = flattenData(report.totals);
   flatData["matchKey"] = report.match_key;
   flatData["robot"] = report.robot;
 
-  // Group the flattened data by category (prefix before the dot), excluding "matchKey" and "robot".
   const groupedData = {};
   Object.keys(flatData).forEach((key) => {
     if (key === "matchKey" || key === "robot") return;
@@ -213,95 +380,83 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   return (
     <Paper
       variant="outlined"
-      sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: 2 }}
+      sx={(theme) => ({
+        p: 2,
+        mb: 2,
+        borderRadius: theme.shape.borderRadius,
+        boxShadow: theme.shadows[2],
+      })}
     >
       <Box
-        sx={{
+        component={Link}
+        to={
+          isMatchQuery
+            ? `/robots?eventKey=${encodeURIComponent(
+                eventKey
+              )}&&robot=${encodeURIComponent(report.robot)}`
+            : `/matches?eventKey=${encodeURIComponent(
+                eventKey
+              )}&&matchKey=${encodeURIComponent(report.match_key)}`
+        }
+        sx={(theme) => ({
+          p: 1,
           mb: 2,
-          borderBottom: `2px solid ${stationColor}`,
-        }}
+          backgroundColor: stationColor,
+          borderRadius: theme.shape.borderRadius,
+          textAlign: "center",
+          textDecoration: "none",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        })}
       >
-        <Button
-          variant="text"
-          component={Link}
-          to={
-            isMatchQuery
-              ? `/robots?eventKey=${encodeURIComponent(
-                  eventKey
-                )}&&robot=${encodeURIComponent(report.robot)}`
-              : `/matches?eventKey=${encodeURIComponent(
-                  eventKey
-                )}&&matchKey=${encodeURIComponent(report.match_key)}`
-          }
-          sx={{
-            fontSize: "1.2rem",
-            fontWeight: 700,
+        <Typography
+          variant="button"
+          sx={(theme) => ({
             textTransform: "none",
-            color: stationColor,
-          }}
+            color: theme.palette.common.white,
+            fontWeight: 700,
+            fontSize: "1.2rem",
+          })}
         >
           {isMatchQuery ? report.robot : report.match_key}
-        </Button>
-        {`${report.scout_name} @ ${report.submission_time}`}
+        </Typography>
+        <ArrowForwardIosIcon
+          fontSize="small"
+          sx={(theme) => ({ ml: 1, color: theme.palette.common.white })}
+        />
       </Box>
+      <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
+        {`Scouted by ${report.scout_name} at ${new Intl.DateTimeFormat(
+          undefined,
+          {
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "2-digit",
+          }
+        ).format(
+          new Date(parseInt(report.match_start_time))
+        )} , submitted at ${new Intl.DateTimeFormat(undefined, {
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          second: "2-digit",
+        }).format(new Date(parseInt(report.submission_time)))}`}
+      </Typography>
       {["auto", "tele"].map(
         (phase) =>
           report.totals[phase] && (
             <AveragesSummary
+              key={phase}
               phase={phase}
               averages={report.totals[phase]}
               showEverything={true}
             />
           )
       )}
-      {/* {Object.keys(groupedData).map((group) => (
-        <Paper
-          key={group}
-          variant="outlined"
-          sx={{
-            p: 1,
-            mb: 1,
-            borderLeft: `4px solid ${groupColors[group] || "#000"}`,
-          }}
-        >
-          <Typography
-            variant="subtitle2"
-            sx={{
-              color: groupColors[group] || "inherit",
-              fontWeight: 600,
-              mb: 0.5,
-            }}
-          >
-            {group.toUpperCase()}
-          </Typography>
-          <Grid container spacing={1}>
-            {Object.keys(groupedData[group]).map((metric) => {
-              const mapping = averageMetricMapping[metric] || {
-                label: metric,
-                icon: null,
-              };
-              const value = groupedData[group][metric];
-              return (
-                <Grid item xs={12} sm={6} key={`${group}.${metric}`}>
-                  <Typography
-                    variant="body1"
-                    display="flex"
-                    alignItems="center"
-                    sx={{ fontSize: "1rem" }}
-                  >
-                    {mapping.icon && <Box mr={0.5}>{mapping.icon}</Box>}
-                    <Box component="span" sx={{ fontWeight: 600, mr: 0.5 }}>
-                      {mapping.label}:
-                    </Box>
-                    {formatValue(`${group}.${metric}`, value)}
-                  </Typography>
-                </Grid>
-              );
-            })}
-          </Grid>
-        </Paper>
-      ))} */}
-      {/* Render the cycles preview below the report metrics */}
       <Box sx={{ mt: 2 }}>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
           Cycles
@@ -313,9 +468,6 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
 };
 
 // ------------------- ReportCarousel Component -------------------
-// Displays reports in a horizontal carousel with a preview of next/previous cards.
-// A navigation bar on top shows a Chip for each report header for quick jumping.
-// Swipe gestures are supported and the transform updates smoothly as you drag.
 const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   const [index, setIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -343,7 +495,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   };
 
   const onTouchEnd = () => {
-    const threshold = 50; // Minimum distance to trigger swipe
+    const threshold = 50;
     if (dragOffset < -threshold) {
       handleNext();
     } else if (dragOffset > threshold) {
@@ -353,17 +505,8 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
     touchStartX.current = null;
   };
 
-  // Render a navigation bar of report headers as Chips.
   const renderNavBar = () => (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 1,
-        mb: 2,
-        pb: 1,
-      }}
-    >
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2, pb: 1 }}>
       {reports.map((report, i) => {
         const header = isMatchQuery ? report.robot : report.match_key;
         const stationColor = getStationColor(report.station);
@@ -372,11 +515,13 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
             key={report.id}
             label={header}
             onClick={() => setIndex(i)}
-            sx={{
+            sx={(theme) => ({
               backgroundColor: stationColor,
               flexShrink: 0,
-              border: i === index ? "3px solid" : "none",
-            }}
+              borderRadius: theme.shape.borderRadius,
+              color: theme.palette.common.white,
+              "&:hover": { opacity: 0.85 },
+            })}
           />
         );
       })}
@@ -385,10 +530,8 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
 
   if (reports.length === 0) return null;
 
-  // Calculate transform based on index and dragOffset.
-  // Each card takes 90% of the container width, with 5% margin on each side.
   const cardWidthPercent = 90;
-  const gapPercent = 10; // total gap between cards (5% left, 5% right)
+  const gapPercent = 10;
   const baseTranslate = -index * (cardWidthPercent + gapPercent);
   const dragTranslate = (dragOffset / window.innerWidth) * 100;
   const totalTranslate = baseTranslate + dragTranslate;
@@ -424,27 +567,31 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
       </Box>
       <IconButton
         onClick={handlePrev}
-        sx={{
+        sx={(theme) => ({
           position: "absolute",
           top: "50%",
           left: 0,
           transform: "translateY(-50%)",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          "&:hover": { backgroundColor: "rgba(255,255,255,1)" },
-        }}
+          backgroundColor: alpha(theme.palette.background.paper, 0.8),
+          "&:hover": {
+            backgroundColor: alpha(theme.palette.background.paper, 1),
+          },
+        })}
       >
         <ArrowBackIosIcon />
       </IconButton>
       <IconButton
         onClick={handleNext}
-        sx={{
+        sx={(theme) => ({
           position: "absolute",
           top: "50%",
           right: 0,
           transform: "translateY(-50%)",
-          backgroundColor: "rgba(255,255,255,0.8)",
-          "&:hover": { backgroundColor: "rgba(255,255,255,1)" },
-        }}
+          backgroundColor: alpha(theme.palette.background.paper, 0.8),
+          "&:hover": {
+            backgroundColor: alpha(theme.palette.background.paper, 1),
+          },
+        })}
       >
         <ArrowForwardIosIcon />
       </IconButton>
@@ -452,8 +599,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   );
 };
 
-// ------------------- ReportAccordionList Component -------------------
-// Renders the AveragesSummary (if available) and then a ReportCarousel to navigate reports horizontally.
+// ------------------- ReportsList Component -------------------
 const ReportsList = ({ data }) => {
   const { averages, reports } = data;
   const [searchParams] = useSearchParams();
@@ -462,12 +608,21 @@ const ReportsList = ({ data }) => {
 
   return (
     <Box sx={{ p: 2 }}>
-      {["auto", "tele"].map(
-        (phase) =>
-          averages[phase] && (
-            <AveragesSummary phase={phase} averages={averages[phase]} />
-          )
+      {/* Top-level Averages header */}
+      {averages != null && (
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Averages
+        </Typography>
       )}
+      {averages != null &&
+        ["auto", "tele"].map(
+          (phase) =>
+            averages[phase] && (
+              <Box key={phase}>
+                <AveragesSummary phase={phase} averages={averages[phase]} />
+              </Box>
+            )
+        )}
       {reports && reports.length > 0 && (
         <ReportCarousel
           reports={reports}

@@ -114,13 +114,15 @@ export const SIDEBAR_CONFIG = [
     phases: [PHASES.AUTO, PHASES.TELE],
     id: "scoreAlgae",
     positions: ["scoreAlgae"],
-    label: (match, key) => `Score ${match.algae.depositLocation}`,
+    label: (match, key) =>
+      `Score ${match.algae.depositLocation.replace("_", " ")}`,
     tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
     color: (match, key) => COLORS.ALGAEDROPOFF,
     sx: {},
     show: (match, key) =>
       match.algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
-      match.algae.depositLocation === GAME_LOCATIONS.NET,
+      match.algae.depositLocation === GAME_LOCATIONS.NET ||
+      match.algae.depositLocation === GAME_LOCATIONS.OPPONENT_PROCESSOR,
   },
   // DROP_ALGAE Button
   {

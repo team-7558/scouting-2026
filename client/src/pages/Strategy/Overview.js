@@ -12,11 +12,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
   Select,
+  LinearProgress,
 } from "@mui/material";
 import { Input, Menu } from "@mui/material";
 import { styled } from "@mui/system";
@@ -35,6 +34,7 @@ const Overview = () => {
     const [paramsProvided, setParamsProvided] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const [parsedData, setParsedData] = useState({});
+    const [error, setError] = useState(null);
     const SEARCH_FILTERS = {
         POINTS: "POINTS", 
         AUTO_POINTS: "AUTO_POINTS",
@@ -124,6 +124,7 @@ const Overview = () => {
         console.log("raw data", response.data);
       } catch (error) {
         console.error("Error fetching robot data:", error);
+        setError(error.message);
       }
     };
     if (paramsProvided) {
@@ -488,10 +489,20 @@ const Overview = () => {
         requiredParamKeys={["eventKey"]}
       />
     );
+  } else if (error){
+    return (
+        <center style={{marginTop: "5vh"}}>
+            <h1 style={{color: "red"}}>{error}</h1>
+        </center>
+    )
   }
   return (
-    //loading dialog
-    <p>STILL LOADING</p>
+    <LinearProgress sx={{
+        marginTop: "5vh",
+        marginLeft: "5vh",
+        marginRight: "5vh",
+    }}
+    />
   );
 };
 

@@ -3,17 +3,15 @@ import {
   Box,
   Button,
   Chip,
-  Divider,
+  Collapse,
   Grid,
   IconButton,
   Paper,
   Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import StarIcon from "@mui/icons-material/Star";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -128,45 +126,39 @@ const averageMetricMapping = {
   },
 };
 
-// ------------------- New MetricRow Component -------------------
-// Each metric row now shows a left-aligned label (with an icon) and a right-aligned value.
-const MetricRow = ({ icon, label, value }) => (
-  <Box
-    display="flex"
-    alignItems="center"
-    justifyContent="space-between"
-    p={1}
-    mb={1}
-    sx={(theme) => ({
-      backgroundColor: theme.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
-      boxShadow: theme.shadows[1],
-    })}
-  >
-    <Box display="flex" alignItems="center">
-      {icon && <Box mr={0.5}>{icon}</Box>}
-      <Typography
-        variant="body1"
-        sx={{
-          fontWeight: "bold",
-          color: (theme) => theme.palette.text.primary,
-        }}
-      >
-        {label}
-      </Typography>
-    </Box>
-    <Typography
-      variant="body1"
-      sx={{ color: (theme) => theme.palette.text.secondary }}
-    >
-      {value}
-    </Typography>
-  </Box>
-);
+// ------------------- Helper: Render a Metric Chip -------------------
+const renderMetricChip = (group, field, groupData, theme) => {
+  const mapping = averageMetricMapping[field] || { label: field };
+  const value =
+    groupData[field] != null
+      ? getFormattedValue(group, field, groupData[field])
+      : "-";
+  // Determine chip color based on metric type.
+  const lower = field.toLowerCase();
+  let chipColor = theme.palette.primary.main;
+  if (lower.includes("time")) chipColor = theme.palette.info.main;
+  else if (lower.includes("rate")) chipColor = theme.palette.success.main;
+  return (
+    <Chip
+      key={`${group}.${field}`}
+      size="small"
+      label={`${mapping.label}: ${value}`}
+      sx={{
+        backgroundColor: chipColor,
+        color: theme.palette.getContrastText(chipColor),
+        fontWeight: "bold",
+      }}
+    />
+  );
+};
 
 // ------------------- AveragesSummary Component -------------------
-// Renders metrics by group with the new MetricRow. Also displays custom charts for coral and algae.
+// The phase header is static (e.g., "Auto" or "Tele"). Each category is collapsible.
+// When collapsed, the top three metrics are shown as colored chips. For "coral" and "algae",
+// the expand option is always shown so that the hidden chart can be revealed.
 const AveragesSummary = ({ phase, averages, showEverything = false }) => {
+  const theme = useTheme();
+  const [expandedGroups, setExpandedGroups] = useState({});
   const visibleFieldsForCA = [
     "attainedCount",
     "scoredCount",
@@ -180,10 +172,15 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
       "scoredOpponentProcessorCount",
     ],
   };
+
+  // Phase header: "Auto" or "Tele"
+  const phaseHeader =
+    phase === "auto" ? "AUTO" : phase === "tele" ? "TELE" : phase.toUpperCase();
+
   return (
     <Box sx={{ mb: 3 }}>
-      <Typography variant="h7" gutterBottom>
-        {phase && phase.toUpperCase()}
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        {phaseHeader}
       </Typography>
       {Object.keys(averages).map((group) => {
         const groupData = averages[group];
@@ -191,6 +188,14 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
           (group === "coral" || group === "algae") && !showEverything
             ? visibleFieldsForCA
             : Object.keys(groupData);
+        // When collapsed, show top 3 metrics.
+        const metricsToShow = expandedGroups[group]
+          ? fieldsToDisplay
+          : fieldsToDisplay.slice(0, 3);
+        // Always show expand option for coral and algae, otherwise if more than 3 metrics.
+        const showExpandOption =
+          group === "coral" || group === "algae" || fieldsToDisplay.length > 3;
+
         return (
           <Paper
             key={group}
@@ -204,68 +209,149 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
               backgroundColor: theme.palette.background.paper,
             })}
           >
-            <Typography
-              variant="subtitle1"
-              sx={(theme) => ({
-                color: groupColors[group] || theme.palette.text.primary,
+            {/* Category header with inline chips when collapsed */}
+            <Box
+              onClick={() =>
+                setExpandedGroups((prev) => ({
+                  ...prev,
+                  [group]: !prev[group],
+                }))
+              }
+              sx={{
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
                 mb: 1,
-              })}
+              }}
             >
-              {group.toUpperCase()}
-            </Typography>
-            <Grid container spacing={1}>
-              {fieldsToDisplay.map((field) => {
-                if (chartKeys[group] && chartKeys[group].includes(field)) {
-                  return null;
+              <Typography
+                variant="subtitle1"
+                sx={{ color: groupColors[group] }}
+              >
+                {group.toUpperCase()}
+              </Typography>
+              {!expandedGroups[group] && (
+                <Box
+                  sx={(theme) => ({
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  })}
+                >
+                  {metricsToShow.map((field) =>
+                    renderMetricChip(group, field, groupData, theme)
+                  )}
+                  {showExpandOption && (
+                    <Typography
+                      variant="subtitle2"
+                      sx={(theme) => ({ color: theme.palette.text.secondary })}
+                    >
+                      ▼
+                    </Typography>
+                  )}
+                </Box>
+              )}
+              {expandedGroups[group] && (
+                <Typography
+                  variant="subtitle2"
+                  sx={(theme) => ({ color: theme.palette.text.secondary })}
+                >
+                  ▲
+                </Typography>
+              )}
+            </Box>
+            {/* Animated full content when expanded */}
+            <Collapse in={!!expandedGroups[group]} timeout="auto" unmountOnExit>
+              <Box
+                sx={(theme) => ({
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  mb: 1,
+                })}
+              >
+                {fieldsToDisplay.map((field) =>
+                  renderMetricChip(group, field, groupData, theme)
+                )}
+              </Box>
+              {showExpandOption && (
+                <Button
+                  onClick={() =>
+                    setExpandedGroups((prev) => ({
+                      ...prev,
+                      [group]: false,
+                    }))
+                  }
+                  sx={{ mt: 1 }}
+                >
+                  Show less
+                </Button>
+              )}
+              {/* Show chart for coral/algae when expanded */}
+              {expandedGroups[group] &&
+                group === "coral" &&
+                groupData.L1 != null && (
+                  <Box sx={{ mt: 2, width: "100%" }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={(theme) => ({
+                        mb: 1,
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                      })}
+                    >
+                      Coral Levels
+                    </Typography>
+                    <Box sx={{ width: "100%" }}>
+                      <ScoreBarChart
+                        scoreData={groupData}
+                        chartKeys={chartKeys[group]}
+                      />
+                    </Box>
+                  </Box>
+                )}
+              {expandedGroups[group] &&
+                group === "algae" &&
+                groupData.scoredProcessorCount != null && (
+                  <Box sx={{ mt: 2, width: "100%" }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={(theme) => ({
+                        mb: 1,
+                        fontWeight: 600,
+                        color: theme.palette.text.primary,
+                      })}
+                    >
+                      Algae Scored Breakdown
+                    </Typography>
+                    <Box sx={{ width: "100%" }}>
+                      <ScoreBarChart
+                        scoreData={groupData}
+                        chartKeys={[
+                          "scoredProcessorCount",
+                          "scoredNetCount",
+                          "scoredOpponentProcessorCount",
+                        ]}
+                      />
+                    </Box>
+                  </Box>
+                )}
+            </Collapse>
+            {/* If collapsed and there are more than 3 metrics, show a "Show more" button */}
+            {!expandedGroups[group] && showExpandOption && (
+              <Button
+                onClick={() =>
+                  setExpandedGroups((prev) => ({
+                    ...prev,
+                    [group]: true,
+                  }))
                 }
-                const mapping = averageMetricMapping[field] || {
-                  label: field,
-                  icon: null,
-                };
-                return (
-                  <Grid item xs={12} key={`${group}.${field}`}>
-                    <MetricRow
-                      icon={mapping.icon}
-                      label={mapping.label}
-                      value={
-                        groupData[field] != null
-                          ? getFormattedValue(group, field, groupData[field])
-                          : "-"
-                      }
-                    />
-                  </Grid>
-                );
-              })}
-            </Grid>
-            {group === "coral" && groupData.L1 != null && (
-              <Box sx={{ mt: 2, width: "100%" }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                  Coral Levels
-                </Typography>
-                <Box sx={{ width: "100%" }}>
-                  <ScoreBarChart
-                    scoreData={groupData}
-                    chartKeys={chartKeys[group]}
-                  />
-                </Box>
-              </Box>
-            )}
-            {group === "algae" && groupData.scoredProcessorCount != null && (
-              <Box sx={{ mt: 2, width: "100%" }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                  Algae Scored Breakdown
-                </Typography>
-                <Box sx={{ width: "100%" }}>
-                  <ScoreBarChart
-                    scoreData={groupData}
-                    chartKeys={[
-                      "scoredProcessorCount",
-                      "scoredNetCount",
-                      "scoredOpponentProcessorCount",
-                    ]}
-                  />
-                </Box>
-              </Box>
+                sx={{ mt: 1 }}
+              >
+                Show more
+              </Button>
             )}
           </Paper>
         );
@@ -273,15 +359,6 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
     </Box>
   );
 };
-
-const formatTimestamp = (timestamp) =>
-  new Intl.DateTimeFormat(undefined, {
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "2-digit",
-  }).format(new Date(parseInt(timestamp)));
 
 // ------------------- ReportCard Component -------------------
 // The header now uses a full-width clickable area with an added "go to" icon.
@@ -346,13 +423,28 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
         </Typography>
         <ArrowForwardIosIcon
           fontSize="small"
-          sx={{ ml: 1, color: (theme) => theme.palette.common.white }}
+          sx={(theme) => ({ ml: 1, color: theme.palette.common.white })}
         />
       </Box>
       <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
-        {`Scouted by ${report.scout_name} at ${formatTimestamp(
-          report.match_start_time
-        )}, submitted at ${formatTimestamp(report.submission_time)}`}
+        {`Scouted by ${report.scout_name} at ${new Intl.DateTimeFormat(
+          undefined,
+          {
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "2-digit",
+          }
+        ).format(
+          new Date(parseInt(report.match_start_time))
+        )} , submitted at ${new Intl.DateTimeFormat(undefined, {
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          second: "2-digit",
+        }).format(new Date(parseInt(report.submission_time)))}`}
       </Typography>
       {["auto", "tele"].map(
         (phase) =>
@@ -516,6 +608,12 @@ const ReportsList = ({ data }) => {
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Top-level Averages header */}
+      {averages != null && (
+        <Typography variant="h6" sx={{ mb: 1 }}>
+          Averages
+        </Typography>
+      )}
       {averages != null &&
         ["auto", "tele"].map(
           (phase) =>

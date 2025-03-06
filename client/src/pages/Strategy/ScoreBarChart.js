@@ -13,7 +13,7 @@ import {
 const CHART_KEY_LABELS = {
   scoredProcessorCount: "Processor",
   scoredNetCount: "Net",
-  scoredOpponentProcessorCount: "Opponent Processor",
+  scoredOpponentProcessorCount: "Oppo Processor",
 };
 
 const ScoreBarChart = ({

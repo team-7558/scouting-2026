@@ -162,7 +162,7 @@ export const getMatchPreviousReports = protectOperation(
 );
 
 export const getReportsFiltered = protectOperation(getReportsFilteredInternal, [
-  "USER",
+  [USER_ROLES.USER],
 ]);
 
 export const getReport = protectOperation(getReportInternal, [USER_ROLES.USER]);

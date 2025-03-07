@@ -59,7 +59,7 @@ const formatValue = (colKey, value) => {
     num = num * 100;
     return num.toFixed(2) + "%";
   }
-  return num.toFixed(2);
+  return parseInt(num.toFixed(2));
 };
 
 const getFormattedValue = (group, field, value) => {
@@ -67,10 +67,17 @@ const getFormattedValue = (group, field, value) => {
   return formatValue(`${group}.${field}`, v);
 };
 
-// Helper functions for sorting
+// Helper functions for sorting: extract the raw value if it's an array.
+const getRawValue = (item, key) => {
+  const value = item[key];
+  return Array.isArray(value) ? value[1] : value;
+};
+
 const descendingComparator = (a, b, orderBy) => {
-  if (b[orderBy] < a[orderBy]) return -1;
-  if (b[orderBy] > a[orderBy]) return 1;
+  const aValue = getRawValue(a, orderBy);
+  const bValue = getRawValue(b, orderBy);
+  if (bValue < aValue) return -1;
+  if (bValue > aValue) return 1;
   return 0;
 };
 

@@ -135,7 +135,9 @@ const ViewReports = ({
           >
             <TextField
               value={matchKeySearchTerm}
-              onChange={(e) => setMatchKeySearchTerm(e.target.value)}
+              onChange={(e) =>
+                setMatchKeySearchTerm(e.target.value.toLowerCase())
+              }
               onKeyDown={handleMatchKeySearchKeyDown}
               variant="outlined"
               size="small"
@@ -151,7 +153,7 @@ const ViewReports = ({
             />
             <TextField
               value={robotSearchTerm}
-              onChange={(e) => setRobotSearchTerm(e.target.value)}
+              onChange={(e) => setRobotSearchTerm(e.target.value.toLowerCase())}
               onKeyDown={handleRobotSearchKeyDown}
               variant="outlined"
               size="small"

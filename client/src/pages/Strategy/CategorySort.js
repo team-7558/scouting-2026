@@ -59,7 +59,7 @@ const formatValue = (colKey, value) => {
     num = num * 100;
     return num.toFixed(2) + "%";
   }
-  return parseInt(num.toFixed(2));
+  return num.toFixed(2);
 };
 
 const getFormattedValue = (group, field, value) => {

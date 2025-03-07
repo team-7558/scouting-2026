@@ -15,9 +15,7 @@ import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 import ReportsList from "./ReportsList";
 import { getReports } from "../../requests/ApiRequests";
 
-const ViewReports = ({
-  requiredParamKeys = ["eventKey", "robot", "matchKey"],
-}) => {
+const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();

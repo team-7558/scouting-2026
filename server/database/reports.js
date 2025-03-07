@@ -1,5 +1,6 @@
 // server/database/reports.js
 import { USER_ROLES } from "./auth.js";
+import { getMatchDataInternal } from "./matches.js";
 import { pgClient, protectOperation } from "./PgClient.js";
 
 export const storeReportInternal = async (eventKey, report) => {

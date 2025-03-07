@@ -638,7 +638,7 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             fontSize: "1.2rem",
           })}
         >
-          {isMatchQuery ? report.robot : report.match_key}
+          {`${report.robot} : ${report.match_key} data`}
         </Typography>
         <ArrowForwardIosIcon
           fontSize="small"
@@ -723,7 +723,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
           }}
         >
           {reports.map((report, i) => {
-            const header = isMatchQuery ? report.robot : report.match_key;
+            const header = `${report.robot} @ ${report.match_key}`;
             const stationColor = getStationColor(report.station);
             return (
               <Chip

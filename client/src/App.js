@@ -13,6 +13,7 @@ import { ProtectedRoute } from "./TokenUtils.js";
 import MatchStrategy from "./pages/Strategy/MatchStrategy.js";
 import ViewReports from "./pages/Strategy/ViewReports.js";
 import Overview from "./pages/Strategy/Overview.js";
+import CategorySort from "./pages/Strategy/CategorySort.js";
 
 const App = () => {
   return (
@@ -66,6 +67,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Overview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/categorySort"
+            element={
+              <ProtectedRoute>
+                <CategorySort />
               </ProtectedRoute>
             }
           />

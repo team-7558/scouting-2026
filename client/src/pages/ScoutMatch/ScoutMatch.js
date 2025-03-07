@@ -840,7 +840,7 @@ const ScoutMatch = () => {
       );
     }),
 
-    hang.cageType != null &&
+    hang.startTime != null &&
       createFieldLocalMatchComponent(
         "hang",
         1150,
@@ -855,7 +855,7 @@ const ScoutMatch = () => {
         /* dontFlip= */ !isScoringTableFar()
       ),
     ...[
-      hang.cageType != null &&
+      hang.startTime != null &&
         [850, 1120, 1390].map((x, index) => {
           const value = [HANG_RESULTS.NONE, HANG_RESULTS.PARK, hang.cageType][
             index

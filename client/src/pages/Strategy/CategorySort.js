@@ -1,6 +1,4 @@
 import React, { useState, useRef } from "react";
-
-import PhaseAveragesTable from "./PhaseAveragesTable";
 import {
   Box,
   Button,
@@ -586,26 +584,6 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
         boxShadow: theme.shadows[2],
       })}
     >
-      <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
-        {`Scouted by ${report.scout_name} at ${new Intl.DateTimeFormat(
-          undefined,
-          {
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "2-digit",
-          }
-        ).format(
-          new Date(parseInt(report.match_start_time))
-        )} , submitted at ${new Intl.DateTimeFormat(undefined, {
-          month: "numeric",
-          day: "numeric",
-          hour: "numeric",
-          minute: "numeric",
-          second: "2-digit",
-        }).format(new Date(parseInt(report.submission_time)))}`}
-      </Typography>
       <Box
         component={Link}
         to={
@@ -645,12 +623,26 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
           sx={(theme) => ({ ml: 1, color: theme.palette.common.white })}
         />
       </Box>
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-          Cycles
-        </Typography>
-        <CyclesFieldCanvas report={report} />
-      </Box>
+      <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
+        {`Scouted by ${report.scout_name} at ${new Intl.DateTimeFormat(
+          undefined,
+          {
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "2-digit",
+          }
+        ).format(
+          new Date(parseInt(report.match_start_time))
+        )} , submitted at ${new Intl.DateTimeFormat(undefined, {
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          second: "2-digit",
+        }).format(new Date(parseInt(report.submission_time)))}`}
+      </Typography>
       {["auto", "tele"].map(
         (phase) =>
           report.totals[phase] && (
@@ -662,6 +654,12 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             />
           )
       )}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+          Cycles
+        </Typography>
+        <CyclesFieldCanvas report={report} />
+      </Box>
     </Paper>
   );
 };
@@ -822,49 +820,32 @@ const ReportsList = ({ data }) => {
   const eventKey = searchParams.get("eventKey") || "";
   const isMatchQuery = Boolean(searchParams.get("matchKey"));
 
-  const metricFilter = (group, metric) => {
-    const allowedMetrics = {
-      movement: ["movementTime", "movementRate"],
-      algae: [
-        "attainedCount",
-        "scoredProcessorCount",
-        "scoredNetCount",
-        "scoringRate",
-      ],
-      coral: ["attainedCount", "scoredCount", "scoringRate"],
-      hang: ["cycleTime"],
-      defense: ["totalTime"],
-      contact: ["totalTime", "pinCount", "foulCount"],
-    };
-
-    return allowedMetrics[group]
-      ? allowedMetrics[group].includes(metric)
-      : false;
-  };
   return (
     <Box sx={{ p: 2 }}>
-      {averages != null && (
-        <>
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            AUTO Averages
-          </Typography>
-          <PhaseAveragesTable
-            averages={averages}
-            phase="auto"
-            eventKey={eventKey}
-            metricFilter={metricFilter}
-          />
-          <Typography variant="h6" sx={{ mb: 1, mt: 4 }}>
-            TELE Averages
-          </Typography>
-          <PhaseAveragesTable
-            averages={averages}
-            phase="tele"
-            eventKey={eventKey}
-            metricFilter={metricFilter}
-          />
-        </>
-      )}
+      {averages != null &&
+        (Object.keys(averages).length > 1 ? (
+          // More than one robot: show table view using the actual metrics from averages.
+          <AveragesTable averages={averages} />
+        ) : (
+          // Only one robot: show per-robot boxes with phase summaries.
+          Object.keys(averages).map((robotId) => (
+            <Box key={robotId} sx={{ mb: 2 }}>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Averages for Robot {robotId}
+              </Typography>
+              {["auto", "tele"].map((phase) =>
+                averages[robotId][phase] ? (
+                  <Box key={phase}>
+                    <AveragesSummary
+                      phase={phase}
+                      averages={averages[robotId][phase]}
+                    />
+                  </Box>
+                ) : null
+              )}
+            </Box>
+          ))
+        ))}
       {reports && reports.length > 0 && (
         <ReportCarousel
           reports={reports}

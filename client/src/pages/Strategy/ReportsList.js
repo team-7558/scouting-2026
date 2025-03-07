@@ -1,4 +1,6 @@
 import React, { useState, useRef } from "react";
+
+import PhaseAveragesTable from "./PhaseAveragesTable";
 import {
   Box,
   Button,
@@ -8,6 +10,13 @@ import {
   IconButton,
   Paper,
   Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableSortLabel,
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
@@ -383,9 +392,175 @@ const AveragesSummary = ({ phase, averages, showEverything = false }) => {
     </Box>
   );
 };
+// Helper functions for sorting
+const descendingComparator = (a, b, orderBy) => {
+  if (b[orderBy] < a[orderBy]) return -1;
+  if (b[orderBy] > a[orderBy]) return 1;
+  return 0;
+};
+
+const getComparator = (order, orderBy) =>
+  order === "desc"
+    ? (a, b) => descendingComparator(a, b, orderBy)
+    : (a, b) => -descendingComparator(a, b, orderBy);
+
+const stableSort = (array, comparator) => {
+  const stabilized = array.map((el, index) => [el, index]);
+  stabilized.sort((a, b) => {
+    const order = comparator(a[0], b[0]);
+    if (order !== 0) return order;
+    return a[1] - b[1];
+  });
+  return stabilized.map((el) => el[0]);
+};
+
+// This component renders a table for a single category group.
+const CategoryTable = ({ group, rows, metricKeys }) => {
+  const theme = useTheme();
+  const [order, setOrder] = useState("asc");
+  const [orderBy, setOrderBy] = useState("robot");
+
+  const handleRequestSort = (event, property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  // Fixed header cells: Robot and Phase; then the dynamic ones from metricKeys.
+  const headCells = [
+    { id: "robot", label: "Robot" },
+    { id: "phase", label: "Phase" },
+    ...metricKeys.map((key) => ({ id: key, label: key })),
+  ];
+
+  return (
+    <Box sx={{ mb: 4 }}>
+      {/* Category header styled with the group color */}
+      <Typography
+        variant="h6"
+        sx={{
+          bgcolor: theme.palette[group] ? theme.palette[group].main : "#333",
+          color: theme.palette.getContrastText(
+            theme.palette[group] ? theme.palette[group].main : "#333"
+          ),
+          p: 1,
+          borderRadius: 1,
+          mb: 1,
+        }}
+      >
+        {group.toUpperCase()}
+      </Typography>
+      <TableContainer component={Paper}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              {headCells.map((headCell) => (
+                <TableCell
+                  key={headCell.id}
+                  sortDirection={orderBy === headCell.id ? order : false}
+                >
+                  <TableSortLabel
+                    active={orderBy === headCell.id}
+                    direction={orderBy === headCell.id ? order : "asc"}
+                    onClick={(event) => handleRequestSort(event, headCell.id)}
+                  >
+                    {headCell.label}
+                  </TableSortLabel>
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {stableSort(rows, getComparator(order, orderBy)).map(
+              (row, index) => (
+                <TableRow key={`${row.robot}-${row.phase}-${index}`}>
+                  <TableCell>{row.robot}</TableCell>
+                  <TableCell>{row.phase}</TableCell>
+                  {metricKeys.map((key) => (
+                    <TableCell key={key}>
+                      {row[key] !== undefined
+                        ? typeof row[key] === "object"
+                          ? JSON.stringify(row[key])
+                          : row[key]
+                        : "-"}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
+};
+
+// ------------------- AveragesTable Component -------------------
+// This component groups the averages data (nested by robot and phase) by category (group)
+// and renders one table per group. An optional metricFilter prop (function: (group, metricKey) => boolean)
+// can be provided to limit which metrics are displayed.
+const AveragesTable = ({ averages, metricFilter }) => {
+  // categoryRows will map a category (group) to an array of rows.
+  // Each row: { robot, phase, ...metrics } where metrics are from that group.
+  const categoryRows = {};
+
+  // Iterate over each robot and each phase ("auto", "tele", etc.)
+  Object.keys(averages).forEach((robotId) => {
+    const robotAverages = averages[robotId] || {};
+    Object.keys(robotAverages).forEach((phase) => {
+      const phaseData = robotAverages[phase] || {};
+      // phaseData is an object keyed by category (e.g., "movement", "coral", etc.)
+      Object.keys(phaseData).forEach((group) => {
+        // Initialize the group array if needed.
+        if (!categoryRows[group]) {
+          categoryRows[group] = [];
+        }
+        // Create a row: add robot, phase (uppercase) and spread the metrics from this group.
+        categoryRows[group].push({
+          robot: robotId,
+          phase: phase.toUpperCase(),
+          ...phaseData[group],
+        });
+      });
+    });
+  });
+
+  // Now, for each category, compute the dynamic headers (union of metric keys)
+  const tables = Object.keys(categoryRows).map((group) => {
+    const rows = categoryRows[group];
+
+    // Build a set of metric keys across all rows in this group.
+    const metricKeysSet = new Set();
+    rows.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        if (key !== "robot" && key !== "phase") {
+          // If a filter is provided, only add keys that pass.
+          if (typeof metricFilter === "function") {
+            if (metricFilter(group, key)) {
+              metricKeysSet.add(key);
+            }
+          } else {
+            metricKeysSet.add(key);
+          }
+        }
+      });
+    });
+    const dynamicHeaders = Array.from(metricKeysSet).sort();
+
+    return (
+      <CategoryTable
+        key={group}
+        group={group}
+        rows={rows}
+        metricKeys={dynamicHeaders}
+      />
+    );
+  });
+
+  return <>{tables}</>;
+};
 
 // ------------------- ReportCard Component -------------------
-// The header now uses a full-width clickable area with an added "go to" icon.
 const ReportCard = ({ report, isMatchQuery, eventKey }) => {
   const flatData = flattenData(report.totals);
   flatData["matchKey"] = report.match_key;
@@ -411,6 +586,26 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
         boxShadow: theme.shadows[2],
       })}
     >
+      <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
+        {`Scouted by ${report.scout_name} at ${new Intl.DateTimeFormat(
+          undefined,
+          {
+            month: "numeric",
+            day: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            second: "2-digit",
+          }
+        ).format(
+          new Date(parseInt(report.match_start_time))
+        )} , submitted at ${new Intl.DateTimeFormat(undefined, {
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          minute: "numeric",
+          second: "2-digit",
+        }).format(new Date(parseInt(report.submission_time)))}`}
+      </Typography>
       <Box
         component={Link}
         to={
@@ -443,33 +638,19 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             fontSize: "1.2rem",
           })}
         >
-          {isMatchQuery ? report.robot : report.match_key}
+          {`${report.robot} : ${report.match_key} data`}
         </Typography>
         <ArrowForwardIosIcon
           fontSize="small"
           sx={(theme) => ({ ml: 1, color: theme.palette.common.white })}
         />
       </Box>
-      <Typography variant="caption" sx={{ display: "block", mb: 2 }}>
-        {`Scouted by ${report.scout_name} at ${new Intl.DateTimeFormat(
-          undefined,
-          {
-            month: "numeric",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            second: "2-digit",
-          }
-        ).format(
-          new Date(parseInt(report.match_start_time))
-        )} , submitted at ${new Intl.DateTimeFormat(undefined, {
-          month: "numeric",
-          day: "numeric",
-          hour: "numeric",
-          minute: "numeric",
-          second: "2-digit",
-        }).format(new Date(parseInt(report.submission_time)))}`}
-      </Typography>
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+          Cycles
+        </Typography>
+        <CyclesFieldCanvas report={report} />
+      </Box>
       {["auto", "tele"].map(
         (phase) =>
           report.totals[phase] && (
@@ -481,12 +662,6 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             />
           )
       )}
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-          Cycles
-        </Typography>
-        <CyclesFieldCanvas report={report} />
-      </Box>
     </Paper>
   );
 };
@@ -548,7 +723,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
           }}
         >
           {reports.map((report, i) => {
-            const header = isMatchQuery ? report.robot : report.match_key;
+            const header = `${report.robot} @ ${report.match_key}`;
             const stationColor = getStationColor(report.station);
             return (
               <Chip
@@ -641,30 +816,55 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
   );
 };
 
-// ------------------- ReportsList Component -------------------
 const ReportsList = ({ data }) => {
   const { averages, reports } = data;
   const [searchParams] = useSearchParams();
   const eventKey = searchParams.get("eventKey") || "";
   const isMatchQuery = Boolean(searchParams.get("matchKey"));
 
+  const metricFilter = (group, metric) => {
+    const allowedMetrics = {
+      movement: ["movementTime", "movementRate"],
+      algae: [
+        "attainedCount",
+        "scoredProcessorCount",
+        "scoredNetCount",
+        "scoringRate",
+      ],
+      coral: ["attainedCount", "scoredCount", "scoringRate"],
+      hang: ["cycleTime"],
+      defense: ["totalTime"],
+      contact: ["totalTime", "pinCount", "foulCount"],
+    };
+
+    return allowedMetrics[group]
+      ? allowedMetrics[group].includes(metric)
+      : false;
+  };
   return (
     <Box sx={{ p: 2 }}>
-      {/* Top-level Averages header */}
       {averages != null && (
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Averages
-        </Typography>
+        <>
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            AUTO Averages
+          </Typography>
+          <PhaseAveragesTable
+            averages={averages}
+            phase="auto"
+            eventKey={eventKey}
+            metricFilter={metricFilter}
+          />
+          <Typography variant="h6" sx={{ mb: 1, mt: 4 }}>
+            TELE Averages
+          </Typography>
+          <PhaseAveragesTable
+            averages={averages}
+            phase="tele"
+            eventKey={eventKey}
+            metricFilter={metricFilter}
+          />
+        </>
       )}
-      {averages != null &&
-        ["auto", "tele"].map(
-          (phase) =>
-            averages[phase] && (
-              <Box key={phase}>
-                <AveragesSummary phase={phase} averages={averages[phase]} />
-              </Box>
-            )
-        )}
       {reports && reports.length > 0 && (
         <ReportCarousel
           reports={reports}

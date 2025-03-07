@@ -46,6 +46,9 @@ const HomePage = () => {
         <Button variant="contained" onClick={() => navigate("/overview")}>
           Overview
         </Button>
+        <Button variant="contained" onClick={() => navigate("/categorySort")}>
+          Category Sort
+        </Button>
         <UpdatePassword />
       </div>
     </div>

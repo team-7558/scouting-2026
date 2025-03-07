@@ -33,8 +33,8 @@ export const StartingPositionSlider = (match) => {
       min={flipSlider ? -13 : 1}
       max={flipSlider ? -1 : 13}
       step={1}
-      valueLabelDisplay="auto"
-      valueLabelFormat={(value) => <div>{Math.abs(value)}</div>}
+      valueLabelDisplay="on"
+      valueLabelFormat={(value) => <div>{match.scoutData?.teamNumber}</div>}
       sx={{
         transform: flipSlider
           ? ""
@@ -49,7 +49,7 @@ export const StartingPositionSlider = (match) => {
         )}px`,
         padding: 0,
         "& .MuiSlider-thumb": {
-          backgroundImage: `url("https://i.imgur.com/TqGjfyf.jpg")`,
+          // backgroundImage: `url("https://i.imgur.com/TqGjfyf.jpg")`,
           width: match.fieldCanvasRef.current?.scaleWidthToActual(300) || 0,
           height: match.fieldCanvasRef.current?.scaleHeightToActual(300) || 0,
           margin: 0,

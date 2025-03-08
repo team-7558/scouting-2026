@@ -662,6 +662,7 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
             />
           )
       )}
+      {report.comments}
     </Paper>
   );
 };

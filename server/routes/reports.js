@@ -16,7 +16,8 @@ const router = express.Router();
  *   - matchKey (optional)
  *   - robot (optional)
  *
- * Returns a list of reports (each with attached cycles) filtered by the provided parameters.
+ * Returns a list of reports (each with attached cycles) filtered by the provided parameters,
+ * and averages as a map of robot -> calculateAverageMetrics(reportsForRobot).
  */
 router.get("/", async (req, res) => {
   const { eventKey, matchKey, robot } = req.query;
@@ -24,17 +25,31 @@ router.get("/", async (req, res) => {
     return res.status(400).json({ error: "Missing eventKey query parameter" });
   }
   try {
+    // Get filtered reports (this may already filter by robot/matchKey)
     const reports = await getReportsAndCyclesFiltered(
       req,
       eventKey,
       matchKey,
       robot
     );
-    if (robot != null && matchKey == null) {
-      res.json({ averages: calculateAverageMetrics(reports), reports });
-    } else {
-      res.json({ reports });
-    }
+
+    // Group reports by robot
+    const reportsByRobot = {};
+    reports.forEach((report) => {
+      const robotId = report.robot; // assuming the report object has a "robot" field
+      if (!reportsByRobot[robotId]) {
+        reportsByRobot[robotId] = [];
+      }
+      reportsByRobot[robotId].push(report);
+    });
+
+    // Calculate averages for each robot group
+    const averages = {};
+    Object.keys(reportsByRobot).forEach((robotId) => {
+      averages[robotId] = calculateAverageMetrics(reportsByRobot[robotId]);
+    });
+
+    res.json({ averages, reports });
   } catch (error) {
     console.error("Error fetching filtered reports with cycles:", error);
     res.status(500).json({ error: "Server error" });

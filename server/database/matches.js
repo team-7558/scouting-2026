@@ -171,8 +171,37 @@ export const getScoutMatchInternal = async (eventKey, station, matchKey) => {
     await client.release();
   }
 };
+export const getMatchDataInternal = async (eventKey, matchKey) => {
+  // Validate eventKey to prevent SQL injection issues.
+  if (!/^[a-zA-Z0-9_]+$/.test(eventKey)) {
+    throw new Error("Invalid eventKey");
+  }
+  // Build the table name dynamically.
+  const tableName = `matches_${eventKey}`;
+  const client = await pgClient();
+  try {
+    // Construct the query to fetch the row where the primary key matches
+    // the combined eventKey and matchKey (as stored in the table).
+    const query = `
+      SELECT *
+      FROM ${tableName}
+      WHERE key = $1
+    `;
+    const result = await client.query(query, [`${eventKey}_${matchKey}`]);
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return result.rows[0];
+  } finally {
+    await client.release();
+  }
+};
 
 export const getScoutMatch = protectOperation(getScoutMatchInternal, [
+  USER_ROLES.USER,
+]);
+// Optionally, protect this operation so that only authorized users can access it.
+export const getMatchData = protectOperation(getMatchDataInternal, [
   USER_ROLES.USER,
 ]);
 

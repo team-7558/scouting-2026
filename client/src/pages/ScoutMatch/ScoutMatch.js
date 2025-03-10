@@ -110,7 +110,7 @@ const ScoutMatch = () => {
   const driverStation = searchParams.get("station") || B1;
 
   const scoutPerspective =
-    searchParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_NEAR;
+    searchParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_FAR;
 
   const [scoutData, setScoutData] = useState(null);
 
@@ -815,7 +815,7 @@ const ScoutMatch = () => {
       500,
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>,
-      /* dontFlip= */ !isScoringTableFar()
+      /* dontFlip= */ !(isScoringTableFar() && isScoutingRed())
     ),
     ...[150, 500].map((x, index) => {
       const value = ["no", "yes"][index];
@@ -840,7 +840,7 @@ const ScoutMatch = () => {
       );
     }),
 
-    hang.cageType != null &&
+    hang.startTime != null &&
       createFieldLocalMatchComponent(
         "hang",
         1150,
@@ -855,7 +855,7 @@ const ScoutMatch = () => {
         /* dontFlip= */ !isScoringTableFar()
       ),
     ...[
-      hang.cageType != null &&
+      hang.startTime != null &&
         [850, 1120, 1390].map((x, index) => {
           const value = [HANG_RESULTS.NONE, HANG_RESULTS.PARK, hang.cageType][
             index
@@ -1024,9 +1024,9 @@ const ScoutMatch = () => {
   ];
 
   const getFieldCanvasOffset = () => {
-    if (phase == PHASES.POST_MATCH) {
-      return 0;
-    }
+    // if (phase == PHASES.POST_MATCH) {
+    //   return 0;
+    // }
     const shift =
       scaledBoxRect.height * FIELD_ASPECT_RATIO -
       scaleWidthToActual(FIELD_VIRTUAL_WIDTH);

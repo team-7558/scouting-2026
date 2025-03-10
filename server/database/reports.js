@@ -1,5 +1,6 @@
 // server/database/reports.js
 import { USER_ROLES } from "./auth.js";
+import { getMatchDataInternal } from "./matches.js";
 import { pgClient, protectOperation } from "./PgClient.js";
 
 export const storeReportInternal = async (eventKey, report) => {
@@ -83,6 +84,44 @@ export const getReportInternal = async (eventKey, matchKey, robot) => {
     await client.release();
   }
 };
+export const getMatchPreviousReportsInternal = async (eventKey, matchKey) => {
+  // Validate eventKey to avoid SQL injection issues.
+  if (!/^[a-zA-Z0-9_]+$/.test(eventKey)) {
+    throw new Error("Invalid eventKey");
+  }
+  // Retrieve the match data using our existing internal function.
+  const matchData = await getMatchDataInternal(eventKey, matchKey);
+  if (!matchData) {
+    throw new Error("Match not found");
+  }
+  // Extract team keys from the match data.
+  const teams = [
+    matchData.r1,
+    matchData.r2,
+    matchData.r3,
+    matchData.b1,
+    matchData.b2,
+    matchData.b3,
+  ].filter(Boolean); // Remove any null/undefined entries
+  if (teams.length === 0) return [];
+
+  // Assume that reports are stored in a dynamic table named `reports_${eventKey}`.
+  const reportsTable = `reports_${eventKey}`;
+  const client = await pgClient();
+  try {
+    // Build placeholders for the SQL IN clause (e.g., $1, $2, ..., $6)
+    const placeholders = teams.map((_, i) => `$${i + 1}`).join(", ");
+    const query = `
+      SELECT *
+      FROM ${reportsTable}
+      WHERE robot IN (${placeholders})
+    `;
+    const result = await client.query(query, teams);
+    return result.rows;
+  } finally {
+    await client.release();
+  }
+};
 
 export const getReportsFilteredInternal = async (eventKey, matchKey, robot) => {
   const tableName = `reports_${eventKey}`;
@@ -103,19 +142,27 @@ export const getReportsFilteredInternal = async (eventKey, matchKey, robot) => {
     }
 
     const query = `
-      SELECT *
-      FROM ${tableName}
-      WHERE ${conditions.join(" AND ")}
+    SELECT *
+    FROM ${tableName}
+    WHERE ${conditions.join(" AND ")}
     `;
     const result = await client.query(query, values);
+    if (!result.rows || result.rows.length == 0) {
+      return await getMatchPreviousReportsInternal(eventKey, matchKey);
+    }
     return result.rows;
   } finally {
     await client.release();
   }
 };
+// Protect the operation so that only authorized users (e.g., USER role) can access it.
+export const getMatchPreviousReports = protectOperation(
+  getMatchPreviousReportsInternal,
+  [USER_ROLES.USER]
+);
 
 export const getReportsFiltered = protectOperation(getReportsFilteredInternal, [
-  "USER",
+  USER_ROLES.USER,
 ]);
 
 export const getReport = protectOperation(getReportInternal, [USER_ROLES.USER]);

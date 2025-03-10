@@ -16,14 +16,18 @@ import {
   TableRow,
   Select,
   LinearProgress,
+  formLabelClasses,
 } from "@mui/material";
 import { Input, Menu } from "@mui/material";
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
 
 const Overview = () => {
     const [robotData, setRobotData] = useState(null);
     const [paramsProvided, setParamsProvided] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const [error, setError] = useState(null);
+    const [formula, setFormula] = useState("");
     const SEARCH_FILTERS = {
         AUTO_POINTS: "AUTO_POINTS",
         TELE_POINTS: "TELE_POINTS",
@@ -33,7 +37,7 @@ const Overview = () => {
         // HANG_POINTS: "HANG_POINTS",
         // CORAL_ACCURACY: "CORAL_ACCURACY",
         // ALGAE_ACCURACY: "ALGAE_ACCURACY",
-        // DEFENSE_TIME: "DEFENSE_TIME",
+        DEFENSE_TIME: "DEFENSE_TIME",
         // FOUL_COUNT: "FOUL_COUNT",
         // PIN_COUNT: "PIN_COUNT"
     };
@@ -75,9 +79,9 @@ const Overview = () => {
         // ALGAE_ACCURACY: {
         //     function: (robot) => ((getAvg(robot.auto.algae.scoredCount)/getAvg(robot.auto.algae.attainedCount)) + (getAvg(robot.tele.algae.scoredCount)/getAvg(robot.tele.algae.attainedCount)))*50
         // },
-        // DEFENSE_TIME: {
-        //     function: (robot) => getAvg(robot.tele.defense.totalTime)/1000
-        // },
+        DEFENSE_TIME: {
+            function: (robot) => robot.tele.contact.totalTime[1]/1000
+        },
         // FOUL_COUNT: {
         //     function: (robot) => getAvg(robot.tele.contact.foulCount)
         // },
@@ -85,6 +89,7 @@ const Overview = () => {
         //     function: (robot) => getAvg(robot.tele.contact.pinCount)
         // }
     }
+
     const eventKey = searchParams.get("eventKey");
 
     //update paramsprovided based on params
@@ -126,25 +131,64 @@ const Overview = () => {
   //when data or searchfilter changes, re-filter the teams
   useEffect(() => {
     if (robotData) {
-      const newTeamsList = {};
-      for (let team in robotData) {
-        if (SEARCH_FILTER_VALUES[searchFilter]) {
-          newTeamsList[team] = SEARCH_FILTER_VALUES[searchFilter].function(
-            robotData[team]
-          );
-        } else {
-          console.log(searchFilter, " not found");
+      if (SEARCH_FILTER_VALUES[searchFilter]){
+        const newTeamsList = {};
+        for (let team in robotData) {
+          if (SEARCH_FILTER_VALUES[searchFilter]) {
+            newTeamsList[team] = SEARCH_FILTER_VALUES[searchFilter].function(
+              robotData[team]
+            );
+          } else {
+            console.log(searchFilter, " not found");
+          }
         }
+        console.log("newTeamsList: ", newTeamsList);
+        setTeamsList(newTeamsList);
+      } else{
+        const newTeamsList = {};
+        function evaluateExpression(robot, formula) {
+         return new Function('robot', 'return ' + formula)(robot);
+        }
+
+        for (let team in robotData) {
+          try{
+            newTeamsList[team] = evaluateExpression(robotData[team], searchFilter);
+          } catch (error){
+            setError(error);
+            break;
+          }
+        }
+        console.log("newTeamsList: ", newTeamsList);
+        setTeamsList(newTeamsList);
       }
-      console.log("newTeamsList: ", newTeamsList);
-      setTeamsList(newTeamsList);
     }
   }, [searchFilter, robotData]);
 
-  if (robotData) {
+  if (robotData && !error && paramsProvided) {
     //main
     return (
       <>
+        <center>
+          <h3>CUSTOM FILTER</h3>
+        </center>
+        <center>
+          <TextField
+            onChange={(e) => setFormula(e.target.value)}
+            sx={{
+              marginBottom: '1vh',
+              width: '80vw',
+            }}
+          >
+          </TextField>
+        </center>
+        <center>
+          <Button onClick={() => setSearchFilter(formula)} variant="contained">
+            ENTER
+          </Button>
+        </center>
+        {() => {
+
+        }}
         {/* search filters dropdown */}
         <FormControl sx={{ width: "70%", marginTop: "2%", marginLeft: "15%" }}>
           <Select

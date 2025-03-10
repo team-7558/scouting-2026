@@ -25,6 +25,8 @@ export const calculateReportTotals = (report) => {
   // Initialize result structure
   const results = {
     disabled: 0,
+    driverSkill: 0,
+    defenseSkill: 0,
     auto: {
       movement: {
         movementTime: 0,
@@ -56,9 +58,17 @@ export const calculateReportTotals = (report) => {
   const coralScoringTimes = { auto: [], tele: [] };
   const algaeScoringTimes = { auto: [], tele: [] };
 
-  if (report.disabled){
-    results.disabled++;
+  results.disabled += Number(report.disabled);
+  
+  if (!report.driverSkill=="N/A"){
+    results.driverSkill += Number(report.driverSkill);
   }
+
+  if (!report.defenseSkill=="N/A"){
+    results.defenseSkill += Number(report.defenseSkill);
+  }
+
+
 
   // Process each cycle using a switch statement
   report.cycles.forEach((cycle) => {
@@ -229,11 +239,21 @@ export const calculateAverageMetrics = (reports) => {
     });
   }
 
-  let disabledSum = 0;
-  reports.forEach(report => {
-      disabledSum += report.disabled;
-  });
-  averageMetrics.disabled = reports.length > 0 ? [disabledSum / reports.length, disabledSum / reports.length] : null;
+  for (let key of ["disabled", "driver_skill", "defense_skill"]) {
+    let sum = 0;
+    let validCount = 0; // Keep track of valid (numeric) reports
+
+    reports.forEach(report => {
+        const value = report[key];
+
+        if (value !== "N/A"){
+            sum += Number(value); // Attempt to convert to a number
+            validCount++;
+            console.log(key, value);
+        }
+    });
+    averageMetrics[key] = reports.length > 0 ? [sum / reports.length, sum / validCount] : null;
+  }
 
   return averageMetrics;
 };

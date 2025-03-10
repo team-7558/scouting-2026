@@ -12,6 +12,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import Collapse from '@mui/material/Collapse';
 
 const ScoutAdmin = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -19,6 +20,7 @@ const ScoutAdmin = () => {
     const eventKey = searchParams.get("eventKey");
     const [robotData, setRobotData] = useState(null);
     const [error, setError] = useState(null);
+    const [openRow, setOpenRow] = useState(null);
 
     //update paramsprovided based on params
     useEffect(() => {
@@ -57,7 +59,8 @@ const ScoutAdmin = () => {
   }, [paramsProvided]);
 
   const getNumMatchesScouted = () => {
-    const numMatchesScouted = {}
+    const numMatchesScouted = {};
+    const scoutComments = {};
     if (robotData){
       for (const report of robotData.reports){
         if (!numMatchesScouted[report.scout_name]){
@@ -65,12 +68,21 @@ const ScoutAdmin = () => {
         } else{
           numMatchesScouted[report.scout_name]++;
         }
+        if (!scoutComments[report.scout_name]){
+          scoutComments[report.scout_name] = []
+        }
+        scoutComments[report.scout_name].push({comment: report.comments, team: report.robot, match: report.match_key});
       }
     }
-    return numMatchesScouted || {};
+    return {numMatchesScouted, scoutComments};
   }
 
-  const sortedNumMatchesScouted = Object.entries(getNumMatchesScouted()).sort(([, valueA], [, valueB]) => valueB - valueA);
+  const {numMatchesScouted, scoutComments} = getNumMatchesScouted();
+  let sortedNumMatchesScouted = []
+  console.log("nummatchesscouted", numMatchesScouted);
+  if (numMatchesScouted){
+    sortedNumMatchesScouted = Object.entries(numMatchesScouted).sort(([, valueA], [, valueB]) => valueB - valueA);
+  }
 
   if (!paramsProvided) {
     //params not provided dialog
@@ -89,7 +101,7 @@ const ScoutAdmin = () => {
             <h1 style={{color: "red"}}>{error}</h1>
         </center>
     )
-  } else if (robotData){
+  } else if (robotData && sortedNumMatchesScouted){
     return (
       <div>
         <center>
@@ -100,16 +112,21 @@ const ScoutAdmin = () => {
             <TableHead>
               <TableRow>
                 <TableCell>
-                  NAME
+                  <b>NAME</b>
                 </TableCell>
                 <TableCell>
-                  NUMBER OF MATCHES
+                  <b>NUMBER OF MATCHES</b>
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {sortedNumMatchesScouted.map(([key, value]) => (
-                <TableRow key={key} sx={{height: '5vh'}}>
+              {console.log("sortednummatchesscouted", sortedNumMatchesScouted)}
+              {sortedNumMatchesScouted.map(([key, value]) => (<>
+                <TableRow 
+                  key={key} 
+                  sx={{height: '5vh', cursor: 'pointer'}}
+                  onClick={() => setOpenRow(key===openRow ? null : key)}
+                >
                   <TableCell sx={{paddingLeft: '2vw'}}>
                     {key}
                   </TableCell>
@@ -117,7 +134,18 @@ const ScoutAdmin = () => {
                     {value}
                   </TableCell>
                 </TableRow>
-              ))}
+                <Collapse in={openRow === key} timeout="auto" unmountOnExit>
+                  {scoutComments[key].map((obj, index) => {
+                    return (<>
+                      <center>
+                        <h3>{obj.team}: {obj.match}</h3>
+                      </center>
+                      <p style={{margin: '0vw 2vw'}}>{obj.comment}</p>
+                      <br />
+                    </>)
+                  })}
+                </Collapse>
+                </>))}
             </TableBody>
           </Table>
         </TableContainer>

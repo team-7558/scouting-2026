@@ -417,16 +417,16 @@ const Overview = () => {
             label="Age"
             onChange={(e) => setSearchFilter(e.target.value)}
             sx={{
-              color: "white",
+              color: "black",
               fontSize: 30, // Text color inside Select
               ".MuiOutlinedInput-notchedOutline": {
-                borderColor: "white", // Border color of the Select
+                borderColor: "black", // Border color of the Select
               },
               "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: "lightgray", // Border color on hover
+                borderColor: "darkgrey", // Border color on hover
               },
               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                borderColor: "white", // Border color when focused
+                borderColor: "darkgrey", // Border color when focused
               },
             }}
           >

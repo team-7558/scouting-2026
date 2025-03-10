@@ -24,6 +24,7 @@ export const calculateReportTotals = (report) => {
   };
   // Initialize result structure
   const results = {
+    disabled: 0,
     auto: {
       movement: {
         movementTime: 0,
@@ -36,6 +37,9 @@ export const calculateReportTotals = (report) => {
       hang: {
         startTime: null,
         cycleTime: null,
+        deepHangs: 0,
+        shallowHangs: 0,
+        parks: 0,
       },
       defense: {
         totalTime: 0,
@@ -51,6 +55,10 @@ export const calculateReportTotals = (report) => {
   // Arrays to store cycle times for scoring (for averaging)
   const coralScoringTimes = { auto: [], tele: [] };
   const algaeScoringTimes = { auto: [], tele: [] };
+
+  if (report.disabled){
+    results.disabled++;
+  }
 
   // Process each cycle using a switch statement
   report.cycles.forEach((cycle) => {
@@ -108,6 +116,18 @@ export const calculateReportTotals = (report) => {
       case "HANG":
         phaseResults.hang.startTime = cycle.start_time;
         phaseResults.hang.cycleTime = cycleTime;
+        switch (cycle.result){
+          case "PARK":
+            phaseResults.hang.parks++;
+            break;
+          case "SHALLOW":
+            phaseResults.hang.shallowHangs++;
+            break;
+          case "DEEP":
+            phaseResults.hang.deepHangs++;
+            break;
+          default:
+        }
         break;
 
       case "DEFENSE":
@@ -168,7 +188,6 @@ export const calculateReportTotals = (report) => {
       ? phaseResults.algae.scoredCount / phaseResults.algae.attainedCount
       : 0;
   }
-
   return results;
 };
 
@@ -177,7 +196,8 @@ export const calculateAverageMetrics = (reports) => {
   // Return an empty object if no report metrics provided
   if (!reports.length) return {};
 
-  const averageMetrics = { auto: {}, tele: {} };
+  const averageMetrics = { disabled: [], auto: {}, tele: {} };
+
   for (let phase of ["auto", "tele"]) {
     // Build the averageMetrics object dynamically based on keys from the first report
     // Loop over each category (e.g., coral, algae, hang, defense, contact)
@@ -208,5 +228,12 @@ export const calculateAverageMetrics = (reports) => {
       });
     });
   }
+
+  let disabledSum = 0;
+  reports.forEach(report => {
+      disabledSum += report.disabled;
+  });
+  averageMetrics.disabled = reports.length > 0 ? [disabledSum / reports.length, disabledSum / reports.length] : null;
+
   return averageMetrics;
 };

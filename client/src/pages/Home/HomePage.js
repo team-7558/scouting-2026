@@ -20,10 +20,6 @@ const HomePage = () => {
           margin: "20px 0",
         }}
       >
-        {/* Although Home is the current page, including it for completeness */}
-        <Button variant="contained" onClick={() => navigate("/")}>
-          Home
-        </Button>
         {/* This route is not protected so it may be useful for testing */}
         <Button variant="contained" onClick={() => navigate("/signIn")}>
           Sign In

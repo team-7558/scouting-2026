@@ -147,6 +147,12 @@ const Sidebar = ({
           >
             SUBMIT
           </Button>
+          <br />
+          <Button 
+            variant="contained" 
+            onClick={() => window.location.href = window.location.href}
+            sx={{margin: '2vh'}}
+          >RELOAD</Button>
         </center>,
       ]}
     </Drawer>

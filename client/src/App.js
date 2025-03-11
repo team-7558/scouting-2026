@@ -13,6 +13,7 @@ import { ProtectedRoute } from "./TokenUtils.js";
 import MatchStrategy from "./pages/Strategy/MatchStrategy.js";
 import ViewReports from "./pages/Strategy/ViewReports.js";
 import Overview from "./pages/Strategy/Overview.js";
+import ScoutAdmin from "./pages/ScoutLead/ScoutAdmin.js";
 import CategorySort from "./pages/Strategy/CategorySort.js";
 
 const App = () => {
@@ -62,6 +63,16 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="/scoutAdmin"
+            element={
+              <ProtectedRoute>
+                <ScoutAdmin/>
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/overview"
             element={

@@ -21,6 +21,9 @@ import {
 import { Input, Menu } from "@mui/material";
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import Drawer from '@mui/material/Drawer';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
 
 const Overview = () => {
     const [robotData, setRobotData] = useState(null);
@@ -43,6 +46,7 @@ const Overview = () => {
     };
     const [searchFilter, setSearchFilter] = useState(SEARCH_FILTERS.AUTO_POINTS);
     const [teamsList, setTeamsList] = useState([]);
+    const [helpOpen, setHelpOpen] = useState(false);
 
     const SEARCH_FILTER_VALUES = {
         AUTO_POINTS: {
@@ -182,13 +186,43 @@ const Overview = () => {
           </TextField>
         </center>
         <center>
-          <Button onClick={() => setSearchFilter(formula)} variant="contained">
+          <Button onClick={() => setSearchFilter(formula)} variant="contained" sx={{margin: '1vw'}}>
             ENTER
           </Button>
+          <Button onClick={() => setHelpOpen(!helpOpen)} variant="contained">
+            HELP
+          </Button>
         </center>
-        {() => {
 
-        }}
+        <Drawer open={helpOpen} onClose={() => setHelpOpen(false)}>
+          <>
+          <div style={{fontFamily: 'Roboto, sans-serif', padding: '3vw', backgroundColor: '#f5f5f5'}}>
+            <Typography variant="h4" style={{marginBottom: '12px'}}>Data Structure Reference</Typography>
+
+            <Paper elevation={3} style={{marginBottom: '3vw', padding: '2vw', borderRadius: '1vw'}}>
+              <Typography variant="h5">Top-Level</Typography>
+              <ul style={{listStyleType: 'disc', paddingLeft: '20px', marginTop: '0', marginBottom: '0'}}>
+                {['defense_skill', 'disabled', 'driver_skill'].map(value => (
+                  <li key={value}>{value}</li>))}
+              </ul>
+              <Typography variant="h5">Game Phase Data</Typography>
+              {[['algae - auto, tele', ['attainedCount', 'avgScoringCycleTime', 'droppedCount', 'scoredCount', 'scoredNetCount', 'scoredOpponentProcessorCount', 'scoredProcessorCount', 'scoringRate']],
+                ['coral - auto, tele', ['L1', 'L2', 'L3', 'L4', 'attainedCount', 'avgScoringCycleTime', 'droppedCount', 'scoredCount', 'scoringRate']],
+                ['movement - auto', ['movementRate', 'movementTime']],
+                ['contact - tele', ['foulCount', 'pinCount', 'totalTime']],
+                ['defense - tele', ['totalTime']],
+                ['hang - tele', ['cycleTime', 'deepHangs', 'parks', 'shallowHangs', 'startTime']]].map(([category, items]) => (
+                <div key={category} style={{marginLeft: '1vw'}}>
+                  <Typography variant="h6">{category}</Typography>
+                  <ul style={{listStyleType: 'circle', paddingLeft: '3vw', marginTop: '0', marginBottom: '0'}}>
+                    {items.map(item => (<li key={item}>{item}</li>))}
+                  </ul>
+                </div>))}
+            </Paper>
+          </div>
+        </>
+        </Drawer>
+        
         {/* search filters dropdown */}
         <FormControl sx={{ width: "70%", marginTop: "2%", marginLeft: "15%" }}>
           <Select

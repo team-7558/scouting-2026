@@ -11,6 +11,7 @@ import {
   Chip,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import Button from "@mui/material/Button";
 import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 import ReportsList from "./ReportsList";
 import { getReports } from "../../requests/ApiRequests";
@@ -52,7 +53,6 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
         requiredParamKeys.forEach((key) => {
           params[key] = searchParams.get(key);
         });
-        console.log("params: ", params);
         const res = await getReports(params);
         setReportData(res.data);
       } catch (err) {
@@ -131,6 +131,11 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
               width: { xs: "100%", sm: "auto" },
             }}
           >
+            <Button 
+              variant="contained" 
+              onClick={() => window.location.href = window.location.href}
+              sx={{borderRadius: '0.7vw'}}
+            >RELOAD</Button>
             <TextField
               value={matchKeySearchTerm}
               onChange={(e) =>

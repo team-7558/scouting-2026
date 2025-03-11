@@ -147,14 +147,14 @@ const Overview = () => {
       } else{
         const newTeamsList = {};
         function evaluateExpression(robot, formula) {
-         return new Function('robot', 'return ' + formula)(robot);
-        }
+          return new Function('robot', 'return ' + formula)(robot);
+         }
 
         for (let team in robotData) {
           try{
             newTeamsList[team] = evaluateExpression(robotData[team], searchFilter);
           } catch (error){
-            setError(error);
+            setError(error.message);
             break;
           }
         }
@@ -269,11 +269,14 @@ const Overview = () => {
       />
     );
   } else if (error){
-    return (
+    return (<>
         <center style={{marginTop: "5vh"}}>
             <h1 style={{color: "red"}}>{error}</h1>
         </center>
-    )
+        <center>
+          <Button variant="contained" onClick={() => setError(null)}>CLEAR ERROR</Button>
+        </center>
+    </>)
   }
   return (
     <LinearProgress sx={{

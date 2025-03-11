@@ -249,7 +249,6 @@ export const calculateAverageMetrics = (reports) => {
         if (value !== "N/A"){
             sum += Number(value); // Attempt to convert to a number
             validCount++;
-            console.log(key, value);
         }
     });
     averageMetrics[key] = reports.length > 0 ? [sum / reports.length, sum / validCount] : null;

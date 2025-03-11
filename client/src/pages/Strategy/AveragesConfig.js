@@ -63,6 +63,14 @@ export const averageMetricMapping = {
   scoredNetCount: {
     label: "Net",
   },
+  deepHangs: {
+    label: "Deep Hangs",
+    icon: <AccessTimeIcon fontSize="medium" color="action" />,
+  },
+  shallowHangs: {
+    label: "Shallow Hangs",
+    icon: <AccessTimeIcon fontSize="medium" color="action" />,
+  },
 };
 
 // Category coloring – these colors will be used for group headers

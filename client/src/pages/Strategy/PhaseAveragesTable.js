@@ -23,7 +23,7 @@ const formatValue = (colKey, value) => {
     num = num / 1000;
     return num.toFixed(2) + "s";
   }
-  if (field.toLowerCase().includes("rate")) {
+  if (field.toLowerCase().includes("rate") || field.toLowerCase().includes("hangs") || field.toLowerCase().includes("parks")) {
     num = num * 100;
     return num.toFixed(2) + "%";
   }
@@ -51,6 +51,7 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
   Object.keys(averages).forEach((robotId) => {
     const robotPhaseData = averages[robotId] && averages[robotId][phase];
     if (robotPhaseData) {
+
       Object.keys(robotPhaseData).forEach((group) => {
         if (!groupMetrics[group]) groupMetrics[group] = new Set();
         const metrics = robotPhaseData[group];
@@ -64,6 +65,7 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
           }
         });
       });
+
     }
   });
 
@@ -85,7 +87,13 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
   // Second header row: for each group, list each metric using labels from averageMetricMapping.
   const headerFirstRow = (
     <TableRow>
-      <TableCell rowSpan={2}>Robot</TableCell>
+      <TableCell 
+        sx={{position: "sticky",
+          background: 'white',
+          left: 0,
+        }}
+        rowSpan={2}
+      >Robot</TableCell>
       {sortedGroups.map((group) => (
         <TableCell
           key={group}
@@ -165,7 +173,11 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
                 navigate(`/robots?eventKey=${eventKey}&robot=${row.robot}`)
               }
             >
-              <TableCell>{row.robot}</TableCell>
+              <TableCell 
+                sx={{position: "sticky", 
+                  left: 0, 
+                  background: 'white'}}
+              >{row.robot}</TableCell>
               {columns.map((col) => (
                 <TableCell key={col.id} align="center">
                   {row[col.id] !== undefined ? row[col.id] : "-"}

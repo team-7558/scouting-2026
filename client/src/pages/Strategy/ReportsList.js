@@ -832,7 +832,7 @@ const ReportsList = ({ data }) => {
         "scoringRate",
       ],
       coral: ["attainedCount", "scoredCount", "scoringRate"],
-      hang: ["cycleTime"],
+      hang: ["cycleTime", "deepHangs", "shallowHangs"],
       defense: ["totalTime"],
       contact: ["totalTime", "pinCount", "foulCount"],
     };

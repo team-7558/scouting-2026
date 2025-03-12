@@ -5,6 +5,7 @@ import {
   storeReportAndCycles,
 } from "../database/matchReportHelper.js";
 import { calculateAverageMetrics } from "../metrics/reports.js";
+import { getMatchDataInternal } from "../database/matches.js";
 
 const router = express.Router();
 
@@ -44,10 +45,31 @@ router.get("/", async (req, res) => {
     });
 
     // Calculate averages for each robot group
-    const averages = {};
+    let averages = {};
     Object.keys(reportsByRobot).forEach((robotId) => {
       averages[robotId] = calculateAverageMetrics(reportsByRobot[robotId]);
     });
+    if (matchKey) {
+      // Retrieve the match data using our existing internal function.
+      const matchData = await getMatchDataInternal(eventKey, matchKey);
+      if (!matchData) {
+        throw new Error("Match not found");
+      }
+      const robotStations = {
+        [matchData.r1]: "r1",
+        [matchData.r2]: "r2",
+        [matchData.r3]: "r3",
+        [matchData.b1]: "b1",
+        [matchData.b2]: "b2",
+        [matchData.b3]: "b3",
+      };
+      console.log(robotStations, averages);
+      Object.keys(robotStations).forEach((robot) => {
+        if (averages[robot]) {
+          averages[robot].matchStation = robotStations[robot];
+        }
+      });
+    }
 
     res.json({ averages, reports });
   } catch (error) {

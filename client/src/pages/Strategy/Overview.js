@@ -206,12 +206,14 @@ const Overview = () => {
                   <li key={value}>{value}</li>))}
               </ul>
               <Typography variant="h5">Game Phase Data</Typography>
-              {[['algae - auto, tele', ['attainedCount', 'avgScoringCycleTime', 'droppedCount', 'scoredCount', 'scoredNetCount', 'scoredOpponentProcessorCount', 'scoredProcessorCount', 'scoringRate']],
-                ['coral - auto, tele', ['L1', 'L2', 'L3', 'L4', 'attainedCount', 'avgScoringCycleTime', 'droppedCount', 'scoredCount', 'scoringRate']],
-                ['movement - auto', ['movementRate', 'movementTime']],
-                ['contact - tele', ['foulCount', 'pinCount', 'totalTime']],
-                ['defense - tele', ['totalTime']],
-                ['hang - tele', ['cycleTime', 'deepHangs', 'parks', 'shallowHangs', 'startTime']]].map(([category, items]) => (
+              {[
+                ['algae - auto, tele', ['attained_count', 'avg_scoring_cycle_time', 'dropped_count', 'scored_count', 'scored_net_count', 'scored_opponent_processor_count', 'scored_processor_count', 'scoring_rate']],
+                ['coral - auto, tele', ['l1', 'l2', 'l3', 'l4', 'attained_count', 'avg_scoring_cycle_time', 'dropped_count', 'scored_count', 'scoring_rate']],
+                ['movement - auto', ['movement_rate', 'movement_time']],
+                ['contact - tele', ['foul_count', 'pin_count', 'total_time']],
+                ['defense - tele', ['total_time']],
+                ['hang - tele', ['cycle_time', 'deep_hangs', 'parks', 'shallow_hangs', 'start_time']]
+            ].map(([category, items]) => (
                 <div key={category} style={{marginLeft: '1vw'}}>
                   <Typography variant="h6">{category}</Typography>
                   <ul style={{listStyleType: 'circle', paddingLeft: '3vw', marginTop: '0', marginBottom: '0'}}>

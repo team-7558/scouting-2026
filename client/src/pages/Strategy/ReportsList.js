@@ -843,10 +843,15 @@ const ReportsList = ({ data }) => {
       defense: ["totalTime"],
       contact: ["totalTime", "pinCount", "foulCount"],
     };
+    
+    const allowedRobotMetrics = {
+      coral: ["L1", "L2", "L3", "L4"]
+    }
 
-    return allowedMetrics[group]
+    return (allowedMetrics[group]
       ? allowedMetrics[group].includes(metric)
-      : false;
+      : false) ||
+      (!isMatchQuery && allowedRobotMetrics[group] ? allowedRobotMetrics[group].includes(metric) : false);
   };
   return (
     <Box sx={{ p: 2 }}>

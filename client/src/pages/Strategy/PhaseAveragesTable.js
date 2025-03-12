@@ -23,7 +23,11 @@ const formatValue = (colKey, value) => {
     num = num / 1000;
     return num.toFixed(2) + "s";
   }
-  if (field.toLowerCase().includes("rate") || field.toLowerCase().includes("hangs") || field.toLowerCase().includes("parks")) {
+  if (
+    field.toLowerCase().includes("rate") ||
+    field.toLowerCase().includes("hangs") ||
+    field.toLowerCase().includes("parks")
+  ) {
     num = num * 100;
     return num.toFixed(2) + "%";
   }
@@ -51,7 +55,6 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
   Object.keys(averages).forEach((robotId) => {
     const robotPhaseData = averages[robotId] && averages[robotId][phase];
     if (robotPhaseData) {
-
       Object.keys(robotPhaseData).forEach((group) => {
         if (!groupMetrics[group]) groupMetrics[group] = new Set();
         const metrics = robotPhaseData[group];
@@ -65,7 +68,6 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
           }
         });
       });
-
     }
   });
 
@@ -87,23 +89,20 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
   // Second header row: for each group, list each metric using labels from averageMetricMapping.
   const headerFirstRow = (
     <TableRow>
-      <TableCell 
-        sx={{position: "sticky",
-          background: 'white',
-          left: 0,
-        }}
+      <TableCell
+        sx={{ position: "sticky", background: "white", left: 0 }}
         rowSpan={2}
-      >Robot</TableCell>
+      >
+        Robot
+      </TableCell>
       {sortedGroups.map((group) => (
         <TableCell
           key={group}
           align="center"
           colSpan={groupMetricKeys[group].length}
           sx={{
-            bgcolor: groupColors[group] || "grey.300",
-            color: theme.palette.getContrastText(
-              groupColors[group] || "grey.300"
-            ),
+            bgcolor: groupColors[group] || "#333",
+            color: theme.palette.getContrastText(groupColors[group] || "#333"),
             fontWeight: "bold",
           }}
         >
@@ -130,7 +129,10 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
   // Build data rows: each row corresponds to a robot that has data for the given phase.
   // Make the entire row clickable to navigate to robot details.
   const rows = [];
-  Object.keys(averages).forEach((robotId) => {
+  Object.keys(averages).sort((a, b) => {
+    const order = ["r1", "r2", "r3", "b1", "b2", "b3"];
+    return order.indexOf(averages[a].matchStation) - order.indexOf(averages[b].matchStation);
+  }).forEach((robotId) => {
     const robotPhaseData = averages[robotId] && averages[robotId][phase];
     if (robotPhaseData) {
       const row = { robot: robotId };
@@ -173,11 +175,11 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
                 navigate(`/robots?eventKey=${eventKey}&robot=${row.robot}`)
               }
             >
-              <TableCell 
-                sx={{position: "sticky", 
-                  left: 0, 
-                  background: 'white'}}
-              >{row.robot}</TableCell>
+              <TableCell
+                sx={{ position: "sticky", left: 0, background: averages[row.robot].matchStation.includes("r") ? 'rgb(255, 150, 150)' : 'lightblue' }}
+              >
+                {row.robot}
+              </TableCell>
               {columns.map((col) => (
                 <TableCell key={col.id} align="center">
                   {row[col.id] !== undefined ? row[col.id] : "-"}

@@ -68,7 +68,7 @@ const App = () => {
             path="/scoutAdmin"
             element={
               <ProtectedRoute>
-                <ScoutAdmin/>
+                <ScoutAdmin />
               </ProtectedRoute>
             }
           />

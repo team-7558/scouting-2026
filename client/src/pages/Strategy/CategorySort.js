@@ -124,10 +124,8 @@ const CategoryTable = ({ group, rows, metricKeys }) => {
       <Typography
         variant="h6"
         sx={{
-          bgcolor: groupColors[group] || "grey.300",
-          color: theme.palette.getContrastText(
-            groupColors[group] || "grey.300"
-          ),
+          bgcolor: groupColors[group] || "#333",
+          color: theme.palette.getContrastText(groupColors[group] || "#333"),
           p: 1,
           borderRadius: 1,
           mb: 1,

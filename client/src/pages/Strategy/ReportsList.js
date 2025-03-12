@@ -606,6 +606,11 @@ const ReportCard = ({ report, isMatchQuery, eventKey }) => {
           second: "2-digit",
         }).format(new Date(parseInt(report.submission_time)))}`}
       </Typography>
+      {report.disabled == true && (
+        <Box sx={{ backgroundColor: "yellow" }}>WAS DISABLED</Box>
+      )}
+
+      {report.comments}
       <Box
         component={Link}
         to={

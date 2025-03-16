@@ -727,10 +727,12 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
             justifyContent: { xs: "center", sm: "flex-start" },
           }}
         >
-          {reports.map((report, i) => {
+          {reports.sort((a, b) => a.robot - b.robot).map((report, i) => {
             const header = `${report.robot} @ ${report.match_key}`;
             const stationColor = getStationColor(report.station);
-            return (
+            const newLine = (i>0 && reports[i-1].robot!=report.robot) || i==0;
+            return (<>
+              {newLine ? <div style={{width: '100vw', height: '2vh'}}></div> : null}
               <Chip
                 key={report.id}
                 label={header}
@@ -743,7 +745,7 @@ const ReportCarousel = ({ reports, eventKey, isMatchQuery }) => {
                   "&:hover": { opacity: 0.85 },
                 })}
               />
-            );
+            </>);
           })}
         </Box>
       </Box>
@@ -841,10 +843,15 @@ const ReportsList = ({ data }) => {
       defense: ["totalTime"],
       contact: ["totalTime", "pinCount", "foulCount"],
     };
+    
+    const allowedRobotMetrics = {
+      coral: ["L1", "L2", "L3", "L4"]
+    }
 
-    return allowedMetrics[group]
+    return (allowedMetrics[group]
       ? allowedMetrics[group].includes(metric)
-      : false;
+      : false) ||
+      (!isMatchQuery && allowedRobotMetrics[group] ? allowedRobotMetrics[group].includes(metric) : false);
   };
   return (
     <Box sx={{ p: 2 }}>

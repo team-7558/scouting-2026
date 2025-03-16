@@ -129,7 +129,10 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
   // Build data rows: each row corresponds to a robot that has data for the given phase.
   // Make the entire row clickable to navigate to robot details.
   const rows = [];
-  Object.keys(averages).forEach((robotId) => {
+  Object.keys(averages).sort((a, b) => {
+    const order = ["r1", "r2", "r3", "b1", "b2", "b3"];
+    return order.indexOf(averages[a].matchStation) - order.indexOf(averages[b].matchStation);
+  }).forEach((robotId) => {
     const robotPhaseData = averages[robotId] && averages[robotId][phase];
     if (robotPhaseData) {
       const row = { robot: robotId };
@@ -173,7 +176,7 @@ const PhaseAveragesTable = ({ averages, phase, eventKey, metricFilter }) => {
               }
             >
               <TableCell
-                sx={{ position: "sticky", left: 0, background: "white" }}
+                sx={{ position: "sticky", left: 0, background: averages[row.robot].matchStation && averages[row.robot].matchStation.includes("r") ? 'rgb(255, 150, 150)' : 'lightblue' }}
               >
                 {row.robot}
               </TableCell>

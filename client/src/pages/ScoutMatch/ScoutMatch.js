@@ -1267,7 +1267,7 @@ const ScoutMatch = () => {
 
   const lockOrientation = async () => {
     try {
-      await window.screen.orientation.lock("landscape");
+      await window.screen.orientation.lock("landscape-primary");
       console.log("Orientation locked to landscape");
     } catch (error) {
       console.error("Failed to lock orientation:", error);
@@ -1276,6 +1276,10 @@ const ScoutMatch = () => {
 
   useLayoutEffect(() => {
     lockOrientation();
+    window.screen.orientation.addEventListener("change", () =>
+      resizeScaledBox()
+    );
+
     resizeScaledBox();
     window.addEventListener("resize", resizeScaledBox);
     return () => window.removeEventListener("resize", resizeScaledBox);
@@ -1295,7 +1299,7 @@ const ScoutMatch = () => {
             height: "100vh",
           }}
         >
-          {/* <FullscreenDialog /> */}
+          <FullscreenDialog />
           <RequiredParamsDialog
             open={searchParamsError != null}
             searchParams={searchParams}

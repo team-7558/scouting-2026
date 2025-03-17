@@ -17,7 +17,7 @@ const SignInPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const params = new URLSearchParams(window.location.search);
-  const redirectUrl = decodeURIComponent(params.get("redirect")) || "/";
+  const redirectUrl = decodeURIComponent(params.get("redirect"));
   console.log(redirectUrl);
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +28,11 @@ const SignInPage = () => {
       // JSON.parse(atob(response.data.token.split(".")[1]));
       console.log(response.data.token);
       localStorage.setItem("token", response.data.token);
-      navigate(redirectUrl);
+      if (redirectUrl!="null"){
+        navigate(redirectUrl);
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       if (err.response && err.response.status === 401) {
         setError("Invalid username or password");

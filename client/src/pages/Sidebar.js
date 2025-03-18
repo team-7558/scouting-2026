@@ -106,22 +106,22 @@ const Sidebar = ({
           }
         ),
 
-        // <center key="sidebarPerspective">
-        //   <h3 key="sidebarPerspectiveHeading">PRESPECTIVE</h3>
-        // </center>,
+        <center key="sidebarPerspective">
+          <h3 key="sidebarPerspectiveHeading">PRESPECTIVE</h3>
+        </center>,
 
-        // createButtonsFromList(
-        //   PERSPECTIVE,
-        //   750,
-        //   "perspective",
-        //   "blue",
-        //   (list, key) => {
-        //     const urlParams = new URLSearchParams(window.location.search);
-        //     const perspective =
-        //       urlParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_NEAR;
-        //     return perspective == list[key];
-        //   }
-        // ),
+        createButtonsFromList(
+          PERSPECTIVE,
+          750,
+          "perspective",
+          "blue",
+          (list, key) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const perspective =
+              urlParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_FAR;
+            return perspective == list[key];
+          }
+        ),
 
         <center>
           <h3>Match Key</h3>
@@ -148,11 +148,13 @@ const Sidebar = ({
             SUBMIT
           </Button>
           <br />
-          <Button 
-            variant="contained" 
-            onClick={() => window.location.href = window.location.href}
-            sx={{margin: '2vh'}}
-          >RELOAD</Button>
+          <Button
+            variant="contained"
+            onClick={() => (window.location.href = window.location.href)}
+            sx={{ margin: "2vh" }}
+          >
+            RELOAD
+          </Button>
         </center>,
       ]}
     </Drawer>

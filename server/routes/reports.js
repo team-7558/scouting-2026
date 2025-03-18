@@ -1,4 +1,4 @@
-// server/api/reports.js
+// reports.js
 import express from "express";
 import {
   getReportsAndCyclesFiltered,
@@ -6,6 +6,8 @@ import {
 } from "../database/matchReportHelper.js";
 import { calculateAverageMetrics } from "../metrics/reports.js";
 import { getMatchDataInternal } from "../database/matches.js";
+// Import the new pit scouting query function:
+import { getPitScoutingByRobotInternal } from "../database/pit_scouting.js";
 
 const router = express.Router();
 
@@ -19,6 +21,7 @@ const router = express.Router();
  *
  * Returns a list of reports (each with attached cycles) filtered by the provided parameters,
  * and averages as a map of robot -> calculateAverageMetrics(reportsForRobot).
+ * If a robot is provided, also returns that robot’s pit scouting data.
  */
 router.get("/", async (req, res) => {
   const { eventKey, matchKey, robot } = req.query;
@@ -64,14 +67,20 @@ router.get("/", async (req, res) => {
         [matchData.b3]: "b3",
       };
       console.log(robotStations, averages);
-      Object.keys(robotStations).forEach((robot) => {
-        if (averages[robot]) {
-          averages[robot].matchStation = robotStations[robot];
+      Object.keys(robotStations).forEach((robotKey) => {
+        if (averages[robotKey]) {
+          averages[robotKey].matchStation = robotStations[robotKey];
         }
       });
     }
 
-    res.json({ averages, reports });
+    // If a robot is provided, get its pit scouting data.
+    let pitScouting = null;
+    if (robot) {
+      pitScouting = await getPitScoutingByRobotInternal(eventKey, robot);
+    }
+
+    res.json({ averages, reports, pitScouting });
   } catch (error) {
     console.error("Error fetching filtered reports with cycles:", error);
     res.status(500).json({ error: "Server error" });

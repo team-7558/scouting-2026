@@ -1267,7 +1267,7 @@ const ScoutMatch = () => {
 
   const lockOrientation = async () => {
     try {
-      await window.screen.orientation.lock("landscape-primary");
+      await window.screen.orientation.lock("landscape");
       console.log("Orientation locked to landscape");
     } catch (error) {
       console.error("Failed to lock orientation:", error);

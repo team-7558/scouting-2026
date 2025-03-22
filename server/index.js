@@ -9,6 +9,7 @@ import authRoutes from "./routes/auth.js";
 import apiRoutes from "./routes/api.js";
 import webhookRoutes from "./routes/webhook.js";
 import reportsRoutes from "./routes/reports.js";
+import adminRoutes from "./routes/admin.js";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -34,10 +35,10 @@ app.use(cors());
 
 // Use the auth routes
 app.use("/api/reports", reportsRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api", apiRoutes);
 app.use("/auth", authRoutes);
 app.use("/webhook", webhookRoutes);
-// app.use("/admin", adminRoutes);
 
 // Have Node serve the files for our built React app
 app.use(express.static(path.resolve(__dirname, "../client/build")));

@@ -840,7 +840,7 @@ const ScoutMatch = () => {
             {value}
           </FieldButton>
         ),
-        /* dontFlip= */ !isScoringTableFar()
+        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
       );
     }),
 
@@ -856,7 +856,7 @@ const ScoutMatch = () => {
             HANG SCORING RESULT
           </FieldButton>
         ),
-        /* dontFlip= */ !isScoringTableFar()
+        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
       ),
     ...[
       hang.startTime != null &&
@@ -885,7 +885,7 @@ const ScoutMatch = () => {
                 {value}
               </FieldButton>
             ),
-            /* dontFlip= */ !isScoringTableFar()
+            /* dontFlip= */ isScoringTableFar() != isScoutingRed()
           );
         }),
     ],
@@ -898,7 +898,7 @@ const ScoutMatch = () => {
       500,
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>,
-      /* dontFlip= */ !isScoringTableFar()
+      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
     ),
     ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
@@ -919,7 +919,7 @@ const ScoutMatch = () => {
             {value}
           </FieldButton>
         ),
-        /* dontFlip= */ !isScoringTableFar()
+        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
       );
     }),
 
@@ -933,7 +933,7 @@ const ScoutMatch = () => {
       (match) => (
         <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
       ),
-      /* dontFlip= */ !isScoringTableFar()
+      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
     ),
     ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
@@ -954,7 +954,7 @@ const ScoutMatch = () => {
             {value}
           </FieldButton>
         ),
-        /* dontFlip= */ !isScoringTableFar()
+        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
       );
     }),
 
@@ -966,7 +966,7 @@ const ScoutMatch = () => {
       500,
       150,
       (match) => <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>,
-      /* dontFlip= */ !isScoringTableFar()
+      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
     ),
     ...[200, 575, 950, 1325].map((x, index) => {
       const value = ["N/A", "Defense", "Coral Cycle", "Algae Cycle"][index];
@@ -987,7 +987,7 @@ const ScoutMatch = () => {
             {value}
           </FieldButton>
         ),
-        /* dontFlip= */ !isScoringTableFar()
+        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
       );
     }),
 
@@ -1023,14 +1023,14 @@ const ScoutMatch = () => {
           ></textarea>
         </>
       ),
-      /* dontFlip= */ !isScoringTableFar()
+      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
     ),
   ];
 
   const getFieldCanvasOffset = () => {
-    // if (phase == PHASES.POST_MATCH) {
-    //   return 0;
-    // }
+    if (phase == PHASES.POST_MATCH && !isScoringTableFar()) {
+      return 0;
+    }
     const shift =
       scaledBoxRect.height * FIELD_ASPECT_RATIO -
       scaleWidthToActual(FIELD_VIRTUAL_WIDTH);

@@ -15,6 +15,7 @@ import Button from "@mui/material/Button";
 import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 import ReportsList from "./ReportsList";
 import { getReports } from "../../requests/ApiRequests";
+import RobotPitScouting from "./RobotPitScouting";
 
 const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
   const location = useLocation();
@@ -131,11 +132,13 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
               width: { xs: "100%", sm: "auto" },
             }}
           >
-            <Button 
-              variant="contained" 
-              onClick={() => window.location.href = window.location.href}
-              sx={{borderRadius: '0.7vw'}}
-            >RELOAD</Button>
+            <Button
+              variant="contained"
+              onClick={() => (window.location.href = window.location.href)}
+              sx={{ borderRadius: "0.7vw" }}
+            >
+              RELOAD
+            </Button>
             <TextField
               value={matchKeySearchTerm}
               onChange={(e) =>
@@ -188,7 +191,13 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
               {error}
             </Typography>
           ) : reportData ? (
-            <ReportsList data={reportData} />
+            <>
+              {/* Render RobotPitScouting at the top if pitScouting data is present */}
+              {reportData.pitScouting && reportData.pitScouting.length > 0 && (
+                <RobotPitScouting pitScouting={reportData.pitScouting[0]} />
+              )}
+              <ReportsList data={reportData} />
+            </>
           ) : (
             <Typography variant="body1">No data available.</Typography>
           )}

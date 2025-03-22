@@ -186,6 +186,8 @@ const ScoutMatch = () => {
     comments: "",
   });
 
+  const [submitting, setSubmitting] = useState(false);
+
   const resetMatchState = () => {
     setPhase(PHASES.PRE_MATCH);
     setStartingPosition(-1);
@@ -438,6 +440,8 @@ const ScoutMatch = () => {
     setContact,
     userToken,
     getWritableCycle,
+    submitting,
+    setSubmitting,
   };
 
   const createTask = (action, gamepiece = null) => ({

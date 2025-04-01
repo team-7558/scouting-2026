@@ -505,15 +505,21 @@ const ScoutMatch = () => {
 
   const finishGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    if (
-      isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
-    ) {
-      setter({ ...gamepieceState, startTime: getCurrentTime() });
-    } else if (
-      isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
-    ) {
-      setter({ ...gamepieceState, endTime: getCurrentTime() });
-    }
+    console.log("finishing, ", gamepiece, gamepieceState)
+    setter(prevState => {
+      let usingState = gamepiece==GAME_PIECES.CORAL ? prevState : gamepieceState;
+      console.log(usingState, gamepieceState, prevState);
+      if (
+        isUnfinished(usingState.attainedLocation, usingState.startTime)
+      ) {
+        return { ...usingState, startTime: getCurrentTime() };
+      } else if (
+        isUnfinished(usingState.depositLocation, usingState.endTime)
+      ) {
+        return { ...usingState, endTime: getCurrentTime() };
+      }
+      return prevState;
+    })
   };
 
   const endMatch = () => {
@@ -1066,16 +1072,12 @@ const ScoutMatch = () => {
             perspective={scoutPerspective}
             children={fieldChildren}
             onClick={(x, y) => {
+              // const coralTasks = hasCoral() ? [createTask(DEPOSIT, CORAL)] : [createTask(ACQUIRE, CORAL), createTask(FINISH, CORAL)]
               startPendingTasks(
                 [x, y],
-                [
-                  hasCoral()
-                    ? createTask(DEPOSIT, CORAL)
-                    : createTask(ACQUIRE, CORAL),
-                  hasAlgae()
-                    ? createTask(DEPOSIT, ALGAE)
-                    : createTask(ACQUIRE, ALGAE),
-                ]
+                hasCoral() 
+                  ? [createTask(DEPOSIT, CORAL), createTask(DEPOSIT, ALGAE)] 
+                  : [createTask(ACQUIRE, CORAL), createTask(FINISH, CORAL)]
               );
             }}
             phase={phase}

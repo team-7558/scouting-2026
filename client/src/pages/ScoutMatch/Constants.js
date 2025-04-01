@@ -98,6 +98,7 @@ export const GAME_LOCATIONS = {
     GH: "REEF_GH",
     IJ: "REEF_IJ",
     KL: "REEF_KL",
+    ALGAE: "REEF_ALGAE"
   },
   REEF_LEVEL: {
     1: "1",

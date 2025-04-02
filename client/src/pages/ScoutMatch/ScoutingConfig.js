@@ -54,9 +54,7 @@ export const SCOUTING_CONFIG = {
       width: 450,
       height: 250,
     },
-    tasks: [createTask(ACTIONS.ACQUIRE, GAME_PIECES.CORAL),
-      createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)
-    ],
+    tasks: [createTask(ACTIONS.ACQUIRE_AND_FINISH, GAME_PIECES.CORAL)],
 
     textFunction: (match, key) => key.replaceAll("_", " "),
   },
@@ -67,7 +65,7 @@ export const SCOUTING_CONFIG = {
     drawBorder: (match, key) =>
       match.coral.depositLocation == key ||
       (!match.hasAlgae() && match.algae.attainedLocation == key),
-    disabled: (match, key) => !match.hasCoral() && match.hasAlgae(),
+    disabled: (match, key) => !match.hasCoral(),
     positions: {
       [GAME_LOCATIONS.REEF.AB]: [665, 800],
       [GAME_LOCATIONS.REEF.CD]: [780, 1000],
@@ -91,7 +89,7 @@ export const SCOUTING_CONFIG = {
   REEF_ALGAE_PICKUP: {
     phases: [PHASES.AUTO, PHASES.TELE],
     color: COLORS.ALGAEPICKUP,
-    drawBorder: (match, key) => match.algae.attainedLocation=="ALGAE" && !match.hasAlgae,
+    drawBorder: (match, key) => match.algae.attainedLocation=="REEF_ALGAE" && !match.hasAlgae(),
     disabled: (match, key) => match.hasAlgae(),
     positions: {[GAME_LOCATIONS.REEF.ALGAE]: [900, 800]},
     isCircle: true,
@@ -100,7 +98,7 @@ export const SCOUTING_CONFIG = {
       height: 200
     },
     tasks: [
-      createTask(ACTIONS.ACQUIRE, GAME_PIECES.ALGAE),
+      createTask(ACTIONS.ACQUIRE_AND_FINISH, GAME_PIECES.ALGAE),
     ],
   },
 

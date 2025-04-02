@@ -52,6 +52,7 @@ const {
   DEPOSIT,
   FINISH,
   DROP,
+  ACQUIRE_AND_FINISH,
   HANG_ENTER,
   HANG_CAGE_TOUCH,
   HANG_COMPLETE,
@@ -503,23 +504,26 @@ const ScoutMatch = () => {
     }
   };
 
+  const AcquireAndFinishGamepiece = (location, gamepiece, matchContext) => {
+    console.log("acquiring and finishing ", gamepiece);
+    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
+    if (gamepieceState?.startTime == null) {
+      setter({ attainedLocation: location, startTime: getCurrentTime() });
+    }
+  };
+
   const finishGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
     console.log("finishing, ", gamepiece, gamepieceState)
-    setter(prevState => {
-      let usingState = gamepiece==GAME_PIECES.CORAL ? prevState : gamepieceState;
-      console.log(usingState, gamepieceState, prevState);
       if (
-        isUnfinished(usingState.attainedLocation, usingState.startTime)
+        isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
       ) {
-        return { ...usingState, startTime: getCurrentTime() };
+        setter({ ...gamepieceState, startTime: getCurrentTime() });
       } else if (
-        isUnfinished(usingState.depositLocation, usingState.endTime)
+        isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
       ) {
-        return { ...usingState, endTime: getCurrentTime() };
+        setter({ ...gamepieceState, endTime: getCurrentTime() });
       }
-      return prevState;
-    })
   };
 
   const endMatch = () => {
@@ -581,6 +585,8 @@ const ScoutMatch = () => {
           break;
         case DROP:
           dropGamePiece(location, task.gamepiece, matchContext);
+        case ACQUIRE_AND_FINISH:
+          AcquireAndFinishGamepiece(location, task.gamepiece, matchContext);
         case HANG_ENTER:
           matchContext.setHang({
             startTime: getCurrentTime(),
@@ -1077,7 +1083,7 @@ const ScoutMatch = () => {
                 [x, y],
                 hasCoral() 
                   ? [createTask(DEPOSIT, CORAL), createTask(DEPOSIT, ALGAE)] 
-                  : [createTask(ACQUIRE, CORAL), createTask(FINISH, CORAL)]
+                  : [createTask(ACQUIRE_AND_FINISH, CORAL)]
               );
             }}
             phase={phase}

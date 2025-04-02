@@ -57,6 +57,7 @@ export const ACTIONS = {
   ACQUIRE: "acquire",
   DEPOSIT: "deposit",
   FINISH: "finish",
+  ACQUIRE_AND_FINISH: "acquire_and_finish",
   DROP: "drop",
   HANG: "hang",
   HANG_ENTER: "hang_enter",

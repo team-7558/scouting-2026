@@ -514,16 +514,16 @@ const ScoutMatch = () => {
 
   const finishGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    console.log("finishing, ", gamepiece, gamepieceState)
-      if (
-        isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
-      ) {
-        setter({ ...gamepieceState, startTime: getCurrentTime() });
-      } else if (
-        isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
-      ) {
-        setter({ ...gamepieceState, endTime: getCurrentTime() });
-      }
+    console.log("finishing, ", gamepiece, gamepieceState);
+    if (
+      isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
+    ) {
+      setter({ ...gamepieceState, startTime: getCurrentTime() });
+    } else if (
+      isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
+    ) {
+      setter({ ...gamepieceState, endTime: getCurrentTime() });
+    }
   };
 
   const endMatch = () => {
@@ -587,6 +587,7 @@ const ScoutMatch = () => {
           dropGamePiece(location, task.gamepiece, matchContext);
         case ACQUIRE_AND_FINISH:
           AcquireAndFinishGamepiece(location, task.gamepiece, matchContext);
+          break;
         case HANG_ENTER:
           matchContext.setHang({
             startTime: getCurrentTime(),
@@ -1081,8 +1082,8 @@ const ScoutMatch = () => {
               // const coralTasks = hasCoral() ? [createTask(DEPOSIT, CORAL)] : [createTask(ACQUIRE, CORAL), createTask(FINISH, CORAL)]
               startPendingTasks(
                 [x, y],
-                hasCoral() 
-                  ? [createTask(DEPOSIT, CORAL), createTask(DEPOSIT, ALGAE)] 
+                hasCoral()
+                  ? [createTask(DEPOSIT, CORAL), createTask(DEPOSIT, ALGAE)]
                   : [createTask(ACQUIRE_AND_FINISH, CORAL)]
               );
             }}

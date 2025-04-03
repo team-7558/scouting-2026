@@ -1,6 +1,6 @@
 //update in server too
 export const PRACTICE_EVENTS = []; //["2025week0", "2025onnew"];
-export const ATTENDING_EVENTS = ["2025ontor", "2025onsca"]; //, "2025ontor", "2025oncmp"];
+export const ATTENDING_EVENTS = ["2025ontor", "2025onsca", "2025oncmp1"]; //, "2025ontor", "2025oncmp"];
 
 export const FIELD_VIRTUAL_HEIGHT = 1610;
 export const FIELD_VIRTUAL_WIDTH = 3510;
@@ -57,6 +57,7 @@ export const ACTIONS = {
   ACQUIRE: "acquire",
   DEPOSIT: "deposit",
   FINISH: "finish",
+  ACQUIRE_AND_FINISH: "acquire_and_finish",
   DROP: "drop",
   HANG: "hang",
   HANG_ENTER: "hang_enter",
@@ -98,6 +99,7 @@ export const GAME_LOCATIONS = {
     GH: "REEF_GH",
     IJ: "REEF_IJ",
     KL: "REEF_KL",
+    ALGAE: "REEF_ALGAE"
   },
   REEF_LEVEL: {
     1: "1",

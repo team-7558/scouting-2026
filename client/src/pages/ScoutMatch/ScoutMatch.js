@@ -52,6 +52,7 @@ const {
   DEPOSIT,
   FINISH,
   DROP,
+  ACQUIRE_AND_FINISH,
   HANG_ENTER,
   HANG_CAGE_TOUCH,
   HANG_COMPLETE,
@@ -185,6 +186,8 @@ const ScoutMatch = () => {
     role: "N/A",
     comments: "",
   });
+
+  const [submitting, setSubmitting] = useState(false);
 
   const resetMatchState = () => {
     setPhase(PHASES.PRE_MATCH);
@@ -438,6 +441,8 @@ const ScoutMatch = () => {
     setContact,
     userToken,
     getWritableCycle,
+    submitting,
+    setSubmitting,
   };
 
   const createTask = (action, gamepiece = null) => ({
@@ -499,17 +504,26 @@ const ScoutMatch = () => {
     }
   };
 
+  const AcquireAndFinishGamepiece = (location, gamepiece, matchContext) => {
+    console.log("acquiring and finishing ", gamepiece);
+    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
+    if (gamepieceState?.startTime == null) {
+      setter({ attainedLocation: location, startTime: getCurrentTime() });
+    }
+  };
+
   const finishGamepiece = (location, gamepiece, matchContext) => {
     const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    if (
-      isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
-    ) {
-      setter({ ...gamepieceState, startTime: getCurrentTime() });
-    } else if (
-      isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
-    ) {
-      setter({ ...gamepieceState, endTime: getCurrentTime() });
-    }
+    console.log("finishing, ", gamepiece, gamepieceState)
+      if (
+        isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
+      ) {
+        setter({ ...gamepieceState, startTime: getCurrentTime() });
+      } else if (
+        isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
+      ) {
+        setter({ ...gamepieceState, endTime: getCurrentTime() });
+      }
   };
 
   const endMatch = () => {
@@ -571,6 +585,8 @@ const ScoutMatch = () => {
           break;
         case DROP:
           dropGamePiece(location, task.gamepiece, matchContext);
+        case ACQUIRE_AND_FINISH:
+          AcquireAndFinishGamepiece(location, task.gamepiece, matchContext);
         case HANG_ENTER:
           matchContext.setHang({
             startTime: getCurrentTime(),
@@ -1062,16 +1078,12 @@ const ScoutMatch = () => {
             perspective={scoutPerspective}
             children={fieldChildren}
             onClick={(x, y) => {
+              // const coralTasks = hasCoral() ? [createTask(DEPOSIT, CORAL)] : [createTask(ACQUIRE, CORAL), createTask(FINISH, CORAL)]
               startPendingTasks(
                 [x, y],
-                [
-                  hasCoral()
-                    ? createTask(DEPOSIT, CORAL)
-                    : createTask(ACQUIRE, CORAL),
-                  hasAlgae()
-                    ? createTask(DEPOSIT, ALGAE)
-                    : createTask(ACQUIRE, ALGAE),
-                ]
+                hasCoral() 
+                  ? [createTask(DEPOSIT, CORAL), createTask(DEPOSIT, ALGAE)] 
+                  : [createTask(ACQUIRE_AND_FINISH, CORAL)]
               );
             }}
             phase={phase}

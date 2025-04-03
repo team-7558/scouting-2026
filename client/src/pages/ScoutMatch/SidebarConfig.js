@@ -249,6 +249,17 @@ export const SIDEBAR_CONFIG = [
     positions: ["post_match"],
     label: (match, key) => "Submit",
     onClick: (match, key) => {
+      match.setSubmitting(true)
+    },
+    show: (match, key) => !match.submitting,
+    isDisabled: (match, key) =>
+      match.isUnfinished(match.hang.startTime, match.hang.result),
+  },
+  {
+    phases: [PHASES.POST_MATCH],
+    positions: ["post_match"],
+    label: (match, key) => "Confirm",
+    onClick: (match, key) => {
       const saveCycles =
         match.hang.result == null
           ? match.cycles
@@ -279,12 +290,22 @@ export const SIDEBAR_CONFIG = [
             matchKey: match.scoutData.nextMatchKey,
             station: match.searchParams.get("station"),
           });
+          window.location.href = window.location.href
         }
       );
     },
-    isDisabled: (match, key) =>
-      match.isUnfinished(match.hang.startTime, match.hang.result),
-    show: (match, key) => true,
+    isDisabled: (match, key) => false,
+    show: (match, key) => match.submitting,
+  },
+  {
+    phases: [PHASES.POST_MATCH],
+    positions: ["post_match"],
+    label: (match, key) => "Cancel",
+    onClick: (match, key) => {
+      match.setSubmitting(false)
+    },
+    show: (match, key) => match.submitting,
+    isDisabled: (match, key) => false
   },
   // Cancel Button
   {

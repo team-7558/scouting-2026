@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Box,
   Button,
@@ -19,6 +19,8 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
+  ToggleButton,
+  ToggleButtonGroup,
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
@@ -37,6 +39,8 @@ import SpeedIcon from "@mui/icons-material/Speed";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import PushPinIcon from "@mui/icons-material/PushPin";
 import SearchIcon from "@mui/icons-material/Search";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Your CyclesFieldCanvas component
 import ScoreBarChart from "./ScoreBarChart"; // Reusable chart component
@@ -96,7 +100,8 @@ const stableSort = (array, comparator) => {
   return stabilized.map((el) => el[0]);
 };
 
-// This component renders a table for a single category group.
+// ------------------- CategoryTable Component -------------------
+// Renders a table for a single category group.
 const CategoryTable = ({ group, rows, metricKeys }) => {
   const theme = useTheme();
   const [order, setOrder] = useState("asc");
@@ -119,84 +124,64 @@ const CategoryTable = ({ group, rows, metricKeys }) => {
   ];
 
   return (
-    <Box sx={{ mb: 4 }}>
-      {/* Category header styled with the group color from AveragesConfig */}
-      <Typography
-        variant="h6"
-        sx={{
-          bgcolor: groupColors[group] || "#333",
-          color: theme.palette.getContrastText(groupColors[group] || "#333"),
-          p: 1,
-          borderRadius: 1,
-          mb: 1,
-        }}
-      >
-        {group.toUpperCase()}
-      </Typography>
-      <TableContainer component={Paper}>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              {headCells.map((headCell) => (
-                <TableCell
-                  key={headCell.id}
-                  sortDirection={orderBy === headCell.id ? order : false}
+    <TableContainer component={Paper}>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            {headCells.map((headCell) => (
+              <TableCell
+                key={headCell.id}
+                sortDirection={orderBy === headCell.id ? order : false}
+              >
+                <TableSortLabel
+                  active={orderBy === headCell.id}
+                  direction={orderBy === headCell.id ? order : "asc"}
+                  onClick={(event) => handleRequestSort(event, headCell.id)}
                 >
-                  <TableSortLabel
-                    active={orderBy === headCell.id}
-                    direction={orderBy === headCell.id ? order : "asc"}
-                    onClick={(event) => handleRequestSort(event, headCell.id)}
-                  >
-                    {headCell.label}
-                  </TableSortLabel>
+                  {headCell.label}
+                </TableSortLabel>
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {stableSort(rows, getComparator(order, orderBy)).map((row, index) => (
+            <TableRow key={`${row.robot}-${row.phase}-${index}`}>
+              <TableCell>{row.robot}</TableCell>
+              <TableCell>{row.phase}</TableCell>
+              {metricKeys.map((key) => (
+                <TableCell key={key}>
+                  {row[key] !== undefined
+                    ? getFormattedValue(group, key, row[key])
+                    : "-"}
                 </TableCell>
               ))}
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {stableSort(rows, getComparator(order, orderBy)).map(
-              (row, index) => (
-                <TableRow key={`${row.robot}-${row.phase}-${index}`}>
-                  <TableCell>{row.robot}</TableCell>
-                  <TableCell>{row.phase}</TableCell>
-                  {metricKeys.map((key) => (
-                    <TableCell key={key}>
-                      {row[key] !== undefined
-                        ? getFormattedValue(group, key, row[key])
-                        : "-"}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              )
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 
 // ------------------- AveragesTable Component -------------------
-// This component groups the averages data (nested by robot and phase) by category (group)
-// and renders one table per group. An optional metricFilter prop (function: (group, metricKey) => boolean)
-// can be provided to limit which metrics are displayed.
-const AveragesTable = ({ averages, metricFilter }) => {
-  // categoryRows will map a category (group) to an array of rows.
-  // Each row: { robot, phase, ...metrics } where metrics are from that group.
+// Groups the averages data (nested by robot and phase) by category (group)
+// and renders one collapsible table per group. The table is collapsed by default
+// except for the "epa" group. A phaseFilter prop can limit the data to "auto" or "tele".
+const AveragesTable = ({ averages, phaseFilter }) => {
+  // Build rows grouped by category.
   const categoryRows = {};
 
-  // Iterate over each robot and each phase ("auto", "tele", etc.)
   Object.keys(averages).forEach((robotId) => {
     const robotAverages = averages[robotId] || {};
     Object.keys(robotAverages).forEach((phase) => {
+      // Apply phase filter if set (phase keys are assumed to be lower-case).
+      if (phaseFilter !== "all" && phase.toLowerCase() !== phaseFilter) return;
       const phaseData = robotAverages[phase] || {};
-      // phaseData is an object keyed by category (e.g., "movement", "coral", etc.)
       Object.keys(phaseData).forEach((group) => {
-        // Initialize the group array if needed.
         if (!categoryRows[group]) {
           categoryRows[group] = [];
         }
-        // Create a row: add robot, phase (uppercase) and spread the metrics from this group.
         categoryRows[group].push({
           robot: robotId,
           phase: phase.toUpperCase(),
@@ -206,53 +191,94 @@ const AveragesTable = ({ averages, metricFilter }) => {
     });
   });
 
-  // Now, for each category, compute the dynamic headers (union of metric keys)
-  const tables = Object.keys(categoryRows).map((group) => {
-    const rows = categoryRows[group];
+  // Manage open/closed state for each group.
+  const [openGroups, setOpenGroups] = useState({});
 
-    // Build a set of metric keys across all rows in this group.
-    const metricKeysSet = new Set();
-    rows.forEach((row) => {
-      Object.keys(row).forEach((key) => {
-        if (key !== "robot" && key !== "phase") {
-          // If a filter is provided, only add keys that pass.
-          if (typeof metricFilter === "function") {
-            if (metricFilter(group, key)) {
+  // Set default open state on first render.
+  useEffect(() => {
+    const defaults = {};
+    Object.keys(categoryRows).forEach((group) => {
+      defaults[group] = group.toLowerCase() === "epa"; // open only if group === "epa"
+    });
+    setOpenGroups(defaults);
+  }, [averages]);
+
+  const toggleGroup = (group) => {
+    setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
+  };
+
+  return (
+    <>
+      {Object.keys(categoryRows).map((group) => {
+        const rows = categoryRows[group];
+        // Collect unique metric keys from rows.
+        const metricKeysSet = new Set();
+        rows.forEach((row) => {
+          Object.keys(row).forEach((key) => {
+            if (key !== "robot" && key !== "phase") {
               metricKeysSet.add(key);
             }
-          } else {
-            metricKeysSet.add(key);
-          }
-        }
-      });
-    });
-    // const dynamicHeaders = Array.from(metricKeysSet).sort();
-    const dynamicHeaders = Array.from(metricKeysSet);
-    return (
-      <CategoryTable
-        key={group}
-        group={group}
-        rows={rows}
-        metricKeys={dynamicHeaders}
-      />
-    );
-  });
-
-  return <>{tables}</>;
+          });
+        });
+        const dynamicHeaders = Array.from(metricKeysSet);
+        return (
+          <Box key={group} sx={{ mb: 4 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                bgcolor: groupColors[group] || "#333",
+                color: (theme) =>
+                  theme.palette.getContrastText(groupColors[group] || "#333"),
+                p: 1,
+                borderRadius: 1,
+                mb: 1,
+                cursor: "pointer",
+              }}
+              onClick={() => toggleGroup(group)}
+            >
+              <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                {group.toUpperCase()}
+              </Typography>
+              {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </Box>
+            <Collapse in={openGroups[group]} timeout="auto" unmountOnExit>
+              <CategoryTable
+                group={group}
+                rows={rows}
+                metricKeys={dynamicHeaders}
+              />
+            </Collapse>
+          </Box>
+        );
+      })}
+    </>
+  );
 };
 
+// ------------------- CategorySort Component -------------------
 const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [paramsProvided, setParamsProvided] = useState(false);
-  const [reportData, setReportData] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  // Use cached data from localStorage if available.
+  const cachedData = useMemo(() => {
+    const stored = localStorage.getItem("averagesData");
+    return stored ? JSON.parse(stored) : null;
+  }, []);
+  const [reportData, setReportData] = useState(cachedData);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState("");
 
   // Fixed search bars for "matchKey" and "robot"
   const [matchKeySearchTerm, setMatchKeySearchTerm] = useState("");
   const [robotSearchTerm, setRobotSearchTerm] = useState("");
+  // Phase filter: "all", "auto", or "tele"
+  const [phaseFilter, setPhaseFilter] = useState("all");
+
+  // Ref to ensure we only auto-load once per reload.
+  const hasLoadedRef = useRef(false);
 
   // Prepopulate search terms.
   useEffect(() => {
@@ -261,6 +287,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
   }, [searchParams]);
 
   // Check if all required params are provided.
+  const [paramsProvided, setParamsProvided] = useState(false);
   useEffect(() => {
     const allProvided = requiredParamKeys.every(
       (key) => searchParams.get(key) && searchParams.get(key).trim() !== ""
@@ -268,35 +295,35 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
     setParamsProvided(allProvided);
   }, [location.search, searchParams, requiredParamKeys]);
 
-  // In your CategorySort component, replace the effect dependency for searchParams with a stable value:
-  const spString = searchParams.toString();
-
-  useEffect(() => {
-    const fetchReports = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const params = {};
-        requiredParamKeys.forEach((key) => {
-          params[key] = searchParams.get(key);
-        });
-        console.log("params: ", params);
-        const res = await getReports(params);
-        setReportData(res.data);
-      } catch (err) {
-        setError("Error loading reports");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (paramsProvided) {
-      fetchReports();
+  // Function to load data from API.
+  const loadData = async () => {
+    setIsSyncing(true);
+    setError("");
+    try {
+      const params = {};
+      requiredParamKeys.forEach((key) => {
+        params[key] = searchParams.get(key);
+      });
+      console.log("params: ", params);
+      const res = await getReports(params);
+      setReportData(res.data);
+      localStorage.setItem("averagesData", JSON.stringify(res.data));
+    } catch (err) {
+      setError("Error loading reports");
+    } finally {
+      setIsSyncing(false);
     }
-  }, [paramsProvided, spString]); // now using spString instead of searchParams
+  };
 
-  // When Enter is pressed in the matchKey search bar:
-  // - Remove the robot parameter, update matchKey, and navigate to /matches.
+  // Auto-load data once when params are provided.
+  useEffect(() => {
+    if (paramsProvided && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadData();
+    }
+  }, [paramsProvided]);
+
+  // When Enter is pressed in the matchKey search bar.
   const handleMatchKeySearchKeyDown = (e) => {
     if (e.key === "Enter") {
       const newParams = {};
@@ -311,8 +338,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
     }
   };
 
-  // When Enter is pressed in the robot search bar:
-  // - Remove the matchKey parameter, update robot, and navigate to /robots.
+  // When Enter is pressed in the robot search bar.
   const handleRobotSearchKeyDown = (e) => {
     if (e.key === "Enter") {
       const newParams = {};
@@ -324,6 +350,13 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
       newParams["robot"] = robotSearchTerm;
       setSearchParams(newParams);
       navigate(`/robots?${new URLSearchParams(newParams).toString()}`);
+    }
+  };
+
+  // Handle phase filter change.
+  const handlePhaseFilter = (e, newPhase) => {
+    if (newPhase !== null) {
+      setPhaseFilter(newPhase);
     }
   };
 
@@ -396,22 +429,51 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
           </Box>
         </Box>
         {/* Show current required parameters as chips */}
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
           {requiredParamKeys.map((key) => (
             <Chip key={key} label={`${key}: ${searchParams.get(key)}`} />
           ))}
         </Box>
+        {/* Phase filter */}
+        <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
+          <ToggleButtonGroup
+            value={phaseFilter}
+            exclusive
+            onChange={handlePhaseFilter}
+            aria-label="phase filter"
+          >
+            <ToggleButton value="all" aria-label="all phases">
+              All Phases
+            </ToggleButton>
+            <ToggleButton value="auto" aria-label="auto phase">
+              AUTO
+            </ToggleButton>
+            <ToggleButton value="tele" aria-label="tele phase">
+              TELE
+            </ToggleButton>
+          </ToggleButtonGroup>
+          {/* Physical Reload Button */}
+          <Button variant="outlined" onClick={loadData}>
+            Reload
+          </Button>
+        </Box>
       </Paper>
       {paramsProvided ? (
         <>
-          {loading ? (
-            <CircularProgress />
-          ) : error ? (
-            <Typography variant="body1" color="error">
-              {error}
-            </Typography>
-          ) : reportData ? (
-            <AveragesTable averages={reportData.averages} />
+          {/* Sync indicator */}
+          {isSyncing && (
+            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+              <CircularProgress size={20} sx={{ mr: 1 }} />
+              <Typography variant="body2">
+                Syncing data in background...
+              </Typography>
+            </Box>
+          )}
+          {reportData && reportData.averages ? (
+            <AveragesTable
+              averages={reportData.averages}
+              phaseFilter={phaseFilter}
+            />
           ) : (
             <Typography variant="body1">No data available.</Typography>
           )}

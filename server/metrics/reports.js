@@ -1,5 +1,15 @@
 export const calculateReportTotals = (report) => {
   const DEFAULT_PHASE_STRUCTURE = {
+    epa: {
+      // L1: 0,
+      // L2: 0,
+      // L3: 0,
+      // L4: 0,
+      coralScoredCount: 0,
+      algaeScoredCount: 0,
+      coralScoredPoints: 0,
+      algaeScoredPoints: 0,
+    },
     coral: {
       attainedCount: 0,
       scoredCount: 0,
@@ -25,8 +35,8 @@ export const calculateReportTotals = (report) => {
   // Initialize result structure
   const results = {
     disabled: 0,
-    driverSkill: 0,
-    defenseSkill: 0,
+    // driverSkill: 0,
+    // defenseSkill: 0,
     auto: {
       movement: {
         movementTime: 0,
@@ -59,16 +69,14 @@ export const calculateReportTotals = (report) => {
   const algaeScoringTimes = { auto: [], tele: [] };
 
   results.disabled += Number(report.disabled);
-  
-  if (!report.driverSkill=="N/A"){
-    results.driverSkill += Number(report.driverSkill);
-  }
 
-  if (!report.defenseSkill=="N/A"){
-    results.defenseSkill += Number(report.defenseSkill);
-  }
+  // if (!report.driverSkill == "N/A") {
+  //   results.driverSkill += Number(report.driverSkill);
+  // }
 
-
+  // if (!report.defenseSkill == "N/A") {
+  //   results.defenseSkill += Number(report.defenseSkill);
+  // }
 
   // Process each cycle using a switch statement
   report.cycles.forEach((cycle) => {
@@ -126,7 +134,7 @@ export const calculateReportTotals = (report) => {
       case "HANG":
         phaseResults.hang.startTime = cycle.start_time;
         phaseResults.hang.cycleTime = cycleTime;
-        switch (cycle.result){
+        switch (cycle.result) {
           case "PARK":
             phaseResults.hang.parks++;
             break;
@@ -197,8 +205,65 @@ export const calculateReportTotals = (report) => {
     phaseResults.algae.scoringRate = phaseResults.algae.scoredCount
       ? phaseResults.algae.scoredCount / phaseResults.algae.attainedCount
       : 0;
+
+    phaseResults.epa = {
+      // L1: phaseResults.coral.L1,
+      // L2: phaseResults.coral.L2,
+      // L3: phaseResults.coral.L3,
+      // L4: phaseResults.coral.L4,
+      coralScoredCount: phaseResults.coral.scoredCount,
+      scoredNetCount: phaseResults.algae.scoredNetCount,
+      scoredProcessorCount: phaseResults.algae.scoredProcessorCount,
+      coralScoredPoints: calculateCoralPoints(phase, phaseResults.coral),
+      algaeScoredPoints: calculateAlgaePoints(phaseResults.algae),
+    };
+    phaseResults.epa.totalPoints =
+      phaseResults.epa.coralScoredPoints + phaseResults.epa.algaeScoredPoints;
   }
   return results;
+};
+
+export const calculateCoralPoints = (phase, coral) => {
+  let pointValues = {
+    MOVEMENT: 3,
+    L1: 3,
+    L2: 4,
+    L3: 6,
+    L4: 7,
+    scoredProcessorCount: 6,
+    scoredNetCount: 4,
+    PARK: 2,
+    SHALLOW: 6,
+    DEEP: 12,
+  };
+  if (phase == "tele") {
+    pointValues = { ...pointValues, L1: 2, L2: 3, L3: 4, L4: 5 };
+  }
+  let points = 0;
+  ["L1", "L2", "L3", "L4"].forEach(
+    (level) => (points += coral[level] * pointValues[level])
+  );
+  return points;
+};
+
+export const calculateAlgaePoints = (algae) => {
+  let pointValues = {
+    MOVEMENT: 3,
+    L1: 3,
+    L2: 4,
+    L3: 6,
+    L4: 7,
+    scoredProcessorCount: 6,
+    scoredNetCount: 4,
+    PARK: 2,
+    SHALLOW: 6,
+    DEEP: 12,
+  };
+  let points = 0;
+  ["scoredProcessorCount", "scoredNetCount"].forEach(
+    (level) => (points += algae[level] * pointValues[level])
+  );
+  return points;
 };
 
 export const calculateAverageMetrics = (reports) => {
@@ -239,20 +304,21 @@ export const calculateAverageMetrics = (reports) => {
     });
   }
 
-  for (let key of ["disabled", "driver_skill", "defense_skill"]) {
-    let sum = 0;
-    let validCount = 0; // Keep track of valid (numeric) reports
+  // for (let key of ["disabled", "driver_skill", "defense_skill"]) {
+  //   let sum = 0;
+  //   let validCount = 0; // Keep track of valid (numeric) reports
 
-    reports.forEach(report => {
-        const value = report[key];
+  //   reports.forEach((report) => {
+  //     const value = report[key];
 
-        if (value !== "N/A"){
-            sum += Number(value); // Attempt to convert to a number
-            validCount++;
-        }
-    });
-    averageMetrics[key] = reports.length > 0 ? [sum / reports.length, sum / validCount] : null;
-  }
+  //     if (value !== "N/A") {
+  //       sum += Number(value); // Attempt to convert to a number
+  //       validCount++;
+  //     }
+  //   });
+  //   averageMetrics[key] =
+  //     reports.length > 0 ? [sum / reports.length, sum / validCount] : null;
+  // }
 
   return averageMetrics;
 };

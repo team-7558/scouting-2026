@@ -226,8 +226,8 @@ const AveragesTable = ({ averages, metricFilter }) => {
         }
       });
     });
-    const dynamicHeaders = Array.from(metricKeysSet).sort();
-
+    // const dynamicHeaders = Array.from(metricKeysSet).sort();
+    const dynamicHeaders = Array.from(metricKeysSet);
     return (
       <CategoryTable
         key={group}

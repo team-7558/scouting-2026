@@ -71,6 +71,18 @@ export const averageMetricMapping = {
     label: "Shallow Hangs",
     icon: <AccessTimeIcon fontSize="medium" color="action" />,
   },
+  coralScoredCount: {
+    label: "Coral Scored",
+  },
+  coralScoredPoints: {
+    label: "Coral Points",
+  },
+  algaeScoredPoints: {
+    label: "Algae Points",
+  },
+  totalPoints: {
+    label: "Total Points",
+  },
 };
 
 // Category coloring – these colors will be used for group headers

@@ -49,12 +49,12 @@ const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
 
 const {
   ACQUIRE,
-  DEPOSIT,
+  SHOOT,
   FINISH,
-  DROP,
   ACQUIRE_AND_FINISH,
+  DROP,
+  HANG,
   HANG_ENTER,
-  HANG_CAGE_TOUCH,
   HANG_COMPLETE,
   GO_TELE,
   GO_DEFENSE,
@@ -104,6 +104,7 @@ const ScoutMatch = () => {
       matchKey: matchKey.toLowerCase(),
       station,
     });
+    setSearchParamsError(null);
   };
 
   const eventKey = searchParams.get("eventKey");
@@ -140,19 +141,22 @@ const ScoutMatch = () => {
     endTime: null,
   });
 
-  const [coral, setCoral] = useState({
+  const [powerCellCycles, setPowerCellCycles] = useState([{
     attainedLocation: GAME_LOCATIONS.PRELOAD,
     startTime: 0,
     depositLocation: null,
     depositType: null, // score or drop
     endTime: null,
-  });
+  },
+  {},
+  {},
+  {},
+  {}
+  ]);
 
-  const [algae, setAlgae] = useState({
-    attainedLocation: null, // if not null, pickup is pending
+  const [controlPanel, setControlPanel] = useState({
     startTime: null, // if not null, holding gamepiece
-    depositLocation: null,
-    depositType: null, // score or drop
+    action: null, //spin or color
     endTime: null,
   });
 
@@ -160,7 +164,7 @@ const ScoutMatch = () => {
     startTime: null,
     endTime: null,
   });
-  const isDefending = () => isUnfinished(defense.startTime, defense.endTime);
+  const isDefending = () => defense.startTime!=null && defense.endTime!=null;
 
   const [contact, setContact] = useState({
     startTime: null,
@@ -172,11 +176,8 @@ const ScoutMatch = () => {
 
   const [hang, setHang] = useState({
     startTime: null, // when robot enters under barge
-    cageTouchTime: null, // when robot touches cage
     endTime: null, // when robot off the floor
-    cageLocation: null, // LEFT MIDDLE RIGHT
-    cageType: null,
-    result: null, // will be entered after match score released PARK // SUCCESS
+    type: null //fail, succeed, balanced
   });
 
   const [endgame, setEndgame] = useState({
@@ -196,8 +197,8 @@ const ScoutMatch = () => {
     setDisplayTime(null);
     setCycles([]);
     setAutoMovement({ startTime: 0 });
-    setCoral({ attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 });
-    setAlgae({});
+    setPowerCellCycles({ attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, {}, {}, {}, {});
+    setControlPanel({});
     setDefense({});
     setContact({});
     setHang({});
@@ -227,8 +228,6 @@ const ScoutMatch = () => {
     (matchContext?.scaledBoxRect || scaledBoxRect).height;
 
   //TODO: replace with real teams.
-  const allies = [7558, 188, 1325];
-  const enemies = [1, 2, 3];
   let fetching = false;
   const fetchScoutMatchData = async () => {
     if (fetching || !eventKey || !driverStation || !matchKey) {
@@ -282,73 +281,48 @@ const ScoutMatch = () => {
     return () => clearInterval(interval);
   }, [matchStartTime, phase]);
 
-  const getCycle = (cycleType) => {
-    switch (cycleType) {
-      case CYCLE_TYPES.AUTO_MOVEMENT:
-        return autoMovement;
-      case CYCLE_TYPES.ALGAE:
-        return algae;
-      case CYCLE_TYPES.CORAL:
-        return coral;
-      case CYCLE_TYPES.CONTACT:
-        return contact;
-      case CYCLE_TYPES.DEFENSE:
-        return defense;
-      case CYCLE_TYPES.HANG:
-        return hang;
-    }
+  const getIntakeSlot = (cycleType) => {
+    
   };
 
-  const getWritableCycle = (cycleType) => {
-    return {
-      phase,
-      type: cycleType,
-      ...getCycle(cycleType),
-    };
+  const getShootSlot = () => {
+
+  }
+
+  const startPickupPowerCell = () => {
+
+  }
+
+  const endPickupPowerCell = () => {
+
+  }
+
+  const startShootPowerCell = () => {
+
+  }
+
+  const endPowerCellCycles = () => {
+    const newPowerCellCycles = [...powerCellCycles];
+    powerCellCycles.forEach((cycle, i) => {
+      if (cycle.endTime != null){
+        newPowerCellCycles[i] = {}
+      }
+    })
   };
 
-  const terminateCycle = (
-    cycleType,
-    terminator,
-    cleanupFunction,
-    skipTerminator = false
-  ) => {
-    const cycle = getCycle(cycleType);
-    if (terminator != null || skipTerminator) {
-      console.log(`Terminating ${cycleType} cycle: ${JSON.stringify(cycle)}`);
-      setCycles([...cycles, getWritableCycle(cycleType)]);
-      cleanupFunction();
-    }
-  };
-
-  useEffect(() => {
-    terminateCycle(CYCLE_TYPES.AUTO_MOVEMENT, autoMovement.endTime, () =>
-      setAutoMovement({})
-    );
-    terminateCycle(CYCLE_TYPES.CORAL, coral.endTime, () => setCoral({}));
-    terminateCycle(CYCLE_TYPES.ALGAE, algae.endTime, () => setAlgae({}));
-    terminateCycle(CYCLE_TYPES.DEFENSE, defense.endTime, () => setDefense({}));
-    terminateCycle(CYCLE_TYPES.CONTACT, contact.endTime, () => setContact({}));
-    clearUnfinished();
-  }, [
-    coral.endTime,
-    algae.endTime,
-    defense.endTime,
-    contact.endTime,
-    autoMovement.endTime,
-  ]);
-
-  const hasCoral = () => {
-    return coral.startTime != null;
-  };
-
-  const hasAlgae = () => {
-    return algae.startTime != null;
-  };
+  const getNumPowerCellsInBot = () => {
+    let count = 0;
+    powerCellCycles.forEach((cycle) => {
+      if (cycle.startTime != null && cycle.endTime == null){
+        count++;
+      }
+    });
+    return count;
+  }
 
   useEffect(() => {
     if (hang.endTime != null) {
-      endMatch();
+      console.log("END THE MATCH");
     }
   }, [hang.endTime]);
 
@@ -357,51 +331,30 @@ const ScoutMatch = () => {
   const flipX = () => isScoutingRed();
   const flipY = () => isScoutingRed();
 
-  const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
-    console.log("Clearing unfinished");
-    clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
-    clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
-    matchContext.setHang({});
-    matchContext.setContact({});
-  };
+  // const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
+  //   console.log("Clearing unfinished");
+  //   clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
+  //   clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
+  //   matchContext.setHang({});
+  //   matchContext.setContact({});
+  // };
 
-  const isUnfinished = (location, time) => location != null && time == null;
-  const hasUnfinished = (matchContext = CONTEXT_WRAPPER) => {
-    return (
-      isUnfinished(
-        matchContext.coral.attainedLocation,
-        matchContext.coral.startTime
-      ) ||
-      isUnfinished(
-        matchContext.coral.depositLocation,
-        matchContext.coral.endTime
-      ) ||
-      isUnfinished(
-        matchContext.algae.attainedLocation,
-        matchContext.algae.startTime
-      ) ||
-      isUnfinished(
-        matchContext.algae.depositLocation,
-        matchContext.algae.endTime
-      ) ||
-      isUnfinished(matchContext.hang.startTime, matchContext.hang.endTime) ||
-      isUnfinished(matchContext.contact.startTime, matchContext.contact.endTime)
-    );
-  };
-  const shouldWriteCycle = (cycleType) => {
-    switch (cycleType) {
-      case CYCLE_TYPES.ALGAE:
-        return isUnfinished(algae.startTime, algae.endTime);
-      case CYCLE_TYPES.CORAL:
-        return isUnfinished(coral.startTime, coral.endTime);
-      case CYCLE_TYPES.CONTACT:
-        return isUnfinished(contact.startTime, algae.endTime);
-      case CYCLE_TYPES.DEFENSE:
-        return isUnfinished(defense.startTime, defense.endTime);
-      case CYCLE_TYPES.HANG: // this should never happen probably
-        return isUnfinished(hang.startTime, hang.result);
-    }
-  };
+  // const isUnfinished = (location, time) => location != null && time == null;
+  
+  // const shouldWriteCycle = (cycleType) => {
+  //   switch (cycleType) {
+  //     case CYCLE_TYPES.ALGAE:
+  //       return isUnfinished(algae.startTime, algae.endTime);
+  //     case CYCLE_TYPES.CORAL:
+  //       return isUnfinished(coral.startTime, coral.endTime);
+  //     case CYCLE_TYPES.CONTACT:
+  //       return isUnfinished(contact.startTime, algae.endTime);
+  //     case CYCLE_TYPES.DEFENSE:
+  //       return isUnfinished(defense.startTime, defense.endTime);
+  //     case CYCLE_TYPES.HANG: // this should never happen probably
+  //       return isUnfinished(hang.startTime, hang.result);
+  //   }
+  // };
 
   const CONTEXT_WRAPPER = {
     fieldCanvasRef,
@@ -417,12 +370,10 @@ const ScoutMatch = () => {
     setStartingPosition,
     autoMovement,
     setAutoMovement,
-    coral,
-    setCoral,
-    algae,
-    setAlgae,
-    hasCoral,
-    hasAlgae,
+    powerCellCycles,
+    setPowerCellCycles,
+    controlPanel,
+    setControlPanel,
     hang,
     setHang,
     endgame,
@@ -432,15 +383,11 @@ const ScoutMatch = () => {
     getCurrentTime,
     isScoutingRed: isScoutingRed(),
     isScoringTableFar: isScoringTableFar(),
-    isUnfinished,
-    clearUnfinished,
-    hasUnfinished,
     scoutData,
     setScoutData,
     contact,
     setContact,
     userToken,
-    getWritableCycle,
     submitting,
     setSubmitting,
   };
@@ -450,178 +397,103 @@ const ScoutMatch = () => {
     gamepiece: gamepiece,
   });
 
-  const getGamepieceState = (gamepiece, matchContext) => {
-    switch (gamepiece) {
-      case CORAL:
-        return [matchContext.coral, matchContext.setCoral];
-      case ALGAE:
-        return [matchContext.algae, matchContext.setAlgae];
-    }
-  };
+  //TODO: END MATCH
+  // const endMatch = () => {
+  //   console.log(cycles);
+  //   setCycles(
+  //     [
+  //       ...cycles,
+  //       shouldWriteCycle(CYCLE_TYPES.ALGAE) &&
+  //         getWritableCycle(CYCLE_TYPES.ALGAE),
+  //       shouldWriteCycle(CYCLE_TYPES.CORAL) &&
+  //         getWritableCycle(CYCLE_TYPES.CORAL),
+  //       shouldWriteCycle(CYCLE_TYPES.DEFENSE) && {
+  //         ...getWritableCycle(CYCLE_TYPES.DEFENSE),
+  //         endTime: getCurrentTime(),
+  //       },
+  //       shouldWriteCycle(CYCLE_TYPES.CONTACT) && {
+  //         ...getWritableCycle(CYCLE_TYPES.CONTACT),
+  //         endTime: getCurrentTime(),
+  //       },
+  //       // shouldWriteCycle(CYCLE_TYPES.HANG) &&
+  //       //   getWritableCycle(CYCLE_TYPES.HANG),
+  //     ].filter((x) => x)
+  //   );
+  //   setPhase(PHASES.POST_MATCH);
+  // };
 
-  const clearUnfinishedGamepiece = (gamepieceState, setter) => {
-    if (gamepieceState?.startTime == null) {
-      setter({});
-      return;
-    }
-    if (gamepieceState?.endTime == null) {
-      setter({ ...gamepieceState, depositLocation: null });
-      return;
-    }
-  };
-
-  // don't add default matchContext here
-  const startAcquireGamepiece = (location, gamepiece, matchContext) => {
-    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    console.log("acquiring: ", gamepiece, location);
-    if (gamepieceState?.startTime == null) {
-      setter({ attainedLocation: location });
-    }
-  };
-
-  // don't add default matchContext here
-  const startDepositGamepiece = (location, gamepiece, matchContext) => {
-    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    console.log("depositing: ", gamepiece, location);
-    if (gamepieceState?.startTime == null) {
-      return;
-    }
-    setter({
-      ...gamepieceState,
-      depositType: DEPOSIT_TYPE.SCORE,
-      depositLocation: location,
-    });
-  };
-
-  const dropGamePiece = (location, gamepiece, matchContext) => {
-    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    if (isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)) {
-      setter({
-        ...gamepieceState,
-        depositType: DEPOSIT_TYPE.DROP,
-        endTime: getCurrentTime(),
-      });
-    }
-  };
-
-  const AcquireAndFinishGamepiece = (location, gamepiece, matchContext) => {
-    console.log("acquiring and finishing ", gamepiece);
-    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    if (gamepieceState?.startTime == null) {
-      setter({ attainedLocation: location, startTime: getCurrentTime() });
-    }
-  };
-
-  const finishGamepiece = (location, gamepiece, matchContext) => {
-    const [gamepieceState, setter] = getGamepieceState(gamepiece, matchContext);
-    console.log("finishing, ", gamepiece, gamepieceState);
-    if (
-      isUnfinished(gamepieceState.attainedLocation, gamepieceState.startTime)
-    ) {
-      setter({ ...gamepieceState, startTime: getCurrentTime() });
-    } else if (
-      isUnfinished(gamepieceState.depositLocation, gamepieceState.endTime)
-    ) {
-      setter({ ...gamepieceState, endTime: getCurrentTime() });
-    }
-  };
-
-  const endMatch = () => {
-    console.log(cycles);
-    setCycles(
-      [
-        ...cycles,
-        shouldWriteCycle(CYCLE_TYPES.ALGAE) &&
-          getWritableCycle(CYCLE_TYPES.ALGAE),
-        shouldWriteCycle(CYCLE_TYPES.CORAL) &&
-          getWritableCycle(CYCLE_TYPES.CORAL),
-        shouldWriteCycle(CYCLE_TYPES.DEFENSE) && {
-          ...getWritableCycle(CYCLE_TYPES.DEFENSE),
-          endTime: getCurrentTime(),
-        },
-        shouldWriteCycle(CYCLE_TYPES.CONTACT) && {
-          ...getWritableCycle(CYCLE_TYPES.CONTACT),
-          endTime: getCurrentTime(),
-        },
-        // shouldWriteCycle(CYCLE_TYPES.HANG) &&
-        //   getWritableCycle(CYCLE_TYPES.HANG),
-      ].filter((x) => x)
-    );
-    setPhase(PHASES.POST_MATCH);
-  };
-
-  const DONT_CLEAR_LOCATIONS = [
-    ...Object.keys(SCOUTING_CONFIG.HANG.positions),
-    ...Object.keys(SCOUTING_CONFIG.GO_POST_MATCH.positions),
-  ];
+  // const DONT_CLEAR_LOCATIONS = [
+  //   ...Object.keys(SCOUTING_CONFIG.HANG.positions),
+  //   ...Object.keys(SCOUTING_CONFIG.GO_POST_MATCH.positions),
+  // ];
   // actions is a map of gamepiece transformations to be executed
-  const startPendingTasks = (
-    location,
-    tasks,
-    matchContext = CONTEXT_WRAPPER
-  ) => {
-    if (![PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE].includes(phase)) {
-      return;
-    }
-    // don't clear unfinished if going to post match.
-    if (!DONT_CLEAR_LOCATIONS.includes(location)) {
-      clearUnfinished();
-    }
-    for (let i in tasks) {
-      // console.log(tasks[i]);
-      let task = tasks[i];
-      switch (task.action) {
-        case ROBOT_LEFT_STARTING:
-          setAutoMovement({ ...autoMovement, endTime: getCurrentTime() });
-          break;
-        case ACQUIRE:
-          startAcquireGamepiece(location, task.gamepiece, matchContext);
-          break;
-        case DEPOSIT:
-          startDepositGamepiece(location, task.gamepiece, matchContext);
-          break;
-        case FINISH:
-          finishGamepiece(location, task.gamepiece, matchContext);
-          break;
-        case DROP:
-          dropGamePiece(location, task.gamepiece, matchContext);
-        case ACQUIRE_AND_FINISH:
-          AcquireAndFinishGamepiece(location, task.gamepiece, matchContext);
-          break;
-        case HANG_ENTER:
-          matchContext.setHang({
-            startTime: getCurrentTime(),
-          });
-          break;
-        case HANG_CAGE_TOUCH:
-          matchContext.setHang({
-            ...matchContext.hang,
-            cageLocation: location,
-            cageTouchTime: getCurrentTime(),
-          });
-          break;
-        case HANG_COMPLETE:
-          matchContext.setHang({
-            ...matchContext.hang,
-            endTime: getCurrentTime(),
-          });
-          break;
-        case GO_TELE:
-          matchContext.setPhase(PHASES.TELE);
-          break;
-        case GO_DEFENSE:
-          matchContext.setDefense(
-            matchContext.isDefending()
-              ? { ...matchContext.defense, endTime: getCurrentTime() }
-              : { startTime: getCurrentTime() }
-          );
-          break;
-        case GO_POST_MATCH:
-          endMatch();
-          break;
-      }
-    }
-  };
+  // const startPendingTasks = (
+  //   location,
+  //   tasks,
+  //   matchContext = CONTEXT_WRAPPER
+  // ) => {
+  //   if (![PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE].includes(phase)) {
+  //     return;
+  //   }
+  //   // don't clear unfinished if going to post match.
+  //   if (!DONT_CLEAR_LOCATIONS.includes(location)) {
+  //     clearUnfinished();
+  //   }
+  //   for (let i in tasks) {
+  //     // console.log(tasks[i]);
+  //     let task = tasks[i];
+  //     switch (task.action) {
+  //       case ROBOT_LEFT_STARTING:
+  //         setAutoMovement({ ...autoMovement, endTime: getCurrentTime() });
+  //         break;
+  //       case ACQUIRE:
+  //         startAcquireGamepiece(location, task.gamepiece, matchContext);
+  //         break;
+  //       case DEPOSIT:
+  //         startDepositGamepiece(location, task.gamepiece, matchContext);
+  //         break;
+  //       case FINISH:
+  //         finishGamepiece(location, task.gamepiece, matchContext);
+  //         break;
+  //       case DROP:
+  //         dropGamePiece(location, task.gamepiece, matchContext);
+  //       case ACQUIRE_AND_FINISH:
+  //         AcquireAndFinishGamepiece(location, task.gamepiece, matchContext);
+  //         break;
+  //       case HANG_ENTER:
+  //         matchContext.setHang({
+  //           startTime: getCurrentTime(),
+  //         });
+  //         break;
+  //       case HANG_CAGE_TOUCH:
+  //         matchContext.setHang({
+  //           ...matchContext.hang,
+  //           cageLocation: location,
+  //           cageTouchTime: getCurrentTime(),
+  //         });
+  //         break;
+  //       case HANG_COMPLETE:
+  //         matchContext.setHang({
+  //           ...matchContext.hang,
+  //           endTime: getCurrentTime(),
+  //         });
+  //         break;
+  //       case GO_TELE:
+  //         matchContext.setPhase(PHASES.TELE);
+  //         break;
+  //       case GO_DEFENSE:
+  //         matchContext.setDefense(
+  //           matchContext.isDefending()
+  //             ? { ...matchContext.defense, endTime: getCurrentTime() }
+  //             : { startTime: getCurrentTime() }
+  //         );
+  //         break;
+  //       case GO_POST_MATCH:
+  //         endMatch();
+  //         break;
+  //     }
+  //   }
+  // };
 
   const getTheme = () => (isScoutingRed() ? RedTheme : BlueTheme);
   const createFieldLocalMatchComponent = (
@@ -708,7 +580,7 @@ const ScoutMatch = () => {
                 disabled={isDisabled}
                 color={config.color || COLORS.ACTIVE}
                 onClick={() => {
-                  startPendingTasks(key, config.tasks, match);
+                  console.log("START TASKS");
                 }}
               >
                 {config.textFunction && config.textFunction(match, key)}
@@ -796,34 +668,24 @@ const ScoutMatch = () => {
 
   const GROUND_PICKUPIcon = [];
 
-  GROUND_PICKUPIcon.push(
-    renderDynamicGamePiece(
-      getDynamicPosition(coral.attainedLocation),
-      CoralIcon,
-      GAME_PIECES.CORAL
-    )
-  );
-  GROUND_PICKUPIcon.push(
-    renderDynamicGamePiece(
-      getDynamicPosition(algae.attainedLocation),
-      AlgaeIcon,
-      GAME_PIECES.ALGAE
-    )
-  );
-  GROUND_PICKUPIcon.push(
-    renderDynamicGamePiece(
-      getDynamicPosition(coral.depositLocation),
-      CoralIcon,
-      "dropoff-coral"
-    )
-  );
-  GROUND_PICKUPIcon.push(
-    renderDynamicGamePiece(
-      getDynamicPosition(algae.depositLocation),
-      AlgaeIcon,
-      "dropoff-algae"
-    )
-  );
+  powerCellCycles.forEach((cycle) => {
+    GROUND_PICKUPIcon.push(
+      renderDynamicGamePiece(
+        getDynamicPosition(cycle.attainedLocation),
+        CoralIcon,
+        GAME_PIECES.POWER_CELL
+      )
+    );
+
+    GROUND_PICKUPIcon.push(
+      renderDynamicGamePiece(
+        getDynamicPosition(cycle.depositLocation),
+        CoralIcon,
+        GAME_PIECES.POWER_CELL
+      )
+    );
+  });
+
   const POST_MATCHChildren = [
     createFieldLocalMatchComponent(
       "disabled",
@@ -1080,12 +942,7 @@ const ScoutMatch = () => {
             children={fieldChildren}
             onClick={(x, y) => {
               // const coralTasks = hasCoral() ? [createTask(DEPOSIT, CORAL)] : [createTask(ACQUIRE, CORAL), createTask(FINISH, CORAL)]
-              startPendingTasks(
-                [x, y],
-                hasCoral()
-                  ? [createTask(DEPOSIT, CORAL), createTask(DEPOSIT, ALGAE)]
-                  : [createTask(ACQUIRE_AND_FINISH, CORAL)]
-              );
+              console.log("CLICKED FIELD, PICKUP GAME PIECE");
             }}
             phase={phase}
           />
@@ -1161,19 +1018,7 @@ const ScoutMatch = () => {
               justifyContent: "center",
             }}
           >
-            {hasAlgae() && ImageIcon(AlgaeIcon)}
-          </Box>
-          {/* Coral Icon */}
-          <Box
-            sx={{
-              width: iconSize * 2,
-              height: iconSize,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {hasCoral() && ImageIcon(CoralIcon)}
+            PUT GAME PIECES HERE - RENDER_SIDEBAR_HEADER METHOD
           </Box>
           {/* Current Time */}
           <Box
@@ -1218,7 +1063,7 @@ const ScoutMatch = () => {
                     : item.label,
                 onClick: () =>
                   item.tasks != null
-                    ? startPendingTasks(key, item.tasks, match)
+                    ? console.log("START TASK (RENDERSIDEBAR METHOD)")
                     : item.onClick && item.onClick(match, key),
                 color:
                   typeof item.color === "function"

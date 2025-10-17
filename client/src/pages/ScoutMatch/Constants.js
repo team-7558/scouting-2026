@@ -11,12 +11,12 @@ export const AUTO_MAX_TIME = 15 * 1000;
 export const TELE_MAX_TIME = 153 * 1000;
 
 export const CYCLE_TYPES = {
-  CORAL: "CORAL",
-  ALGAE: "ALGAE",
-  HANG: "HANG",
+  POWER_CELL: "POWER_CELL",
+  CONTROL_PANEL: "CONTROL_PANEL",
   DEFENSE: "DEFENSE",
   CONTACT: "CONTACT",
   AUTO_MOVEMENT: "AUTO_MOVEMENT",
+  HANG: "HANG",
 };
 
 export const DRIVER_STATIONS = {
@@ -39,10 +39,9 @@ export const COLORS = {
   DISABLED: "disabled",
   ACTIVE: "primary",
   OPPONENT: "opponent",
-  CORALPICKUP: "coralPickup",
-  ALGAEPICKUP: "algaePickup",
-  CORALDROPOFF: "coralDropoff",
-  ALGAEDROPOFF: "algaeDropoff",
+  POWERCELLPICKUP: "coralPickup",
+  POWERCELLSHOOT: "algaePickup",
+  CONTROLPANEL: "controlPanel",
   WARNING: "warning",
   ERROR: "error",
   CANCEL: "cancel",
@@ -55,20 +54,19 @@ export const DEPOSIT_TYPE = {
 
 export const ACTIONS = {
   ACQUIRE: "acquire",
-  DEPOSIT: "deposit",
+  SHOOT: "shoot",
   FINISH: "finish",
   ACQUIRE_AND_FINISH: "acquire_and_finish",
   DROP: "drop",
   HANG: "hang",
   HANG_ENTER: "hang_enter",
-  HANG_CAGE_TOUCH: "hang_cage_touch",
   HANG_COMPLETE: "hang_complete",
   GO_TELE: "go_tele",
   GO_DEFENSE: "go_defense",
   GO_POST_MATCH: "go_post_match",
   ROBOT_LEFT_STARTING: "left_starting_zone",
 };
-export const GAME_PIECES = { CORAL: "coral", ALGAE: "algae" };
+export const GAME_PIECES = { POWER_CELL: "power_cell"};
 export const PHASES = {
   PRE_MATCH: "pre_match",
   AUTO: "auto",
@@ -83,45 +81,43 @@ export const MATCH_BUTTONS = {
 
 export const GAME_LOCATIONS = {
   PRELOAD: "PRELOAD",
-  CORAL_MARK: {
-    LEFT: "CORAL_MARK_LEFT",
-    MIDDLE: "CORAL_MARK_MIDDLE",
-    RIGHT: "CORAL_MARK_RIGHT",
+  PREPLACED_POWER_CELL: {
+    TRENCH_RUN: {
+      FORWARD: "1",
+      MIDDLE: "2",
+      BACK: "3",
+      BACK_OUTSIDE: "4",
+      BACK_INSIDE: "5",
+    },
+    OPP_TRENCH_RUN: {
+      FORWARD: "6",
+      MIDDLE: "7",
+      BACK: "8",
+      BACK_OUTSIDE: "9",
+      BACK_INSIDE: "10",
+    },
+    SHIELD_GENERATOR: {
+      TRENCH_RUN_CLOSE: "11",
+      TRENCH_RUN_CLOSE_MID: "12",
+      TRENCH_RUN_MID: "13",
+      TRENCH_RUN_MID_FAR: "14",
+      TRENCH_RUN_FAR: "15"
+    }
   },
-  CORAL_STATION: {
-    LEFT: "CORAL_STATION_LEFT",
-    RIGHT: "CORAL_STATION_RIGHT",
+  LOADING_BAY: "LOADING_BAY",
+  POWER_PORT: {
+    LOW: "LOW",
+    HIGH: "HIGH",
   },
-  REEF: {
-    AB: "REEF_AB",
-    CD: "REEF_CD",
-    EF: "REEF_EF",
-    GH: "REEF_GH",
-    IJ: "REEF_IJ",
-    KL: "REEF_KL",
-    ALGAE: "REEF_ALGAE"
-  },
-  REEF_LEVEL: {
-    1: "1",
-    2: "2",
-    3: "3",
-    4: "4",
-  },
-  NET: "NET",
-  PROCESSOR: "PROCESSOR",
-  OPPONENT_PROCESSOR: "OPPONENT_PROCESSOR",
-  HANG: {
-    LEFT: "HANG_LEFT",
-    MIDDLE: "HANG_MIDDLE",
-    RIGHT: "HANG_RIGHT",
-  },
+  CONTROL_PANEL: "CONTROL_PANEL",
+  SHIELD_GENERATOR: "SHIELD_GENERATOR",
 
-  STARTING_LINE: "STARTING_LINE",
+  INITIATION_LINE: "INITIATION_LINE",
 };
 
 export const HANG_RESULTS = {
   NONE: "NONE",
   PARK: "PARK",
-  DEEP: "DEEP",
-  SHALLOW: "SHALLOW",
+  HANG: "HANG",
+  BALANCED: "BALANCED",
 };

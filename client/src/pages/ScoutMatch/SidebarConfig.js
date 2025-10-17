@@ -39,103 +39,103 @@ export const SIDEBAR_CONFIG = [
     id: GAME_LOCATIONS.PRELOAD,
     positions: [GAME_LOCATIONS.PRELOAD],
     flexWeight: 1,
-    label: (match, key) => (match.hasCoral() ? "Has preload" : "No Preload"),
-    onClick: (match, key) => {
-      match.setCoral(
-        match.hasCoral()
-          ? {}
-          : { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }
-      );
-    },
-    color: (match, key) => (match.hasCoral() ? COLORS.SUCCESS : COLORS.PENDING),
+    label: (match, key) => "preload button",
+    // onClick: (match, key) => {
+    //   match.setCoral(
+    //     match.hasCoral()
+    //       ? {}
+    //       : { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }
+    //   );
+    // },
+    // color: (match, key) => (match.hasCoral() ? COLORS.SUCCESS : COLORS.PENDING),
     show: (match, key) => true,
   },
 
   // ---------- AUTO/TELE Buttons (when not defending and hang not started) ----------
   // Reef Scoring Buttons (multiple buttons using positions)
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "reefScoring",
-    // Convert the keys of GAME_LOCATIONS.REEF_LEVEL into an array.
-    positions: Object.keys(GAME_LOCATIONS.REEF_LEVEL).sort().reverse(),
-    label: (match, key) => `L${key}`,
-    onClick: (match, level) => {
-      match.setCoral({
-        ...match.coral,
-        depositLocation: match.coral.depositLocation + `_L${level}`,
-        endTime: match.getCurrentTime(),
-      });
-    },
-    color: (match, key) => COLORS.CORALDROPOFF,
-    show: (match, key) =>
-      match.hasCoral() &&
-      Object.values(GAME_LOCATIONS.REEF).includes(match.coral.depositLocation),
-  },
+  // {
+  //   phases: [PHASES.AUTO, PHASES.TELE],
+  //   id: "reefScoring",
+  //   // Convert the keys of GAME_LOCATIONS.REEF_LEVEL into an array.
+  //   positions: Object.keys(GAME_LOCATIONS.REEF_LEVEL).sort().reverse(),
+  //   label: (match, key) => `L${key}`,
+  //   onClick: (match, level) => {
+  //     match.setCoral({
+  //       ...match.coral,
+  //       depositLocation: match.coral.depositLocation + `_L${level}`,
+  //       endTime: match.getCurrentTime(),
+  //     });
+  //   },
+  //   color: (match, key) => COLORS.CORALDROPOFF,
+  //   show: (match, key) =>
+  //     match.hasCoral() &&
+  //     Object.values(GAME_LOCATIONS.REEF).includes(match.coral.depositLocation),
+  // },
 
-  // PICKUP_CORAL Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "PICKUP_CORAL",
-    positions: ["pickupCoral"],
-    label: (match, key) => "PICKUP CORAL",
-    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)],
-    color: (match, key) => COLORS.CORALPICKUP,
-    sx: {},
-    show: (match, key) =>
-      match.isUnfinished(match.coral.attainedLocation, match.coral.startTime),
-  },
-  // DROP_CORAL Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "DROP_CORAL",
-    positions: ["dropCoral"],
-    label: (match, key) => "DROP CORAL",
-    tasks: [createTask(ACTIONS.DROP, GAME_PIECES.CORAL)],
-    color: (match, key) => COLORS.WARNING,
-    sx: {},
-    show: (match, key) =>
-      match.isUnfinished(match.coral.depositLocation, match.coral.endTime),
-  },
+  // // PICKUP_CORAL Button
+  // {
+  //   phases: [PHASES.AUTO, PHASES.TELE],
+  //   id: "PICKUP_CORAL",
+  //   positions: ["pickupCoral"],
+  //   label: (match, key) => "PICKUP CORAL",
+  //   tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)],
+  //   color: (match, key) => COLORS.CORALPICKUP,
+  //   sx: {},
+  //   show: (match, key) =>
+  //     match.isUnfinished(match.coral.attainedLocation, match.coral.startTime),
+  // },
+  // // DROP_CORAL Button
+  // {
+  //   phases: [PHASES.AUTO, PHASES.TELE],
+  //   id: "DROP_CORAL",
+  //   positions: ["dropCoral"],
+  //   label: (match, key) => "DROP CORAL",
+  //   tasks: [createTask(ACTIONS.DROP, GAME_PIECES.CORAL)],
+  //   color: (match, key) => COLORS.WARNING,
+  //   sx: {},
+  //   show: (match, key) =>
+  //     match.isUnfinished(match.coral.depositLocation, match.coral.endTime),
+  // },
 
-  // PICKUP_ALGAE Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "PICKUP_ALGAE",
-    positions: ["pickupAlgae"],
-    label: (match, key) => "PICKUP ALGAE",
-    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
-    color: (match, key) => COLORS.ALGAEPICKUP,
-    sx: {},
-    show: (match, key) =>
-      match.isUnfinished(match.algae.attainedLocation, match.algae.startTime),
-  },
-  // Score Processor/Net Menu Button (conditionally shown)
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "scoreAlgae",
-    positions: ["scoreAlgae"],
-    label: (match, key) =>
-      `Score ${match.algae.depositLocation.replace("_", " ")}`,
-    tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
-    color: (match, key) => COLORS.ALGAEDROPOFF,
-    sx: {},
-    show: (match, key) =>
-      match.algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
-      match.algae.depositLocation === GAME_LOCATIONS.NET ||
-      match.algae.depositLocation === GAME_LOCATIONS.OPPONENT_PROCESSOR,
-  },
-  // DROP_ALGAE Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "DROP_ALGAE",
-    positions: ["dropAlgae"],
-    label: (match, key) => "DROP ALGAE",
-    tasks: [createTask(ACTIONS.DROP, GAME_PIECES.ALGAE)],
-    color: (match, key) => COLORS.WARNING,
-    sx: {},
-    show: (match, key) =>
-      match.isUnfinished(match.algae.depositLocation, match.algae.endTime),
-  },
+  // // PICKUP_ALGAE Button
+  // {
+  //   phases: [PHASES.AUTO, PHASES.TELE],
+  //   id: "PICKUP_ALGAE",
+  //   positions: ["pickupAlgae"],
+  //   label: (match, key) => "PICKUP ALGAE",
+  //   tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
+  //   color: (match, key) => COLORS.ALGAEPICKUP,
+  //   sx: {},
+  //   show: (match, key) =>
+  //     match.isUnfinished(match.algae.attainedLocation, match.algae.startTime),
+  // },
+  // // Score Processor/Net Menu Button (conditionally shown)
+  // {
+  //   phases: [PHASES.AUTO, PHASES.TELE],
+  //   id: "scoreAlgae",
+  //   positions: ["scoreAlgae"],
+  //   label: (match, key) =>
+  //     `Score ${match.algae.depositLocation.replace("_", " ")}`,
+  //   tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
+  //   color: (match, key) => COLORS.ALGAEDROPOFF,
+  //   sx: {},
+  //   show: (match, key) =>
+  //     match.algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
+  //     match.algae.depositLocation === GAME_LOCATIONS.NET ||
+  //     match.algae.depositLocation === GAME_LOCATIONS.OPPONENT_PROCESSOR,
+  // },
+  // // DROP_ALGAE Button
+  // {
+  //   phases: [PHASES.AUTO, PHASES.TELE],
+  //   id: "DROP_ALGAE",
+  //   positions: ["dropAlgae"],
+  //   label: (match, key) => "DROP ALGAE",
+  //   tasks: [createTask(ACTIONS.DROP, GAME_PIECES.ALGAE)],
+  //   color: (match, key) => COLORS.WARNING,
+  //   sx: {},
+  //   show: (match, key) =>
+  //     match.isUnfinished(match.algae.depositLocation, match.algae.endTime),
+  // },
 
   // ---------- DEFENSE Buttons (for AUTO/TELE when defending) ----------
   // Note: In your original code, the defense buttons were generated dynamically from scoutData.opponents.

@@ -197,7 +197,7 @@ const ScoutMatch = () => {
     setDisplayTime(null);
     setCycles([]);
     setAutoMovement({ startTime: 0 });
-    setPowerCellCycles({ attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, {}, {}, {}, {});
+    setPowerCellCycles([{ attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, {}, {}, {}, {}]);
     setControlPanel({});
     setDefense({});
     setContact({});
@@ -507,7 +507,7 @@ const ScoutMatch = () => {
     noPointerEvents = false
   ) => {
     if (!dontFlip) {
-      fieldX = flipX() ? FIELD_VIRTUAL_WIDTH - fieldX : fieldX;
+      fieldX = flipX() ? (FIELD_VIRTUAL_WIDTH*0.63) - fieldX : fieldX;
       fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
     }
     return (
@@ -906,9 +906,7 @@ const ScoutMatch = () => {
     if (phase == PHASES.POST_MATCH && !isScoringTableFar()) {
       return 0;
     }
-    const shift =
-      scaledBoxRect.height * FIELD_ASPECT_RATIO -
-      scaleWidthToActual(FIELD_VIRTUAL_WIDTH);
+    const shift = 0;
 
     const defenseShift =
       isDefending() && phase != PHASES.POST_MATCH ? shift : 0;

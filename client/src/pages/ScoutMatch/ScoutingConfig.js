@@ -6,7 +6,7 @@ import {
   COLORS,
 } from "./Constants";
 
-// import { StartingPositionSlider } from "./CustomFieldComponents";
+import { StartingPositionSlider } from "./CustomFieldComponents";
 
 // const createTask = (action, gamepiece = null) => ({
 //   action: action,
@@ -22,8 +22,6 @@ export const SCOUTING_CONFIG = {
     color: COLORS.POWERCELLPICKUP,
     positions: {
       [GAME_LOCATIONS.PREPLACED_POWER_CELL.TRENCH_RUN.FORWARD]: [250, 450],
-      [GAME_LOCATIONS.PREPLACED_POWER_CELL.TRENCH_RUN.MIDDLE]: [250, 800],
-      [GAME_LOCATIONS.PREPLACED_POWER_CELL.TRENCH_RUN.BACK]: [250, 1175],
     },
     dimensions: {
       width: 200,

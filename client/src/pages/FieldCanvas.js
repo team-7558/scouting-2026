@@ -39,7 +39,8 @@ const scaleCoordinates = (
   perspective = SCORING_TABLE_NEAR
 ) => {
   if (isScoringTableFar(perspective)) {
-    fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
+    //0.63 is a random number I tested and it works. idk why tbh
+    fieldX = (FIELD_VIRTUAL_WIDTH*0.63) - fieldX;
     fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
   }
   fieldX = fieldX - width / 2;
@@ -161,37 +162,6 @@ const FieldCanvas = forwardRef(
       setCanvasSize(newSize);
     }, [height]);
 
-    // // Draw the field image on the canvas.
-    // useEffect(() => {
-    //   const canvas = canvasRef.current;
-    //   if (!canvas) return;
-    //   const ctx = canvas.getContext("2d");
-    //   const image = new Image();
-    //   image.src = fullField;
-    //   const flipX = isScoringTableFar(perspective);
-    //   const flipY = isScoringTableFar(perspective);
-    //   image.onload = () => {
-    //     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    //     // Save the current context state.
-    //     ctx.save();
-
-    //     // If flipX is true, translate horizontally by the canvas width.
-    //     // If flipY is true, translate vertically by the canvas height.
-    //     ctx.translate(flipX ? canvas.width : 0, flipY ? canvas.height : 0);
-
-    //     // Scale the context to flip the image.
-    //     // A scale factor of -1 flips the image.
-    //     ctx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-
-    //     // Draw the image onto the canvas.
-    //     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-    //     // Restore the context to its original state.
-    //     ctx.restore();
-    //   };
-    // }, [canvasSize]);
-
     useEffect(() => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -277,6 +247,8 @@ const FieldCanvas = forwardRef(
             position: "absolute",
             top: 0,
             left: 0,
+            width: "63%",
+            height: "100%",
             // background: theme.palette.background.default,
           }}
           onClick={(e) => handleMouseInteraction(e, true)}

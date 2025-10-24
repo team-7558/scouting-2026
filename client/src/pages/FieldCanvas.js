@@ -39,8 +39,8 @@ const scaleCoordinates = (
   perspective = SCORING_TABLE_NEAR
 ) => {
   if (isScoringTableFar(perspective)) {
-    //0.63 is a random number I tested and it works. idk why tbh
-    fieldX = (FIELD_VIRTUAL_WIDTH*0.63) - fieldX;
+    //0.62 is a random number I tested and it works. idk why tbh
+    fieldX = (FIELD_VIRTUAL_WIDTH*0.62) - fieldX;
     fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
   }
   fieldX = fieldX - width / 2;
@@ -75,7 +75,7 @@ const scaleToFieldCoordinates = (
   );
   let fieldY = Math.round((y / actualHeight) * FIELD_VIRTUAL_HEIGHT);
   if (isScoringTableFar(perspective)) {
-    fieldX = FIELD_VIRTUAL_WIDTH - fieldX;
+    fieldX = (FIELD_VIRTUAL_WIDTH * 0.62) - fieldX;
     fieldY = FIELD_VIRTUAL_HEIGHT - fieldY;
   }
   return { fieldX, fieldY };

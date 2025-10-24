@@ -2,39 +2,40 @@ import { createTheme } from "@mui/material/styles";
 
 export const RedTheme = createTheme({
   palette: {
-    mode: "light",
+    mode: "dark",
     primary: {
-      main: "#b30202",
-    },
-    error: {
-      main: "#FF0000",
+      main: "#e53935", // A strong red for primary actions
     },
     secondary: {
-      main: "#AA0055",
+      main: "#ff4081", // A pink accent color
+    },
+    error: {
+      main: "#f44336",
     },
     info: {
-      main: "#FF7799",
+      main: "#ff8a80", // Lighter red for informational elements
     },
-    coralPickup: {
-      main: "#64B5F6",
+    success: {
+      main: "#4caf50",
     },
-    coralDropoff: {
-      main: "#1E88E5",
-    },
-    algaePickup: {
-      main: "#81C784",
-    },
-    algaeDropoff: {
-      main: "#388E3C",
+    warning: {
+      main: "#ff9800",
     },
     cancel: {
-      main: "#9E9E9E",
-    },
-    autoBackground: {
-      main: "#ffbc42",
+      main: "#999",
     },
     opponent: {
-      main: "#3f51b5",
+      main: "#2196f3", // The primary blue color for opponents
+    },
+    powerCell: {
+      main: "#ffd600", // A strong, vibrant yellow for power cells
+    },
+    autoBackground: {
+      main: "rgba(255, 214, 0, 0.15)",
+    },
+    background: {
+      default: "#121212",
+      paper: "#1e1e1e",
     },
   },
 });

@@ -39,9 +39,7 @@ export const COLORS = {
   DISABLED: "disabled",
   ACTIVE: "primary",
   OPPONENT: "opponent",
-  POWERCELLPICKUP: "coralPickup",
-  POWERCELLSHOOT: "algaePickup",
-  CONTROLPANEL: "controlPanel",
+  POWERCELL: "powerCell",
   WARNING: "warning",
   ERROR: "error",
   CANCEL: "cancel",
@@ -65,6 +63,8 @@ export const ACTIONS = {
   GO_DEFENSE: "go_defense",
   GO_POST_MATCH: "go_post_match",
   ROBOT_LEFT_STARTING: "left_starting_zone",
+  CONTROL_PANEL_ROTATION: "rotation",
+  CONTROL_PANEL_PRECISION: "precision"
 };
 export const GAME_PIECES = { POWER_CELL: "power_cell"};
 export const PHASES = {
@@ -83,31 +83,31 @@ export const GAME_LOCATIONS = {
   PRELOAD: "PRELOAD",
   PREPLACED_POWER_CELL: {
     TRENCH_RUN: {
-      FORWARD: "1",
-      MIDDLE: "2",
-      BACK: "3",
-      BACK_OUTSIDE: "4",
-      BACK_INSIDE: "5",
+      FORWARD: "preplaced1",
+      MIDDLE: "preplaced2",
+      BACK: "preplaced3",
+      BACK_OUTSIDE: "preplaced4",
+      BACK_INSIDE: "preplaced5",
     },
     OPP_TRENCH_RUN: {
-      FORWARD: "6",
-      MIDDLE: "7",
-      BACK: "8",
-      BACK_OUTSIDE: "9",
-      BACK_INSIDE: "10",
+      FORWARD: "preplaced6",
+      MIDDLE: "preplaced7",
+      BACK: "preplaced8",
+      BACK_OUTSIDE: "preplaced9",
+      BACK_INSIDE: "preplaced10",
     },
     SHIELD_GENERATOR: {
-      TRENCH_RUN_CLOSE: "11",
-      TRENCH_RUN_CLOSE_MID: "12",
-      TRENCH_RUN_MID: "13",
-      TRENCH_RUN_MID_FAR: "14",
-      TRENCH_RUN_FAR: "15"
+      TRENCH_RUN_CLOSE: "preplaced11",
+      TRENCH_RUN_CLOSE_MID: "preplaced12",
+      TRENCH_RUN_MID: "preplaced13",
+      TRENCH_RUN_MID_FAR: "preplaced14",
+      TRENCH_RUN_FAR: "preplaced15"
     }
   },
   LOADING_BAY: "LOADING_BAY",
   POWER_PORT: {
-    LOW: "LOW",
-    HIGH: "HIGH",
+    LOW: "POWER_PORT_LOW",
+    HIGH: "POWER_PORT_HIGH",
   },
   CONTROL_PANEL: "CONTROL_PANEL",
   SHIELD_GENERATOR: "SHIELD_GENERATOR",
@@ -118,6 +118,7 @@ export const GAME_LOCATIONS = {
 export const HANG_RESULTS = {
   NONE: "NONE",
   PARK: "PARK",
+  FAIL: "FAIL_HANG",
   HANG: "HANG",
   BALANCED: "BALANCED",
 };

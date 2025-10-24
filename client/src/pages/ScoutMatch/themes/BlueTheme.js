@@ -2,39 +2,37 @@ import { createTheme } from "@mui/material/styles";
 
 export const BlueTheme = createTheme({
   palette: {
-    mode: "light",
+    mode: "dark",
     primary: {
-      main: "#3f51b5",
-    },
-    error: {
-      main: "#FF0000",
+      main: "#2196f3", // A vibrant blue for primary actions
     },
     secondary: {
-      main: "#00AA55",
+      main: "#00bfa5", // A teal accent color
     },
-    coralPickup: {
-      main: "#64B5F6",
+    error: {
+      main: "#f44336", // A clear red for errors
     },
     info: {
-      main: "#1E90FF",
+      main: "#64b5f6", // Lighter blue for informational elements
     },
-    coralDropoff: {
-      main: "#1E88E5",
+    success: {
+      main: "#4caf50",
     },
-    algaePickup: {
-      main: "#81C784",
-    },
-    algaeDropoff: {
-      main: "#388E3C",
+    warning: {
+      main: "#ff9800",
     },
     cancel: {
-      main: "#9E9E9E",
+      main: "#999", // A neutral grey for cancel actions
+    },
+    powerCell: {
+      main: "#ffd600", // A strong, vibrant yellow for power cells
     },
     autoBackground: {
-      main: "#ffbc42",
+      main: "rgba(255, 214, 0, 0.15)", // A transparent yellow for the auto phase background
     },
-    opponent: {
-      main: "#b30202",
+    background: {
+      default: "#121212", // Standard dark theme background
+      paper: "#1e1e1e",   // Slightly lighter background for surfaces like sidebars
     },
   },
 });

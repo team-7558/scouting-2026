@@ -15,6 +15,21 @@ const createTask = (action, gamepiece = null) => ({
   gamepiece: gamepiece,
 });
 
+const finishUnfinished = (match) => {
+  match.setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
+    console.log("cycle", cycle);
+    if (cycle.attainedLocation && !cycle.startTime){
+      return {...cycle, startTime: match.getCurrentTime()};
+    } else if (cycle.depositLocation && !cycle.endTime && !(cycle.success===null || cycle.success===undefined)){
+      return {...cycle, endTime: match.getCurrentTime()}
+    } else if (cycle.depositLocation && !cycle.endTime){
+      return {...cycle, depositLocation: undefined, success: undefined}
+    }
+    return cycle
+  }));
+  match.saveEndedCycles();
+}
+
 export const SIDEBAR_CONFIG = [
   // ---------- PRE_MATCH Buttons ----------
   {
@@ -29,7 +44,7 @@ export const SIDEBAR_CONFIG = [
     onClick: (match, key) => {
       match.setMatchStartTime(Date.now());
       match.setPhase(PHASES.AUTO);
-      match.clearUnfinished();
+      // match.clearUnfinished();
     },
     show: (match, key) => true,
     isDisabled: (match, key) => match.startingPosition < 0,
@@ -39,107 +54,169 @@ export const SIDEBAR_CONFIG = [
     id: GAME_LOCATIONS.PRELOAD,
     positions: [GAME_LOCATIONS.PRELOAD],
     flexWeight: 1,
-    label: (match, key) => "preload button",
-    // onClick: (match, key) => {
-    //   match.setCoral(
-    //     match.hasCoral()
-    //       ? {}
-    //       : { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }
-    //   );
-    // },
-    // color: (match, key) => (match.hasCoral() ? COLORS.SUCCESS : COLORS.PENDING),
+    label: (match, key) => `${match.getNumPowerCellsInBot()} Preload${match.getNumPowerCellsInBot()!=1 ? "s" : ""}`,
+    onClick: (match, key) => {
+      let newPowerCellCycles = [...match.powerCellCycles];
+      console.log(newPowerCellCycles);
+      let slot = -1;
+      for (let index in [1, 2, 3]) {
+        if (!newPowerCellCycles[index].attainedLocation) {
+          slot = index;
+          break;
+        }
+      }
+      console.log(slot);
+      if (slot===-1) {
+        match.setPowerCellCycles([{}, {}, {}, {}, {}]);
+        return ;
+      }
+      newPowerCellCycles[slot] = { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 };
+      match.setPowerCellCycles(newPowerCellCycles);
+      
+    },
+    color: (match, key) => COLORS.SUCCESS,
     show: (match, key) => true,
   },
 
+  // ------------ AUTO Buttons -----------------
+  {
+    phases: [PHASES.AUTO],
+    id: "goTele",
+    positions: ["GO_TELE"],
+    label: (match, key) => "TO TELE",
+    onClick: (match, key) => {
+      match.setPhase(PHASES.TELE);
+    },
+    color: COLORS.SUCCESS,
+    show: (match, key) => !match.powerCellCycles.some(
+      cycle => cycle.depositLocation != null && cycle.endTime == null
+    ),
+  },
+
   // ---------- AUTO/TELE Buttons (when not defending and hang not started) ----------
-  // Reef Scoring Buttons (multiple buttons using positions)
-  // {
-  //   phases: [PHASES.AUTO, PHASES.TELE],
-  //   id: "reefScoring",
-  //   // Convert the keys of GAME_LOCATIONS.REEF_LEVEL into an array.
-  //   positions: Object.keys(GAME_LOCATIONS.REEF_LEVEL).sort().reverse(),
-  //   label: (match, key) => `L${key}`,
-  //   onClick: (match, level) => {
-  //     match.setCoral({
-  //       ...match.coral,
-  //       depositLocation: match.coral.depositLocation + `_L${level}`,
-  //       endTime: match.getCurrentTime(),
-  //     });
-  //   },
-  //   color: (match, key) => COLORS.CORALDROPOFF,
-  //   show: (match, key) =>
-  //     match.hasCoral() &&
-  //     Object.values(GAME_LOCATIONS.REEF).includes(match.coral.depositLocation),
-  // },
+  // Power Cell Scoring Button
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    flexWeight: 2,
+    id: "powerCellScoring",
+    // positions: Object.keys(GAME_LOCATIONS.REEF_LEVEL).sort().reverse(),
+    positions: ["SCORE", "FAIL"],
+    label: (match, key) => {
+      return `${key}: ${match.powerCellCycles.reduce((prevValue, cycle) => {
+        if (!(cycle.startTime===null || cycle.startTime===undefined) && 
+          cycle.success===(key==="SCORE") && 
+          !cycle.endTime
+        ){
+          return prevValue + 1;
+        }
+        return prevValue;
+      } 
+      
+      ,0)}`
+    },
+    onClick: (match, key) => {
+      const newPowerCellCycles = [...match.powerCellCycles];
+      let found = false;
+      for (const i in match.powerCellCycles) {
+        const cycle = match.powerCellCycles[i];
+        if (cycle.depositLocation && (cycle.success===null || cycle.success===undefined) && !cycle.endTime){
+          newPowerCellCycles[i] = {...newPowerCellCycles[i], success: key==="SCORE"};
+          found = true;
+          break;
+        }
+      }
 
-  // // PICKUP_CORAL Button
-  // {
-  //   phases: [PHASES.AUTO, PHASES.TELE],
-  //   id: "PICKUP_CORAL",
-  //   positions: ["pickupCoral"],
-  //   label: (match, key) => "PICKUP CORAL",
-  //   tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.CORAL)],
-  //   color: (match, key) => COLORS.CORALPICKUP,
-  //   sx: {},
-  //   show: (match, key) =>
-  //     match.isUnfinished(match.coral.attainedLocation, match.coral.startTime),
-  // },
-  // // DROP_CORAL Button
-  // {
-  //   phases: [PHASES.AUTO, PHASES.TELE],
-  //   id: "DROP_CORAL",
-  //   positions: ["dropCoral"],
-  //   label: (match, key) => "DROP CORAL",
-  //   tasks: [createTask(ACTIONS.DROP, GAME_PIECES.CORAL)],
-  //   color: (match, key) => COLORS.WARNING,
-  //   sx: {},
-  //   show: (match, key) =>
-  //     match.isUnfinished(match.coral.depositLocation, match.coral.endTime),
-  // },
+      if (!found){
+        for (const i in match.powerCellCycles) {
+          if (match.powerCellCycles[i].success===(key==="SCORE")){
+            newPowerCellCycles[i] = {...match.powerCellCycles[i], success: null}
+          }
+        }
+      }
 
-  // // PICKUP_ALGAE Button
-  // {
-  //   phases: [PHASES.AUTO, PHASES.TELE],
-  //   id: "PICKUP_ALGAE",
-  //   positions: ["pickupAlgae"],
-  //   label: (match, key) => "PICKUP ALGAE",
-  //   tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
-  //   color: (match, key) => COLORS.ALGAEPICKUP,
-  //   sx: {},
-  //   show: (match, key) =>
-  //     match.isUnfinished(match.algae.attainedLocation, match.algae.startTime),
-  // },
-  // // Score Processor/Net Menu Button (conditionally shown)
-  // {
-  //   phases: [PHASES.AUTO, PHASES.TELE],
-  //   id: "scoreAlgae",
-  //   positions: ["scoreAlgae"],
-  //   label: (match, key) =>
-  //     `Score ${match.algae.depositLocation.replace("_", " ")}`,
-  //   tasks: [createTask(ACTIONS.FINISH, GAME_PIECES.ALGAE)],
-  //   color: (match, key) => COLORS.ALGAEDROPOFF,
-  //   sx: {},
-  //   show: (match, key) =>
-  //     match.algae.depositLocation === GAME_LOCATIONS.PROCESSOR ||
-  //     match.algae.depositLocation === GAME_LOCATIONS.NET ||
-  //     match.algae.depositLocation === GAME_LOCATIONS.OPPONENT_PROCESSOR,
-  // },
-  // // DROP_ALGAE Button
-  // {
-  //   phases: [PHASES.AUTO, PHASES.TELE],
-  //   id: "DROP_ALGAE",
-  //   positions: ["dropAlgae"],
-  //   label: (match, key) => "DROP ALGAE",
-  //   tasks: [createTask(ACTIONS.DROP, GAME_PIECES.ALGAE)],
-  //   color: (match, key) => COLORS.WARNING,
-  //   sx: {},
-  //   show: (match, key) =>
-  //     match.isUnfinished(match.algae.depositLocation, match.algae.endTime),
-  // },
+      console.log(newPowerCellCycles);
 
-  // ---------- DEFENSE Buttons (for AUTO/TELE when defending) ----------
-  // Note: In your original code, the defense buttons were generated dynamically from scoutData.opponents.
-  // Here we include a static "stopDefending" button.
+      match.setPowerCellCycles(newPowerCellCycles);
+    },
+    color: (match, key) => key==="SCORE" ? COLORS.SUCCESS : COLORS.ERROR,
+    show: (match, key) => match.powerCellCycles.some(
+      cycle => cycle.depositLocation != null && cycle.endTime == null
+    ),
+  },
+  // Done Button
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    id: "done",
+    positions: ["DONE"],
+    label: (match, key) => "Done",
+    onClick: (match, key) => {
+      finishUnfinished(match);
+    },
+    color: COLORS.CANCEL,
+    show: (match, key) => match.powerCellCycles.some(
+      cycle => cycle.depositLocation != null && cycle.endTime == null
+    ),
+  },
+
+  //CONTROL PANEL Button
+  {
+    phases: [PHASES.TELE],
+    id: "controlPanelActions",
+    positions: [ACTIONS.CONTROL_PANEL_ROTATION, ACTIONS.CONTROL_PANEL_PRECISION],
+    label: (match, key) => key === ACTIONS.CONTROL_PANEL_ROTATION ? "Rotation" : "Position",
+    flexWeight: 2,
+    onClick: (match, key) => {
+        match.setControlPanel({ 
+            ...match.controlPanel, 
+            action: key, 
+            endTime: match.getCurrentTime() 
+        });
+        match.saveEndedCycles();
+    },
+    color: COLORS.SUCCESS,
+    show: (match, key) => match.controlPanel.startTime !== null && match.controlPanel.endTime === null
+      && !match.cycles.some(cycle => cycle.type===CYCLE_TYPES.CONTROL_PANEL && cycle.action===key),
+  },
+  {
+    phases: [PHASES.TELE],
+    id: "cancelControlPanel",
+    positions: ["Cancel"],
+    label: (match, key) => "Cancel",
+    onClick: (match, key) => {
+        match.setControlPanel({ startTime: null, action: null, endTime: null });
+    },
+    color: COLORS.CANCEL,
+    show: (match, key) => match.controlPanel.startTime !== null && match.controlPanel.endTime === null 
+  },
+
+  // ---------- HANG  ----------
+  {
+    phases: [PHASES.TELE],
+    id: "hangOutcomes",
+    positions: [HANG_RESULTS.BALANCED, HANG_RESULTS.HANG, HANG_RESULTS.FAIL],
+    flexWeight: 1.5,
+    label: (match, key) => key.replaceAll("_", " "),
+    onClick: (match, key) => {
+        match.setHang({ 
+            ...match.hang,
+            type: key.toLowerCase(),
+            endTime: match.getCurrentTime()
+        });
+    },
+    color: (match, key) => (key === "Fail" ? COLORS.ERROR : COLORS.SUCCESS),
+    show: (match) => match.hang.startTime !== null && match.hang.endTime === null,
+  },
+  {
+    phases: [PHASES.TELE],
+    id: "cancelHang",
+    positions: ["Cancel"],
+    label: (match, key) => "Cancel Hang",
+    onClick: (match, key) => {
+        match.setHang({ startTime: null, endTime: null, type: null });
+    },
+    color: COLORS.CANCEL,
+    show: (match) => match.hang.startTime !== null && match.hang.endTime === null,
+  },
 
   {
     phases: [PHASES.AUTO, PHASES.TELE],
@@ -306,18 +383,5 @@ export const SIDEBAR_CONFIG = [
     },
     show: (match, key) => match.submitting,
     isDisabled: (match, key) => false
-  },
-  // Cancel Button
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "cancel",
-    positions: ["cancel"],
-    label: (match, key) => "cancel",
-    onClick: (match, key) => {
-      match.clearUnfinished();
-    },
-    color: (match, key) => COLORS.CANCEL,
-    sx: {},
-    show: (match, key) => match.hasUnfinished(),
   },
 ];

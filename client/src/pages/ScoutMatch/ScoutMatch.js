@@ -146,13 +146,12 @@ const ScoutMatch = () => {
     startTime: 0,
     depositLocation: null,
     depositType: null, // score or drop
+    depositSuccess: null,
     endTime: null,
   },
-  {},
-  {},
-  {},
-  {}
-  ]);
+  { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 },
+  { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 },
+  {}, {}]);
 
   const [controlPanel, setControlPanel] = useState({
     startTime: null, // if not null, holding gamepiece
@@ -197,7 +196,11 @@ const ScoutMatch = () => {
     setDisplayTime(null);
     setCycles([]);
     setAutoMovement({ startTime: 0 });
-    setPowerCellCycles([{ attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, {}, {}, {}, {}]);
+    setPowerCellCycles([
+      { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
+      { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
+      { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
+    {}, {}]);
     setControlPanel({});
     setDefense({});
     setContact({});
@@ -230,7 +233,7 @@ const ScoutMatch = () => {
   //TODO: replace with real teams.
   let fetching = false;
   const fetchScoutMatchData = async () => {
-    if (fetching || !eventKey || !driverStation || !matchKey) {
+    if (!fetching && (!eventKey || !driverStation || !matchKey)) {
       console.error("Missing eventKey, station, or matchKey in URL.");
       return;
     }
@@ -281,35 +284,6 @@ const ScoutMatch = () => {
     return () => clearInterval(interval);
   }, [matchStartTime, phase]);
 
-  const getIntakeSlot = (cycleType) => {
-    
-  };
-
-  const getShootSlot = () => {
-
-  }
-
-  const startPickupPowerCell = () => {
-
-  }
-
-  const endPickupPowerCell = () => {
-
-  }
-
-  const startShootPowerCell = () => {
-
-  }
-
-  const endPowerCellCycles = () => {
-    const newPowerCellCycles = [...powerCellCycles];
-    powerCellCycles.forEach((cycle, i) => {
-      if (cycle.endTime != null){
-        newPowerCellCycles[i] = {}
-      }
-    })
-  };
-
   const getNumPowerCellsInBot = () => {
     let count = 0;
     powerCellCycles.forEach((cycle) => {
@@ -319,6 +293,9 @@ const ScoutMatch = () => {
     });
     return count;
   }
+
+  console.log("powerCellCycles", powerCellCycles);
+  console.log("cycles", cycles);
 
   useEffect(() => {
     if (hang.endTime != null) {
@@ -330,6 +307,33 @@ const ScoutMatch = () => {
   const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
   const flipX = () => isScoutingRed();
   const flipY = () => isScoutingRed();
+
+  const saveEndedCycles = () => {
+    let cyclesToAdd = [];
+    setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
+      if (cycle.endTime){
+        cyclesToAdd.push({type: CYCLE_TYPES.POWER_CELL, ...cycle});
+        return {};
+      }
+      return cycle;
+    }));
+    setHang(prevHang => {
+      if (prevHang.endTime!=null){
+        cyclesToAdd.push({type: CYCLE_TYPES.HANG, ...prevHang});
+        return {};
+      }
+      return prevHang;
+    });
+    setControlPanel(prevPanel => {
+      if (prevPanel.endTime!=null){
+        cyclesToAdd.push({type: CYCLE_TYPES.CONTROL_PANEL, ...prevPanel});
+        return {};
+      }
+      return prevPanel
+    });
+    setCycles(prevCycles => [...prevCycles, ...cyclesToAdd]);
+    console.log(cyclesToAdd);
+  }
 
   // const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
   //   console.log("Clearing unfinished");
@@ -390,6 +394,8 @@ const ScoutMatch = () => {
     userToken,
     submitting,
     setSubmitting,
+    getNumPowerCellsInBot,
+    saveEndedCycles
   };
 
   const createTask = (action, gamepiece = null) => ({
@@ -507,7 +513,7 @@ const ScoutMatch = () => {
     noPointerEvents = false
   ) => {
     if (!dontFlip) {
-      fieldX = flipX() ? (FIELD_VIRTUAL_WIDTH*0.63) - fieldX : fieldX;
+      fieldX = flipX() ? (FIELD_VIRTUAL_WIDTH*0.62) - fieldX : fieldX;
       fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
     }
     return (
@@ -544,6 +550,9 @@ const ScoutMatch = () => {
           border: drawBorder
             ? scaleWidthToActual(25) + "px solid black"
             : scaleWidthToActual(1) + "px solid black",
+          transition: 'transform 0.15s ease-in-out, box-shadow 1s ease-in-out', // Add smooth transition
+          transform: drawBorder ? 'scale(1.2)' : 'scale(1)',
+          boxShadow: drawBorder ? '0px 4px 20px rgba(0,0,0,0.4)' : '0px rgba(0,0,0,0)',
         }}
         {...props}
       >
@@ -579,9 +588,7 @@ const ScoutMatch = () => {
                 drawBorder={config.drawBorder && config.drawBorder(match, key)}
                 disabled={isDisabled}
                 color={config.color || COLORS.ACTIVE}
-                onClick={() => {
-                  console.log("START TASKS");
-                }}
+                onClick={config.onClick ? () => config.onClick(CONTEXT_WRAPPER, key) : () => null}
               >
                 {config.textFunction && config.textFunction(match, key)}
               </FieldButton>
@@ -626,7 +633,7 @@ const ScoutMatch = () => {
     }
   };
 
-  const createSidebarButton = ({
+  const SidebarButton = ({
     id,
     flexWeight = 1,
     label,
@@ -636,29 +643,42 @@ const ScoutMatch = () => {
     sx = {},
     show = true,
   }) => {
+    const [animating, setAnimating] = useState(false);
+    const onClickKeyframes = {
+      '0%': { transform: 'scale(1)' },
+      '50%': { transform: 'scale(1.2)' },
+      '100%': { transform: 'scale(1)' },
+    };
+
     if (!show) return null;
-    return {
-      id,
-      flexWeight,
-      component: (
+
+    return (
         <Button
           variant="contained"
           color={color}
           disabled={disabled}
-          onClick={onClick}
+          onClick={() => {
+            setAnimating(true);
+            setTimeout(() => {
+              setAnimating(false);
+              onClick();
+            }, 100);
+          }}
           sx={{
             width: "90%",
-            height: "90%",
+            height: "95%",
             fontSize: scaleWidthToActual(100) + "px",
             borderRadius: scaleWidthToActual(150) + "px",
+            left: "5%",
+            '@keyframes onClick': onClickKeyframes,
+            animation: animating ? 'onClick 0.1s ease' : 'none',
             ...sx,
           }}
         >
           {label}
         </Button>
-      ),
-    };
-  };
+      );
+  }
 
   const ScoutingConfigChildren = Object.values(SCOUTING_CONFIG).map((config) =>
     Object.keys(config.positions).map((position) => {
@@ -668,12 +688,12 @@ const ScoutMatch = () => {
 
   const GROUND_PICKUPIcon = [];
 
-  powerCellCycles.forEach((cycle) => {
+  powerCellCycles.forEach((cycle, i) => {
     GROUND_PICKUPIcon.push(
       renderDynamicGamePiece(
         getDynamicPosition(cycle.attainedLocation),
         CoralIcon,
-        GAME_PIECES.POWER_CELL
+        `${GAME_PIECES.POWER_CELL}pickup${i}`
       )
     );
 
@@ -681,7 +701,7 @@ const ScoutMatch = () => {
       renderDynamicGamePiece(
         getDynamicPosition(cycle.depositLocation),
         CoralIcon,
-        GAME_PIECES.POWER_CELL
+        `${GAME_PIECES.POWER_CELL}drop${i}`
       )
     );
   });
@@ -939,8 +959,22 @@ const ScoutMatch = () => {
             perspective={scoutPerspective}
             children={fieldChildren}
             onClick={(x, y) => {
-              // const coralTasks = hasCoral() ? [createTask(DEPOSIT, CORAL)] : [createTask(ACQUIRE, CORAL), createTask(FINISH, CORAL)]
-              console.log("CLICKED FIELD, PICKUP GAME PIECE");
+              setPowerCellCycles(prevCycles => {
+                let newCycles = [...prevCycles];
+                let slot = -1;
+                for (let i = 0; i<prevCycles.length; i++) {
+                  if (!prevCycles[i].attainedLocation){
+                    slot = i;
+                    break;
+                  }
+                }
+                if (slot>=0){
+                  newCycles[slot] = {attainedLocation: [x, y], startTime: getCurrentTime()}
+                }else{
+                  console.log("ERROR")
+                }
+                return newCycles;
+              });
             }}
             phase={phase}
           />
@@ -956,6 +990,8 @@ const ScoutMatch = () => {
           backgroundColor: getTheme().palette.primary.main,
           color: getTheme().palette.primary.contrastText,
           fontSize: scaleWidthToActual(50) + "px",
+          display: "flex",
+          justifyContent: "center"
         }}
       >
         {scoutData ? (
@@ -1006,17 +1042,23 @@ const ScoutMatch = () => {
               sx={{ height: "100%", width: "100%", fontSize: fontSize }}
             />
           </Button>
-          {/* Algae Icon */}
+          {/* Power Cell Icons */}
           <Box
             sx={{
-              width: iconSize,
+              width: "100%",
               height: iconSize,
               display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "space-evenly"
             }}
           >
-            PUT GAME PIECES HERE - RENDER_SIDEBAR_HEADER METHOD
+            {[0, 1, 2, 3, 4].map((num) => {
+              if (getNumPowerCellsInBot()>num){
+                return (
+                  <Box key={num} sx={{ bgcolor: "#CCCC00", width: "18%", height: "100%", borderRadius: "50%"}}></Box>
+                )
+              }
+              return <Box key={num} sx={{ bgcolor: "rgba(0,0,0,0)", width: "18%", height: "100%", borderRadius: "50%"}}></Box>;
+            })}
           </Box>
           {/* Current Time */}
           <Box
@@ -1028,7 +1070,7 @@ const ScoutMatch = () => {
               justifyContent: "center",
             }}
           >
-            <span style={{ color: "black", fontSize: fontSize }}>
+            <span style={{ color: "white", fontSize: fontSize }}>
               {displayTime}
             </span>
           </Box>
@@ -1052,26 +1094,20 @@ const ScoutMatch = () => {
         if (!item.show(match, key)) return null;
         return (
           <Box key={key} sx={{ flex: item.flexWeight || 1 }}>
-            {
-              createSidebarButton({
-                id: key,
-                label:
-                  typeof item.label === "function"
-                    ? item.label(match, key)
-                    : item.label,
-                onClick: () =>
-                  item.tasks != null
-                    ? console.log("START TASK (RENDERSIDEBAR METHOD)")
-                    : item.onClick && item.onClick(match, key),
-                color:
-                  typeof item.color === "function"
-                    ? item.color(match, key)
-                    : item.color,
-                sx: item.sx,
-                flexWeight: item.flexWeight || 1,
-                disabled: item.isDisabled && item.isDisabled(match, key),
-              }).component
-            }
+            <SidebarButton
+              id={key}
+              label={typeof item.label === "function"
+                ? item.label(match, key)
+                : item.label
+              }
+              onClick={() => item.onClick && item.onClick(match, key)}
+              color={typeof item.color === "function"
+                  ? item.color(match, key)
+                  : item.color}
+              sx={item.sx}
+              flexWeight={item.flexWeight || 1}
+              disabled={item.isDisabled && item.isDisabled(match, key)}
+            />
           </Box>
         );
       })
@@ -1093,10 +1129,12 @@ const ScoutMatch = () => {
             flexDirection: "column",
             overflowY: "auto",
             flex: 1,
-            height: "100%",
+            height: "99%",
+            margin: "2% 0%",
           }}
         >
           {renderSideBarHeader()}
+          <Box sx={{height: "2%", bgcolor: "rgba(0,0,0,0)"}}/>
           {buttonsList.filter(Boolean)}
         </Box>
       </>
@@ -1153,6 +1191,7 @@ const ScoutMatch = () => {
             position: "relative",
             width: "100vw",
             height: "100vh",
+            bgcolor: "black"
           }}
         >
           <FullscreenDialog />
@@ -1197,6 +1236,8 @@ const ScoutMatch = () => {
                 left: 0,
                 width: scaleWidthToActual(sidebarVirtualWidth),
                 height: scaledBoxRect.height,
+                overflow: "hidden",
+                background: "background.paper"
               }}
             >
               {renderSideBar()}

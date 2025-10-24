@@ -16,7 +16,7 @@ import Overview from "./pages/Strategy/Overview.js";
 import ScoutAdmin from "./pages/ScoutLead/ScoutAdmin.js";
 import CategorySort from "./pages/Strategy/CategorySort.js";
 
-const App = () => {
+function App() {
   return (
     <React.Fragment>
       <ThemeProvider theme={lightTheme}>

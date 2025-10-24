@@ -107,7 +107,7 @@ const Sidebar = ({
         ),
 
         <center key="sidebarPerspective">
-          <h3 key="sidebarPerspectiveHeading">PRESPECTIVE</h3>
+          <h3 key="sidebarPerspectiveHeading">PERSPECTIVE</h3>
         </center>,
 
         createButtonsFromList(
@@ -123,10 +123,10 @@ const Sidebar = ({
           }
         ),
 
-        <center>
+        <center key="matchKey">
           <h3>Match Key</h3>
         </center>,
-        <center>
+        <center key="matchKeyInput">
           <TextField
             onChange={(e) => setMatchKeyEntry(e.target.value)}
             value={matchKeyEntry}

@@ -66,11 +66,11 @@ const createUserInternal = async (
 };
 
 const authenticateUserInternal = async (username, plainPassword) => {
-  return {
-    id: "abc",
-    username: "something",
-    role: USER_ROLES.ADMIN
-  }
+  // return {
+  //   id: "abc",
+  //   username: "something",
+  //   role: USER_ROLES.ADMIN
+  // }
   const client = await pgClient();
   try {
     // Ensure query selects user_id, username, and role

@@ -15,12 +15,16 @@ const createTask = (action, gamepiece = null) => ({
   gamepiece: gamepiece,
 });
 
+const exists = (value) => {
+  return !(value===undefined || value===null)
+}
+
 const finishUnfinished = (match) => {
   match.setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
     console.log("cycle", cycle);
     if (cycle.attainedLocation && !cycle.startTime){
       return {...cycle, startTime: match.getCurrentTime()};
-    } else if (cycle.depositLocation && !cycle.endTime && !(cycle.success===null || cycle.success===undefined)){
+    } else if (cycle.depositLocation && !cycle.endTime && exists(cycle.success)){
       return {...cycle, endTime: match.getCurrentTime()}
     } else if (cycle.depositLocation && !cycle.endTime){
       return {...cycle, depositLocation: undefined, success: undefined}
@@ -78,21 +82,6 @@ export const SIDEBAR_CONFIG = [
     show: (match, key) => true,
   },
 
-  // ------------ AUTO Buttons -----------------
-  {
-    phases: [PHASES.AUTO],
-    id: "goTele",
-    positions: ["GO_TELE"],
-    label: (match, key) => "TO TELE",
-    onClick: (match, key) => {
-      match.setPhase(PHASES.TELE);
-    },
-    color: COLORS.SUCCESS,
-    show: (match, key) => !match.powerCellCycles.some(
-      cycle => cycle.depositLocation != null && cycle.endTime == null
-    ),
-  },
-
   // ---------- AUTO/TELE Buttons (when not defending and hang not started) ----------
   // Power Cell Scoring Button
   {
@@ -103,7 +92,7 @@ export const SIDEBAR_CONFIG = [
     positions: ["SCORE", "FAIL"],
     label: (match, key) => {
       return `${key}: ${match.powerCellCycles.reduce((prevValue, cycle) => {
-        if (!(cycle.startTime===null || cycle.startTime===undefined) && 
+        if (exists(cycle.startTime) && 
           cycle.success===(key==="SCORE") && 
           !cycle.endTime
         ){
@@ -119,7 +108,7 @@ export const SIDEBAR_CONFIG = [
       let found = false;
       for (const i in match.powerCellCycles) {
         const cycle = match.powerCellCycles[i];
-        if (cycle.depositLocation && (cycle.success===null || cycle.success===undefined) && !cycle.endTime){
+        if (cycle.depositLocation && !exists(cycle.success) && !cycle.endTime){
           newPowerCellCycles[i] = {...newPowerCellCycles[i], success: key==="SCORE"};
           found = true;
           break;
@@ -150,7 +139,14 @@ export const SIDEBAR_CONFIG = [
     positions: ["DONE"],
     label: (match, key) => "Done",
     onClick: (match, key) => {
-      finishUnfinished(match);
+      match.setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
+        if (cycle.depositLocation && !cycle.endTime && exists(cycle.success)){
+          return {...cycle, endTime: match.getCurrentTime()}
+        }else if (cycle.depositLocation && !cycle.endTime){
+          return {...cycle, depositLocation: undefined}
+        }
+        return cycle;
+      }));
     },
     color: COLORS.CANCEL,
     show: (match, key) => match.powerCellCycles.some(
@@ -174,7 +170,7 @@ export const SIDEBAR_CONFIG = [
         match.saveEndedCycles();
     },
     color: COLORS.SUCCESS,
-    show: (match, key) => match.controlPanel.startTime !== null && match.controlPanel.endTime === null
+    show: (match, key) => match.controlPanel.startTime != null && match.controlPanel.endTime == null
       && !match.cycles.some(cycle => cycle.type===CYCLE_TYPES.CONTROL_PANEL && cycle.action===key),
   },
   {
@@ -186,7 +182,7 @@ export const SIDEBAR_CONFIG = [
         match.setControlPanel({ startTime: null, action: null, endTime: null });
     },
     color: COLORS.CANCEL,
-    show: (match, key) => match.controlPanel.startTime !== null && match.controlPanel.endTime === null 
+    show: (match, key) => match.controlPanel.startTime != null && match.controlPanel.endTime == null 
   },
 
   // ---------- HANG  ----------
@@ -245,8 +241,8 @@ export const SIDEBAR_CONFIG = [
     },
     color: (match, key) => COLORS.PENDING,
     sx: {},
-    show: (match, key) =>
-      match.isDefending() && match.contact.startTime == null,
+    show: (match, key) =>{
+      console.log(match.contact); return match.isDefending() && match.contact.startTime == null;},
   },
   {
     phases: [PHASES.AUTO, PHASES.TELE],
@@ -255,10 +251,11 @@ export const SIDEBAR_CONFIG = [
     label: (match, key) => "Finish Contact",
     onClick: (match, key) => {
       match.setContact({ ...match.contact, endTime: match.getCurrentTime() });
+      match.saveEndedCycles();
     },
     color: (match, key) => COLORS.PENDING,
     sx: {},
-    show: (match, key) => match.contact.startTime != null,
+    show: (match, key) => match.contact.startTime != null && !exists(match.contact.endTime),
   },
   {
     phases: [PHASES.AUTO, PHASES.TELE],
@@ -272,7 +269,7 @@ export const SIDEBAR_CONFIG = [
     },
     color: (match, key) => COLORS.SUCCESS,
     sx: {},
-    show: (match, key) => match.contact.startTime != null,
+    show: (match, key) => match.contact.startTime != null && !exists(match.contact.endTime),
   },
 
   {
@@ -287,7 +284,7 @@ export const SIDEBAR_CONFIG = [
     },
     color: (match, key) => COLORS.WARNING,
     sx: {},
-    show: (match, key) => match.contact.startTime != null,
+    show: (match, key) => match.contact.startTime != null && !exists(match.contact.endTime),
   },
 
   // ---------- TELE Hang Buttons (when hang has started) ----------
@@ -329,8 +326,7 @@ export const SIDEBAR_CONFIG = [
       match.setSubmitting(true)
     },
     show: (match, key) => !match.submitting,
-    isDisabled: (match, key) =>
-      match.isUnfinished(match.hang.startTime, match.hang.result),
+    isDisabled: (match, key) => false
   },
   {
     phases: [PHASES.POST_MATCH],
@@ -358,7 +354,7 @@ export const SIDEBAR_CONFIG = [
           station: match.searchParams.get("station"),
         },
         match.userToken,
-        /* submitAfter= */ true,
+        /* submitAfter= */ false,
         (response) => {
           console.log("successfully saved:", response);
           match.setScoutData(null);

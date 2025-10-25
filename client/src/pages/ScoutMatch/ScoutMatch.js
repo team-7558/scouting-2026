@@ -163,7 +163,7 @@ const ScoutMatch = () => {
     startTime: null,
     endTime: null,
   });
-  const isDefending = () => defense.startTime!=null && defense.endTime!=null;
+  const isDefending = () => defense.startTime!=null && defense.endTime==null;
 
   const [contact, setContact] = useState({
     startTime: null,
@@ -330,6 +330,20 @@ const ScoutMatch = () => {
         return {};
       }
       return prevPanel
+    });
+    setDefense(prevDefense => {
+      if (prevDefense.endTime!=null){
+        cyclesToAdd.push({type: CYCLE_TYPES.DEFENSE, ...prevDefense});
+        return {};
+      }
+      return prevDefense
+    });
+    setContact(prevContact => {
+      if (prevContact.endTime!=null){
+        cyclesToAdd.push({type: CYCLE_TYPES.CONTACT, ...prevContact});
+        return {};
+      }
+      return prevContact
     });
     setCycles(prevCycles => [...prevCycles, ...cyclesToAdd]);
     console.log(cyclesToAdd);

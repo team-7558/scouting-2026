@@ -1,3 +1,4 @@
+import { Experimental_CssVarsProvider } from "@mui/material";
 import {
   GAME_LOCATIONS,
   PHASES,
@@ -8,6 +9,7 @@ import {
 } from "./Constants";
 
 import { StartingPositionSlider } from "./CustomFieldComponents";
+import { defer } from "react-router-dom";
 
 // const createTask = (action, gamepiece = null) => ({
 //   action: action,
@@ -141,7 +143,7 @@ export const SCOUTING_CONFIG = {
     textFunction: (match, key) => "CONTROL PANEL",
   },
 
-  // --- New Configuration for Climbing ---
+  // --- Climb ---
   GENERATOR_SWITCH: {
     phases: [PHASES.TELE],
     positions: {
@@ -162,5 +164,38 @@ export const SCOUTING_CONFIG = {
         }
     },
     textFunction: (match) => "CLIMB"
-  }
+  },
+
+  // ------- Defense ----------
+  DEFENSE: {
+    phases: [PHASES.TELE],
+    positions: {START: [1800, 100], STOP: [1800, 100]},
+    dimensions: {width: 400, height: 200},
+    showFunction: (match, key) => {
+      console.log("match.isDefending", match.isDefending());
+      return match.isDefending()===(key==="STOP")
+    },
+    drawBorder: (match) => match.isDefending(),
+    textFunction: (match, key) => `${key} DEFENDING`,
+    onClick: (match, key) => {
+      console.log("defense", match.defense);
+      finishUnfinished(match);
+      if (key==="START"){
+        match.setDefense(prevDefense => {return {startTime: match.getCurrentTime()}});
+      }else{
+        match.setDefense(prevDefense => {return {...match.defense, endTime: match.getCurrentTime}});
+        match.saveEndedCycles();
+      }
+    },
+  },
+
+  // ------- next phase ------------
+  GO_POST: {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    positions: {AUTO: [1800, 1450], TELE: [1800, 1450]},
+    dimensions: {width: 400, height: 200},
+    showFunction: (match, key) => match.phase===PHASES[key],
+    textFunction: (match, key) => `TO ${key==="AUTO" ? "TELE" : "POST-MATCH"}`,
+    onClick: (match, key) => match.setPhase(key==="AUTO" ? PHASES.TELE : PHASES.POST_MATCH),
+  },
 };

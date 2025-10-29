@@ -1,6 +1,7 @@
 import * as React from "react";
 import { lightTheme, darkTheme } from "./AppTheme.js";
 import { ThemeProvider } from "@mui/material/styles";
+import "./App.css";
 
 import { Routes, Route } from "react-router-dom";
 import CssBaseline from "@mui/material/CssBaseline";

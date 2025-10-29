@@ -147,6 +147,7 @@ export const SIDEBAR_CONFIG = [
         }
         return cycle;
       }));
+      match.saveEndedCycles();
     },
     color: COLORS.CANCEL,
     show: (match, key) => match.powerCellCycles.some(
@@ -164,7 +165,7 @@ export const SIDEBAR_CONFIG = [
     onClick: (match, key) => {
         match.setControlPanel({ 
             ...match.controlPanel, 
-            action: key, 
+            attainedLocation: key, 
             endTime: match.getCurrentTime() 
         });
         match.saveEndedCycles();
@@ -195,7 +196,7 @@ export const SIDEBAR_CONFIG = [
     onClick: (match, key) => {
         match.setHang({ 
             ...match.hang,
-            type: key.toLowerCase(),
+            attainedLocation: key.toLowerCase(),
             endTime: match.getCurrentTime()
         });
     },
@@ -330,22 +331,18 @@ export const SIDEBAR_CONFIG = [
   },
   {
     phases: [PHASES.POST_MATCH],
-    positions: ["post_match"],
-    label: (match, key) => "Confirm",
+    positions: ["QR Code", "DATA"],
+    label: (match, key) => key,
     onClick: (match, key) => {
-      const saveCycles =
-        match.hang.result == null
-          ? match.cycles
-          : [...match.cycles, match.getWritableCycle(CYCLE_TYPES.HANG)];
 
-      saveMatch(
+      if (saveMatch(
         {
           reportId: match.scoutData.reportId,
           matchStartTime: match.matchStartTime,
           robot: match.scoutData.teamNumber,
           scoutId: match.userToken.id,
           scoutName: match.userToken.username,
-          cycles: saveCycles,
+          cycles: match.cycles,
           endgame: match.endgame,
         },
         {
@@ -354,7 +351,7 @@ export const SIDEBAR_CONFIG = [
           station: match.searchParams.get("station"),
         },
         match.userToken,
-        /* submitAfter= */ false,
+        /* submitAfter= */ key==="DATA",
         (response) => {
           console.log("successfully saved:", response);
           match.setScoutData(null);
@@ -365,8 +362,28 @@ export const SIDEBAR_CONFIG = [
           });
           window.location.href = window.location.href
         }
-      );
+      )){
+
+      }
     },
+    isDisabled: (match, key) => false,
+    show: (match, key) => match.submitting,
+  },
+  {
+    phases: [PHASES.POST_MATCH],
+    positions: ["Next Match"],
+    label: (match, key) => key,
+    onClick: (match, key) => {
+          match.setScoutData(null);
+          match.setSearchParams({
+            eventKey: match.searchParams.get("eventKey"),
+            matchKey: match.scoutData.nextMatchKey,
+            station: match.searchParams.get("station"),
+          });
+          window.location.href = window.location.href
+        },
+      // );
+    // },
     isDisabled: (match, key) => false,
     show: (match, key) => match.submitting,
   },

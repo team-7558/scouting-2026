@@ -121,7 +121,7 @@ const Overview = () => {
         console.log("fetching raw data");
         const response = await getReports({ eventKey: eventKey });
         setRobotData(response.data.averages); // Store fetched data in state
-        console.log("raw data", response.data);
+        console.log("raw data", JSON.stringify(response.data));
       } catch (error) {
         console.error("Error fetching robot data:", error);
         setError(error.message);

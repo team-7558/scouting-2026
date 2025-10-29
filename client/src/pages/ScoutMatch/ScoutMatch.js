@@ -138,6 +138,7 @@ const ScoutMatch = () => {
 
   const [autoMovement, setAutoMovement] = useState({
     startTime: 0,
+    attainedLocation: null, //where the robot starts
     endTime: null,
   });
 
@@ -308,39 +309,48 @@ const ScoutMatch = () => {
   const flipX = () => isScoutingRed();
   const flipY = () => isScoutingRed();
 
+  console.log("autoMovement", autoMovement);
+
   const saveEndedCycles = () => {
     let cyclesToAdd = [];
+    setAutoMovement(prevAutoMovement => {
+      console.log("autoMovement", prevAutoMovement);
+      if (!cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && startingPosition>=0 && (prevAutoMovement?.endTime || phase==PHASES.TELE)){
+        cyclesToAdd.push({type: CYCLE_TYPES.AUTO_MOVEMENT, phase, ...prevAutoMovement, attainedLocation: startingPosition});
+        return {};
+      }
+    })
     setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
       if (cycle.endTime){
-        cyclesToAdd.push({type: CYCLE_TYPES.POWER_CELL, ...cycle});
+        cyclesToAdd.push({type: CYCLE_TYPES.POWER_CELL, phase, ...cycle});
         return {};
       }
       return cycle;
     }));
     setHang(prevHang => {
       if (prevHang.endTime!=null){
-        cyclesToAdd.push({type: CYCLE_TYPES.HANG, ...prevHang});
+        cyclesToAdd.push({type: CYCLE_TYPES.HANG, phase, ...prevHang});
         return {};
       }
       return prevHang;
     });
     setControlPanel(prevPanel => {
       if (prevPanel.endTime!=null){
-        cyclesToAdd.push({type: CYCLE_TYPES.CONTROL_PANEL, ...prevPanel});
+        cyclesToAdd.push({type: CYCLE_TYPES.CONTROL_PANEL, phase, ...prevPanel});
         return {};
       }
       return prevPanel
     });
     setDefense(prevDefense => {
       if (prevDefense.endTime!=null){
-        cyclesToAdd.push({type: CYCLE_TYPES.DEFENSE, ...prevDefense});
+        cyclesToAdd.push({type: CYCLE_TYPES.DEFENSE, phase, ...prevDefense});
         return {};
       }
       return prevDefense
     });
     setContact(prevContact => {
       if (prevContact.endTime!=null){
-        cyclesToAdd.push({type: CYCLE_TYPES.CONTACT, ...prevContact});
+        cyclesToAdd.push({type: CYCLE_TYPES.CONTACT, phase, ...prevContact});
         return {};
       }
       return prevContact
@@ -608,7 +618,7 @@ const ScoutMatch = () => {
               </FieldButton>
             );
           },
-          /*dontFlip= */ false,
+          /*dontFlip= */ config.dontFlip || false,
           /*isDisabled=*/ (config.disabled &&
             config.disabled(CONTEXT_WRAPPER, key)) ||
             (config.showFunction && !config.showFunction(CONTEXT_WRAPPER, key))
@@ -752,53 +762,7 @@ const ScoutMatch = () => {
         /* dontFlip= */ isScoringTableFar() != isScoutingRed()
       );
     }),
-
-    hang.startTime != null &&
-      createFieldLocalMatchComponent(
-        "hang",
-        1150,
-        100,
-        500,
-        150,
-        (match) => (
-          <FieldButton drawBorder={hang.result == null} color={COLORS.PRIMARY}>
-            HANG SCORING RESULT
-          </FieldButton>
-        ),
-        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-      ),
-    ...[
-      hang.startTime != null &&
-        [850, 1120, 1390].map((x, index) => {
-          const value = [HANG_RESULTS.NONE, HANG_RESULTS.PARK, hang.cageType][
-            index
-          ];
-          return createFieldLocalMatchComponent(
-            `${index}HangMenu`,
-            x,
-            250,
-            220,
-            100,
-            (match) => (
-              <FieldButton
-                color={COLORS.PENDING}
-                onClick={() => {
-                  match.setHang({
-                    ...match.hang,
-                    endTime: match.hang.endTime || match.getCurrentTime(),
-                    result: value,
-                  });
-                }}
-                drawBorder={match.hang.result === value}
-              >
-                {value}
-              </FieldButton>
-            ),
-            /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-          );
-        }),
-    ],
-
+    
     //driver skill
     createFieldLocalMatchComponent(
       "driverSkill",
@@ -878,7 +842,7 @@ const ScoutMatch = () => {
       /* dontFlip= */ isScoringTableFar() != isScoutingRed()
     ),
     ...[200, 575, 950, 1325].map((x, index) => {
-      const value = ["N/A", "Defense", "Coral Cycle", "Algae Cycle"][index];
+      const value = ["N/A", "Defense", "Cycle", "Feed"][index];
       return createFieldLocalMatchComponent(
         `${index}Role`,
         x,
@@ -891,6 +855,7 @@ const ScoutMatch = () => {
             onClick={() => {
               match.setEndgame({ ...match.endgame, role: value });
             }}
+            sx={{zIndex: match.endgame.role===value ? 2 : 1}}
             drawBorder={match.endgame.role === value}
           >
             {value}
@@ -983,7 +948,7 @@ const ScoutMatch = () => {
                   }
                 }
                 if (slot>=0){
-                  newCycles[slot] = {attainedLocation: [x, y], startTime: getCurrentTime()}
+                  newCycles[slot] = {attainedLocation: [Math.round(x), Math.round(y)], startTime: getCurrentTime()}
                 }else{
                   console.log("ERROR")
                 }

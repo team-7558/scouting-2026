@@ -1,13 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Box,
   Button,
   Chip,
   Collapse,
-  Grid,
-  IconButton,
-  Paper,
-  Typography,
+  Container,
+  CircularProgress,
   Table,
   TableBody,
   TableCell,
@@ -15,80 +13,52 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
-  Container,
-  CircularProgress,
+  Paper,
   TextField,
   InputAdornment,
   ToggleButton,
   ToggleButtonGroup,
+  Typography,
 } from "@mui/material";
-import { alpha, useTheme } from "@mui/material/styles";
-import {
-  Link,
-  useLocation,
-  useSearchParams,
-  useNavigate,
-} from "react-router-dom";
-import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import StarIcon from "@mui/icons-material/Star";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import RemoveCircleOutlineIcon from "@mui/icons-material/RemoveCircleOutline";
-import SpeedIcon from "@mui/icons-material/Speed";
-import ReportProblemIcon from "@mui/icons-material/ReportProblem";
-import PushPinIcon from "@mui/icons-material/PushPin";
+import { useTheme } from "@mui/material/styles";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-import CyclesFieldCanvas from "./CyclesFieldCanvas"; // Your CyclesFieldCanvas component
-import ScoreBarChart from "./ScoreBarChart"; // Reusable chart component
 import RequiredParamsDialog from "../Common/RequiredParamsDialog";
-import ReportsList from "./ReportsList";
 import { getReports } from "../../requests/ApiRequests";
-// Import metric mapping and group colors so that we can reuse the labels and color styling.
-import { averageMetricMapping, groupColors } from "./AveragesConfig";
 
-// Formatting functions copied from PhaseAveragesTable.
-const formatValue = (colKey, value) => {
-  if (typeof value !== "number") return value;
-  let num = value;
-  const [, field] = colKey.split(".");
-  if (field.toLowerCase().includes("time")) {
-    num = num / 1000;
-    return num.toFixed(2) + "s";
+// ----------------- Helper Functions -----------------
+const formatValue = (value, key) => {
+  if (value === null || value === undefined) return "-";
+  const v = Array.isArray(value) ? value[0] : value;
+
+  if (typeof v === "number") {
+    if (key.toLowerCase().includes("time")) return (v / 1000).toFixed(1) + "s";
+    if (key.toLowerCase().includes("rate") || key.toLowerCase().includes("accuracy"))
+      return (v * 100).toFixed(1) + "%";
+    return v.toFixed(1);
   }
-  if (field.toLowerCase().includes("rate")) {
-    num = num * 100;
-    return num.toFixed(2) + "%";
-  }
-  return num.toFixed(2);
+  if (typeof v === "object") return JSON.stringify(v);
+  return v;
 };
 
-const getFormattedValue = (group, field, value) => {
-  const v = Array.isArray(value) ? value[1] : value;
-  return formatValue(`${group}.${field}`, v);
-};
-
-// Helper functions for sorting: extract the raw value if it's an array.
 const getRawValue = (item, key) => {
   const value = item[key];
-  return Array.isArray(value) ? value[1] : value;
+  return Array.isArray(value) ? value[0] : value;
 };
 
 const descendingComparator = (a, b, orderBy) => {
-  const aValue = getRawValue(a, orderBy);
-  const bValue = getRawValue(b, orderBy);
-  if (bValue < aValue) return -1;
-  if (bValue > aValue) return 1;
+  const aVal = getRawValue(a, orderBy);
+  const bVal = getRawValue(b, orderBy);
+  if (bVal < aVal) return -1;
+  if (bVal > aVal) return 1;
   return 0;
 };
 
 const getComparator = (order, orderBy) =>
-  order === "desc"
-    ? (a, b) => descendingComparator(a, b, orderBy)
-    : (a, b) => -descendingComparator(a, b, orderBy);
+  order === "desc" ? (a, b) => descendingComparator(a, b, orderBy) : (a, b) => -descendingComparator(a, b, orderBy);
 
 const stableSort = (array, comparator) => {
   const stabilized = array.map((el, index) => [el, index]);
@@ -100,9 +70,13 @@ const stableSort = (array, comparator) => {
   return stabilized.map((el) => el[0]);
 };
 
-// ------------------- CategoryTable Component -------------------
-// Renders a table for a single category group.
-const CategoryTable = ({ group, rows, metricKeys }) => {
+const camelCaseToWords = (str) => {
+  let result = str.replace(/([A-Z])/g, ' $1');
+  return result.charAt(0).toUpperCase() + result.slice(1);
+}
+
+// ----------------- CategoryTable -----------------
+const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
   const theme = useTheme();
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("robot");
@@ -113,32 +87,31 @@ const CategoryTable = ({ group, rows, metricKeys }) => {
     setOrderBy(property);
   };
 
-  // Fixed header cells: Robot and Phase; then the dynamic ones from metricKeys.
-  const headCells = [
-    { id: "robot", label: "Robot" },
-    { id: "phase", label: "Phase" },
-    ...metricKeys.map((key) => ({
-      id: key,
-      label: averageMetricMapping[key] ? averageMetricMapping[key].label : key,
-    })),
-  ];
-
   return (
-    <TableContainer component={Paper}>
+    <TableContainer component={Paper} sx={{ bgcolor: "#111" }}>
       <Table size="small">
         <TableHead>
           <TableRow>
-            {headCells.map((headCell) => (
+            {["robot", "phase", ...metricKeys].map((key) => (
               <TableCell
-                key={headCell.id}
-                sortDirection={orderBy === headCell.id ? order : false}
+                key={key}
+                sortDirection={orderBy === key ? order : false}
+                sx={{
+                  bgcolor: "#111",
+                  color: headingColor || "#0ff",
+                  fontWeight: "bold",
+                  borderBottom: `2px solid ${headingColor || "#0ff"}`,
+                }}
               >
                 <TableSortLabel
-                  active={orderBy === headCell.id}
-                  direction={orderBy === headCell.id ? order : "asc"}
-                  onClick={(event) => handleRequestSort(event, headCell.id)}
+                  active={orderBy === key}
+                  direction={orderBy === key ? order : "asc"}
+                  sx={{ color: headingColor, '&.Mui-active': {
+                     color: "#fff" ,
+                    }}}
+                  onClick={(e) => handleRequestSort(e, key)}
                 >
-                  {headCell.label}
+                  {camelCaseToWords(key)}
                 </TableSortLabel>
               </TableCell>
             ))}
@@ -146,14 +119,21 @@ const CategoryTable = ({ group, rows, metricKeys }) => {
         </TableHead>
         <TableBody>
           {stableSort(rows, getComparator(order, orderBy)).map((row, index) => (
-            <TableRow key={`${row.robot}-${row.phase}-${index}`}>
-              <TableCell>{row.robot}</TableCell>
-              <TableCell>{row.phase}</TableCell>
+            <TableRow
+              key={`${row.robot}-${row.phase}-${index}`}
+              sx={{
+                bgcolor: "#222",
+                "&:hover": {
+                  bgcolor: "#333",
+                  boxShadow: `0 0 10px ${headingColor || "#0ff"} inset`,
+                },
+              }}
+            >
+              <TableCell sx={{ color: "#fff" }}>{row.robot}</TableCell>
+              <TableCell sx={{ color: "#fff" }}>{row.phase}</TableCell>
               {metricKeys.map((key) => (
-                <TableCell key={key}>
-                  {row[key] !== undefined
-                    ? getFormattedValue(group, key, row[key])
-                    : "-"}
+                <TableCell key={key} sx={{ color: "#fff" }}>
+                  {formatValue(row[key], key)}
                 </TableCell>
               ))}
             </TableRow>
@@ -164,24 +144,18 @@ const CategoryTable = ({ group, rows, metricKeys }) => {
   );
 };
 
-// ------------------- AveragesTable Component -------------------
-// Groups the averages data (nested by robot and phase) by category (group)
-// and renders one collapsible table per group. The table is collapsed by default
-// except for the "epa" group. A phaseFilter prop can limit the data to "auto" or "tele".
-const AveragesTable = ({ averages, phaseFilter }) => {
-  // Build rows grouped by category.
-  const categoryRows = {};
+// ----------------- AveragesTable -----------------
+const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
+  const [openGroups, setOpenGroups] = useState({});
 
+  const categoryRows = {};
   Object.keys(averages).forEach((robotId) => {
     const robotAverages = averages[robotId] || {};
     Object.keys(robotAverages).forEach((phase) => {
-      // Apply phase filter if set (phase keys are assumed to be lower-case).
       if (phaseFilter !== "all" && phase.toLowerCase() !== phaseFilter) return;
       const phaseData = robotAverages[phase] || {};
       Object.keys(phaseData).forEach((group) => {
-        if (!categoryRows[group]) {
-          categoryRows[group] = [];
-        }
+        if (!categoryRows[group]) categoryRows[group] = [];
         categoryRows[group].push({
           robot: robotId,
           phase: phase.toUpperCase(),
@@ -191,63 +165,52 @@ const AveragesTable = ({ averages, phaseFilter }) => {
     });
   });
 
-  // Manage open/closed state for each group.
-  const [openGroups, setOpenGroups] = useState({});
-
-  // Set default open state on first render.
   useEffect(() => {
     const defaults = {};
     Object.keys(categoryRows).forEach((group) => {
-      defaults[group] = group.toLowerCase() === "epa"; // open only if group === "epa"
+      defaults[group] = false;
     });
     setOpenGroups(defaults);
   }, [averages]);
 
-  const toggleGroup = (group) => {
-    setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
-  };
+  const toggleGroup = (group) => setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
 
   return (
     <>
       {Object.keys(categoryRows).map((group) => {
         const rows = categoryRows[group];
-        // Collect unique metric keys from rows.
-        const metricKeysSet = new Set();
-        rows.forEach((row) => {
-          Object.keys(row).forEach((key) => {
-            if (key !== "robot" && key !== "phase") {
-              metricKeysSet.add(key);
-            }
-          });
-        });
-        const dynamicHeaders = Array.from(metricKeysSet);
+        const metricKeys = Array.from(
+          new Set(rows.flatMap((row) => Object.keys(row).filter((key) => key !== "robot" && key !== "phase")))
+        );
+
         return (
           <Box key={group} sx={{ mb: 4 }}>
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                bgcolor: groupColors[group] || "#333",
-                color: (theme) =>
-                  theme.palette.getContrastText(groupColors[group] || "#333"),
                 p: 1,
-                borderRadius: 1,
-                mb: 1,
+                bgcolor: "#000",
+                color: headingColors?.[group] || "#0f0",
                 cursor: "pointer",
+                borderLeft: `4px solid ${headingColors?.[group] || "#0f0"}`,
+                mb: 1,
+                transition: "all 0.2s",
+                "&:hover": {
+                  bgcolor: "#111",
+                  boxShadow: `0 0 15px ${headingColors?.[group] || "#0f0"}`,
+                },
+                margin: "2vw 1vw",
               }}
               onClick={() => toggleGroup(group)}
             >
-              <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                {group.toUpperCase()}
+              <Typography variant="h3" sx={{ flexGrow: 1 }}>
+                {camelCaseToWords(group)}
               </Typography>
               {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </Box>
             <Collapse in={openGroups[group]} timeout="auto" unmountOnExit>
-              <CategoryTable
-                group={group}
-                rows={rows}
-                metricKeys={dynamicHeaders}
-              />
+              <CategoryTable group={group} rows={rows} metricKeys={metricKeys} headingColor={headingColors?.[group]} />
             </Collapse>
           </Box>
         );
@@ -256,66 +219,59 @@ const AveragesTable = ({ averages, phaseFilter }) => {
   );
 };
 
-// ------------------- CategorySort Component -------------------
-const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
+// ----------------- CategorySort -----------------
+const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
+  powerCell: "#FFD600",
+  controlPanel: "#8D5FD3",
+  hang: "#E63946",
+  defense: "#0DB7ED", 
+  contact: "#FF6F3C",
+  movement: "#0f0"
+} }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Use cached data from localStorage if available.
   const cachedData = useMemo(() => {
     const stored = localStorage.getItem("averagesData");
     return stored ? JSON.parse(stored) : null;
   }, []);
   const [reportData, setReportData] = useState(cachedData);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [error, setError] = useState("");
+  const [paramsProvided, setParamsProvided] = useState(false);
 
-  // Fixed search bars for "matchKey" and "robot"
   const [matchKeySearchTerm, setMatchKeySearchTerm] = useState("");
   const [robotSearchTerm, setRobotSearchTerm] = useState("");
-  // Phase filter: "all", "auto", or "tele"
   const [phaseFilter, setPhaseFilter] = useState("all");
-
-  // Ref to ensure we only auto-load once per reload.
   const hasLoadedRef = useRef(false);
 
-  // Prepopulate search terms.
   useEffect(() => {
     setMatchKeySearchTerm(searchParams.get("matchKey") || "");
     setRobotSearchTerm(searchParams.get("robot") || "");
   }, [searchParams]);
 
-  // Check if all required params are provided.
-  const [paramsProvided, setParamsProvided] = useState(false);
   useEffect(() => {
-    const allProvided = requiredParamKeys.every(
-      (key) => searchParams.get(key) && searchParams.get(key).trim() !== ""
-    );
+    const allProvided = requiredParamKeys.every((key) => searchParams.get(key) && searchParams.get(key).trim() !== "");
     setParamsProvided(allProvided);
   }, [location.search, searchParams, requiredParamKeys]);
 
-  // Function to load data from API.
   const loadData = async () => {
     setIsSyncing(true);
-    setError("");
     try {
       const params = {};
       requiredParamKeys.forEach((key) => {
         params[key] = searchParams.get(key);
       });
-      console.log("params: ", params);
       const res = await getReports(params);
       setReportData(res.data);
       localStorage.setItem("averagesData", JSON.stringify(res.data));
-    } catch (err) {
-      setError("Error loading reports");
+    } catch {
+      console.error("Error loading reports");
     } finally {
       setIsSyncing(false);
     }
   };
 
-  // Auto-load data once when params are provided.
   useEffect(() => {
     if (paramsProvided && !hasLoadedRef.current) {
       hasLoadedRef.current = true;
@@ -323,171 +279,133 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"] }) => {
     }
   }, [paramsProvided]);
 
-  // When Enter is pressed in the matchKey search bar.
-  const handleMatchKeySearchKeyDown = (e) => {
-    if (e.key === "Enter") {
-      const newParams = {};
-      requiredParamKeys.forEach((key) => {
-        if (key !== "robot") {
-          newParams[key] = searchParams.get(key);
-        }
-      });
-      newParams["matchKey"] = matchKeySearchTerm;
-      setSearchParams(newParams);
-      navigate(`/matches?${new URLSearchParams(newParams).toString()}`);
-    }
-  };
-
-  // When Enter is pressed in the robot search bar.
-  const handleRobotSearchKeyDown = (e) => {
-    if (e.key === "Enter") {
-      const newParams = {};
-      requiredParamKeys.forEach((key) => {
-        if (key !== "matchKey") {
-          newParams[key] = searchParams.get(key);
-        }
-      });
-      newParams["robot"] = robotSearchTerm;
-      setSearchParams(newParams);
-      navigate(`/robots?${new URLSearchParams(newParams).toString()}`);
-    }
-  };
-
-  // Handle phase filter change.
   const handlePhaseFilter = (e, newPhase) => {
-    if (newPhase !== null) {
-      setPhaseFilter(newPhase);
+    if (newPhase !== null) setPhaseFilter(newPhase);
+  };
+
+  const handleSearchKeyDown = (type) => (e) => {
+    if (e.key === "Enter") {
+      const newParams = {};
+      requiredParamKeys.forEach((key) => {
+        if (key !== type) newParams[key] = searchParams.get(key);
+      });
+      newParams[type] = type === "matchKey" ? matchKeySearchTerm : robotSearchTerm;
+      setSearchParams(newParams);
+      navigate(`?${new URLSearchParams(newParams).toString()}`);
     }
   };
 
   const handleDialogSubmit = (values) => {
     const currentParams = {};
-    for (const key of searchParams.keys()) {
-      currentParams[key] = searchParams.get(key);
-    }
+    for (const key of searchParams.keys()) currentParams[key] = searchParams.get(key);
     setSearchParams({ ...currentParams, ...values });
   };
 
   return (
-    <Container>
-      <Paper sx={{ p: 2, mb: 3 }}>
-        {/* Top header */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          <Typography variant="h4" sx={{ mb: { xs: 2, sm: 0 } }}>
+    <div style={{backgroundColor: "#000", width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto"}}>
+      <Paper sx={{ p: 2, mb: 3, bgcolor: "#111" }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+          <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: "#f00" }}>
             View Reports
           </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexDirection: { xs: "column", sm: "row" },
-              width: { xs: "100%", sm: "auto" },
-            }}
-          >
+
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+            {requiredParamKeys.map((key) => <Chip key={key} label={`${key}: ${searchParams.get(key)}`} sx={{ bgcolor: "#222", color: "#f00" }} />)}
+          </Box>
+
+          <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" }, width: { xs: "100%", sm: "auto" } }}>
             <TextField
               value={matchKeySearchTerm}
-              onChange={(e) =>
-                setMatchKeySearchTerm(e.target.value.toLowerCase())
-              }
-              onKeyDown={handleMatchKeySearchKeyDown}
+              onChange={(e) => setMatchKeySearchTerm(e.target.value.toLowerCase())}
+              onKeyDown={handleSearchKeyDown("matchKey")}
               variant="outlined"
               size="small"
               placeholder="Search by match key"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ width: { xs: "100%", sm: 250 } }}
+              InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon /></InputAdornment> }}
+              sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
             />
             <TextField
               value={robotSearchTerm}
               onChange={(e) => setRobotSearchTerm(e.target.value.toLowerCase())}
-              onKeyDown={handleRobotSearchKeyDown}
+              onKeyDown={handleSearchKeyDown("robot")}
               variant="outlined"
               size="small"
               placeholder="Search by robot"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ width: { xs: "100%", sm: 250 } }}
+              InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon /></InputAdornment> }}
+              sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
             />
           </Box>
         </Box>
-        {/* Show current required parameters as chips */}
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
-          {requiredParamKeys.map((key) => (
-            <Chip key={key} label={`${key}: ${searchParams.get(key)}`} />
-          ))}
-        </Box>
-        {/* Phase filter */}
-        <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
+
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center", mb: 2 }}>
           <ToggleButtonGroup
             value={phaseFilter}
             exclusive
             onChange={handlePhaseFilter}
             aria-label="phase filter"
           >
-            <ToggleButton value="all" aria-label="all phases">
+            <ToggleButton
+              value="all"
+              aria-label="all phases"
+              sx={{
+                color: "#f00",
+                '&.Mui-selected': {
+                  border: '2px solid red',
+                  color: "#f00",
+                },
+              }}
+            >
               All Phases
             </ToggleButton>
-            <ToggleButton value="auto" aria-label="auto phase">
+            <ToggleButton
+              value="auto"
+              aria-label="auto phase"
+              sx={{
+                color: "#f00",
+                '&.Mui-selected': {
+                  border: '2px solid red',
+                  color: "#f00",
+                },
+              }}
+            >
               AUTO
             </ToggleButton>
-            <ToggleButton value="tele" aria-label="tele phase">
+            <ToggleButton
+              value="tele"
+              aria-label="tele phase"
+              sx={{
+                color: "#f00",
+                '&.Mui-selected': {
+                  border: '2px solid red',
+                  color: "#f00",
+                },
+              }}
+            >
               TELE
             </ToggleButton>
           </ToggleButtonGroup>
-          {/* Physical Reload Button */}
-          <Button variant="outlined" onClick={loadData}>
-            Reload
-          </Button>
+          <Button variant="outlined" onClick={loadData} sx={{ color: "#f00", borderColor: "#f00" }}>Reload</Button>
         </Box>
       </Paper>
+
       {paramsProvided ? (
         <>
-          {/* Sync indicator */}
           {isSyncing && (
             <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-              <CircularProgress size={20} sx={{ mr: 1 }} />
-              <Typography variant="body2">
-                Syncing data in background...
-              </Typography>
+              <CircularProgress size={20} sx={{ mr: 1, color: "#0ff" }} />
+              <Typography variant="body2" sx={{ color: "#0ff" }}>Syncing data in background...</Typography>
             </Box>
           )}
           {reportData && reportData.averages ? (
-            <AveragesTable
-              averages={reportData.averages}
-              phaseFilter={phaseFilter}
-            />
+            <AveragesTable averages={reportData.averages} phaseFilter={phaseFilter} headingColors={headingColors} />
           ) : (
-            <Typography variant="body1">No data available.</Typography>
+            <Typography variant="body1" sx={{ color: "#0ff" }}>No data available.</Typography>
           )}
         </>
       ) : (
-        <RequiredParamsDialog
-          open={true}
-          onSubmit={handleDialogSubmit}
-          searchParams={searchParams}
-          searchParamsError=""
-          requiredParamKeys={requiredParamKeys}
-        />
+        <RequiredParamsDialog open={true} onSubmit={handleDialogSubmit} searchParams={searchParams} searchParamsError="" requiredParamKeys={requiredParamKeys} />
       )}
-    </Container>
+    </div>
   );
 };
 

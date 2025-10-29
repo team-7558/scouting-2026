@@ -103,7 +103,9 @@ export const submitMatch = async (
     if (postSubmitCallback) {
       postSubmitCallback(response);
     }
-    return response;
+    if (response?.status === 200)
+      return true;
+    return false;
   } catch (err) {
     console.error("Error submitting match:", err);
     throw err;

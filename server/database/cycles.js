@@ -21,22 +21,20 @@ export const storeCyclesInternal = async (
         type TEXT,
         attained_location JSONB,
         start_time INT,
+        success BOOLEAN,
         deposit_type TEXT,
         deposit_location JSONB,
         end_time INT,
         cycle_time INT,
         robot TEXT,
         report_id TEXT,
-        cage_location TEXT,
-        cage_touch_time INT,
-        cage_type TEXT,
-        result TEXT,
         contact_robot TEXT,
         pin_count INT,
         foul_count INT
       );
     `;
-    await client.query(createTableQuery);
+    console.log(await client.query(createTableQuery));
+    // console.log("created table");
 
     for (let i = 0; i < cycles.length; i++) {
       const cycle = cycles[i];
@@ -57,12 +55,6 @@ export const storeCyclesInternal = async (
           : null;
       const key = `${eventKey}_${matchKey}_${additionalData.reportId}_${i}`;
 
-      // For HANG cycles, include additional properties; for other cycle types, they will be null.
-      const cageLocation = cycle.cageLocation || null;
-      const cageTouchTime = cycle.cageTouchTime || null;
-      const cageType = cycle.cageType || null;
-      const resultField = cycle.result || null;
-
       const contactRobot = cycle.contactRobot || null;
       const pinCount = cycle.pinCount || null;
       const foulCount = cycle.foulCount || null;
@@ -76,20 +68,17 @@ export const storeCyclesInternal = async (
           type, 
           attained_location, 
           start_time,
+          success,
           deposit_type, 
           deposit_location,
           end_time,
           cycle_time,
           robot,
           report_id,
-          cage_location, 
-          cage_touch_time, 
-          cage_type, 
-          result,
           contact_robot, 
           pin_count, 
           foul_count)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         ON CONFLICT (key) DO NOTHING;
       `;
       const values = [
@@ -100,16 +89,13 @@ export const storeCyclesInternal = async (
         cycle.type,
         attainedLocation,
         cycle.startTime,
+        cycle.success,
         cycle.depositType,
         depositLocation,
         cycle.endTime,
         cycleTime,
         additionalData.robot,
         additionalData.reportId,
-        cageLocation,
-        cageTouchTime,
-        cageType,
-        resultField,
         contactRobot,
         pinCount,
         foulCount,

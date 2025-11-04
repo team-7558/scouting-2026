@@ -23,7 +23,7 @@ const AdminPage = () => {
 
   return (
     <div>
-      <h1>Admin Page</h1>
+      <h1 style={{color: "white", textAlign: "center"}}>Admin Page</h1>
       <div style={{ display: "flex", justifyContent: "space-around" }}>
         <Button
           variant="contained"
@@ -38,13 +38,6 @@ const AdminPage = () => {
           onClick={handleOpenImportEvent}
         >
           Import Matches
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleOpenImportPitScouting}
-        >
-          Import Pit Scouting
         </Button>
       </div>
 

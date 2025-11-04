@@ -1,19 +1,17 @@
 {
-  "name": "scouting-2023-server",
+  "name": "scouting-2023",
   "version": "1.0.0",
-  "description": "Server for the scouting-2023 off season app",
-  "main": "index.js",
-  "type": "module",
   "private": true,
   "scripts": {
-    "start": "node server/index.js",
-    "server": "nodemon --quiet server",
     "client": "npm start --prefix client",
-    "build": "cd client/ && npm install && npm run build",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "server": "npm start --prefix server",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "npm install --prefix client && npm run build --prefix client",
+    "start": "npm start --prefix server"
   },
-  "author": "",
-  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -40,9 +38,5 @@
       "typescript": "4.9.5",
       "postcss": "8.4.38"
     }
-  },
-  "devDependencies": {
-    "concurrently": "^9.0.1",
-    "nodemon": "^3.1.5"
   }
 }

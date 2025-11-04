@@ -35,6 +35,7 @@ const formatValue = (value, key) => {
   const v = Array.isArray(value) ? value[0] : value;
 
   if (typeof v === "number") {
+    if (v===0) return "-";
     if (key.toLowerCase().includes("time")) return (v / 1000).toFixed(1) + "s";
     if (key.toLowerCase().includes("rate") || key.toLowerCase().includes("accuracy"))
       return (v * 100).toFixed(1) + "%";
@@ -88,7 +89,7 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
   };
 
   return (
-    <TableContainer component={Paper} sx={{ bgcolor: "#111" }}>
+    <TableContainer component={Paper} sx={{ bgcolor: "#111", margin: "2%", width: "96%" }}>
       <Table size="small">
         <TableHead>
           <TableRow>
@@ -101,6 +102,7 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
                   color: headingColor || "#0ff",
                   fontWeight: "bold",
                   borderBottom: `2px solid ${headingColor || "#0ff"}`,
+                  fontSize: "30px",
                 }}
               >
                 <TableSortLabel
@@ -108,6 +110,7 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
                   direction={orderBy === key ? order : "asc"}
                   sx={{ color: headingColor, '&.Mui-active': {
                      color: "#fff" ,
+                     fontSize: "40px"
                     }}}
                   onClick={(e) => handleRequestSort(e, key)}
                 >
@@ -129,10 +132,10 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
                 },
               }}
             >
-              <TableCell sx={{ color: "#fff" }}>{row.robot}</TableCell>
-              <TableCell sx={{ color: "#fff" }}>{row.phase}</TableCell>
+              <TableCell sx={{ color: "#fff", fontSize: "30px", }}>{row.robot}</TableCell>
+              <TableCell sx={{ color: "#fff", fontSize: "30px", }}>{row.phase}</TableCell>
               {metricKeys.map((key) => (
-                <TableCell key={key} sx={{ color: "#fff" }}>
+                <TableCell key={key} sx={{ color: "#fff", fontSize: "40px", }}>
                   {formatValue(row[key], key)}
                 </TableCell>
               ))}
@@ -264,6 +267,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
       });
       const res = await getReports(params);
       setReportData(res.data);
+      console.log("data", res.data);
       localStorage.setItem("averagesData", JSON.stringify(res.data));
     } catch {
       console.error("Error loading reports");
@@ -314,26 +318,46 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
           </Box>
 
           <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" }, width: { xs: "100%", sm: "auto" } }}>
-            <TextField
-              value={matchKeySearchTerm}
-              onChange={(e) => setMatchKeySearchTerm(e.target.value.toLowerCase())}
-              onKeyDown={handleSearchKeyDown("matchKey")}
-              variant="outlined"
-              size="small"
-              placeholder="Search by match key"
-              InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon /></InputAdornment> }}
-              sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
-            />
-            <TextField
-              value={robotSearchTerm}
-              onChange={(e) => setRobotSearchTerm(e.target.value.toLowerCase())}
-              onKeyDown={handleSearchKeyDown("robot")}
-              variant="outlined"
-              size="small"
-              placeholder="Search by robot"
-              InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon /></InputAdornment> }}
-              sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
-            />
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const url = new URL(window.location.href);
+              url.pathname = "/matches";
+              url.searchParams.set("matchKey", matchKeySearchTerm);
+              window.history.replaceState({}, "", url.toString());
+              window.location.href = window.location.href;
+            }}>
+              <TextField
+                value={matchKeySearchTerm}
+                onChange={(e) => setMatchKeySearchTerm(e.target.value.toLowerCase())}
+                onKeyDown={handleSearchKeyDown("matchKey")}
+                variant="outlined"
+                size="small"
+                placeholder="Search by match key"
+                InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon /></InputAdornment> }}
+                sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
+              />
+            </form>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const url = new URL(window.location.href);
+              url.pathname = "/robots";
+              url.searchParams.set("robot", robotSearchTerm);
+              window.history.replaceState({}, "", url.toString());
+              window.location.href = window.location.href;
+            }}>
+              <TextField
+                value={robotSearchTerm}
+                onChange={(e) => {
+                  setRobotSearchTerm(e.target.value);
+                }}
+                onKeyDown={handleSearchKeyDown("robot")}
+                variant="outlined"
+                size="small"
+                placeholder="Search by robot"
+                InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon /></InputAdornment> }}
+                sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
+              />
+            </form>
           </Box>
         </Box>
 

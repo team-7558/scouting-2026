@@ -7,7 +7,7 @@ import {
 import { calculateAverageMetrics } from "../metrics/reports.js";
 import { getMatchDataInternal } from "../database/matches.js";
 // Import the new pit scouting query function:
-import { getPitScoutingByRobotInternal } from "../database/pit_scouting.js";
+// import { getPitScoutingByRobotInternal } from "../database/pit_scouting.js";
 
 const router = express.Router();
 
@@ -75,12 +75,12 @@ router.get("/", async (req, res) => {
     }
 
     // If a robot is provided, get its pit scouting data.
-    let pitScouting = null;
-    if (robot) {
-      pitScouting = await getPitScoutingByRobotInternal(eventKey, robot);
-    }
+    // let pitScouting = null;
+    // if (robot) {
+    //   pitScouting = await getPitScoutingByRobotInternal(eventKey, robot);
+    // }
 
-    res.json({ averages, reports, pitScouting });
+    res.json({ averages, reports});
   } catch (error) {
     console.error("Error fetching filtered reports with cycles:", error);
     res.status(500).json({ error: "Server error" });

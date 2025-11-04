@@ -24,53 +24,17 @@ const parseAttainedLocation = (attained) => {
 export const calculateReportTotals = (report) => {
   // Default per-phase structure
   const DEFAULT_PHASE_STRUCTURE = {
-    movement: {
-      movementTime: 0,
-      attempts: 0,
-      successfulEnds: 0,
-      movementRate: 0,
-    },
     powerCell: {
       attainedCount: 0,
-      // scoring breakdowns
       highScoreCount: 0,
       highMissCount: 0,
       lowScoreCount: 0,
       lowMissCount: 0,
       totalScoreCount: 0,
       feedCount: 0,
-      avgScoringCycleTime: null,
+      avgCycleTime: null,
       highAccuracy: 0,
       lowAccuracy: 0,
-    },
-    controlPanel: {
-      positionAttempts: 0,
-      positionCompleted: 0, // 0 or 1 (shouldn't happen more than once per match according to you)
-      positionAvgTime: null,
-      rotationAttempts: 0,
-      rotationCompleted: 0, // 0 or 1
-      rotationAvgTime: null,
-      percentPositionDone: 0, // derived 0 or 1
-      percentRotationDone: 0,
-    },
-    hang: {
-      attempts: 0,
-      successfulCount: 0,
-      failCount: 0,
-      parks: 0,
-      shallowHangs: 0,
-      deepHangs: 0,
-      cycleTime: null,
-      startTime: null,
-      hangSuccessRate: 0,
-    },
-    defense: {
-      totalTime: 0,
-    },
-    contact: {
-      totalTime: 0,
-      foulCount: 0,
-      pinCount: 0,
     },
   };
 
@@ -80,8 +44,39 @@ export const calculateReportTotals = (report) => {
     // keep same post-match fields (if present on report object)
     driverSkill: report.driverSkill ?? "N/A",
     defenseSkill: report.defenseSkill ?? "N/A",
-    auto: structuredClone(DEFAULT_PHASE_STRUCTURE),
-    tele: structuredClone(DEFAULT_PHASE_STRUCTURE),
+    auto: {
+      ...structuredClone(DEFAULT_PHASE_STRUCTURE),
+      movement: {
+        movementTime: 0,
+        attempts: 0,
+        successfulEnds: 0,
+        movementRate: 0,
+      },
+    },
+    tele: {
+      ...structuredClone(DEFAULT_PHASE_STRUCTURE),
+      controlPanel: {
+        positionControlRate: 0, 
+        positionAvgTime: null,
+        rotationControlRate: 0,
+        rotationAvgTime: null,
+      },
+      hang: {
+        attempts: 0,
+        successRate: 0,
+        cycleTime: null,
+        hangSuccessRate: 0,
+        balancedRate: 0,
+      },
+      defense: {
+        totalTime: 0,
+      },
+      contact: {
+        totalTime: 0,
+        foulCount: 0,
+        pinCount: 0,
+      },
+  },
   };
 
   // For averaging scoring times per phase for power cell
@@ -89,8 +84,7 @@ export const calculateReportTotals = (report) => {
 
   // For control panel times per phase/type
   const controlPanelTimes = {
-    auto: { position: [], rotation: [] },
-    tele: { position: [], rotation: [] },
+    position: [], rotation: [],
   };
 
   // Keep disabled value
@@ -130,6 +124,7 @@ export const calculateReportTotals = (report) => {
       }
 
       case "POWER_CELL": {
+        console.log("powercellcycle", cycle);
         // attainedCount = start_time not null (per your request)
         if (startTime !== null) phaseResults.powerCell.attainedCount += 1;
 
@@ -178,6 +173,11 @@ export const calculateReportTotals = (report) => {
             const s = loc.toLowerCase();
             if (s.includes("position")) positionHit = true;
             if (s.includes("rotation")) rotationHit = true;
+
+            if (positionHit)
+              controlPanelTimes.position.push(cycleTime);
+            if (rotationHit)
+            controlPanelTimes.rotation.push(cycleTime);
           } else if (typeof loc === "object") {
             // check common keys & truthy values or explicit markers
             // e.g., { position: true } or { type: "position" }
@@ -191,32 +191,22 @@ export const calculateReportTotals = (report) => {
               if (lk.includes("position")) positionHit = positionHit || Boolean(loc[k]);
               if (lk.includes("rotation")) rotationHit = rotationHit || Boolean(loc[k]);
             }
+
+            if (positionHit)
+              controlPanelTimes.position.push(cycleTime);
+            if (rotationHit)
+              controlPanelTimes.rotation.push(cycleTime);
           }
         }
 
         // If it's a position attempt
         if (positionHit || (!positionHit && !rotationHit && String(attainedLocationRaw).toLowerCase().includes("position"))) {
-          phaseResults.controlPanel.positionAttempts += 1;
-          // completed: prefer explicit success or presence of end_time
-          if (cycleSucceeded(cycle)) {
-            // According to you it shouldn't get done more than once per match - so store as 0/1
-            phaseResults.controlPanel.positionCompleted = Math.min(1, phaseResults.controlPanel.positionCompleted + 1);
-            // record time if we have both start and end
-            if (startTime !== null && endTime !== null && endTime >= startTime && cycleTime !== null) {
-              controlPanelTimes[phase].position.push(cycleTime);
-            }
-          }
+          phaseResults.controlPanel.positionControlRate += 1;
         }
 
-        // rotation attempt
-        if (rotationHit || (!positionHit && !rotationHit && String(attainedLocationRaw).toLowerCase().includes("rotation"))) {
-          phaseResults.controlPanel.rotationAttempts += 1;
-          if (cycleSucceeded(cycle)) {
-            phaseResults.controlPanel.rotationCompleted = Math.min(1, phaseResults.controlPanel.rotationCompleted + 1);
-            if (startTime !== null && endTime !== null && endTime >= startTime && cycleTime !== null) {
-              controlPanelTimes[phase].rotation.push(cycleTime);
-            }
-          }
+        //If it's a rotation attempt
+        if (rotationHit || (!rotationHit && !positionHit && String(attainedLocationRaw).toLowerCase().includes("rotation"))){
+          phaseResults.controlPanel.rotationControlRate += 1;
         }
 
         break;
@@ -224,23 +214,21 @@ export const calculateReportTotals = (report) => {
 
       case "HANG": {
         phaseResults.hang.attempts += 1;
-        if (cycle.start_time !== undefined && phaseResults.hang.startTime === null) {
-          phaseResults.hang.startTime = cycle.start_time;
-        }
         if (cycleTime !== null) {
           phaseResults.hang.cycleTime = cycleTime; // last recorded cycleTime
         }
 
         // result: FAIL_HANG, HANG, BALANCED, etc.
-        const result = cycle.result ? String(cycle.result).toUpperCase() : null;
+        const result = depositLocation.toUpperCase();
         if (result === "HANG" || result === "BALANCED") {
           // per your note: hang and balanced count as successful
-          phaseResults.hang.successfulCount += 1;
-        } else if (result === "FAIL_HANG") {
-          phaseResults.hang.failCount += 1;
-        } else if (result === "BALANCED"){
-          phaseResults.hang.balancedCount += 1
+          phaseResults.hang.successRate += 1;
         }
+        if (result === "BALANCED"){
+          phaseResults.hang.balancedRate += 1
+        }
+
+        console.log("hang cycle", phaseResults.hang);
         break;
       }
 
@@ -270,18 +258,20 @@ export const calculateReportTotals = (report) => {
     const p = results[phase];
 
     // movementRate: successfulEnds / attempts (guard divide-by-zero)
-    if (p.movement.attempts > 0) {
-      p.movement.movementRate = p.movement.successfulEnds / p.movement.attempts;
-    } else {
-      p.movement.movementRate = 0;
+    if (phase==="auto"){
+      if (p.movement.attempts > 0) {
+        p.movement.movementRate = p.movement.successfulEnds / p.movement.attempts;
+      } else {
+        p.movement.movementRate = 0;
+      }
     }
 
     // powerCell avg scoring cycle time
     if (powerCellScoringTimes[phase].length > 0) {
       const tot = powerCellScoringTimes[phase].reduce((acc, cur) => acc + cur, 0);
-      p.powerCell.avgScoringCycleTime = tot / powerCellScoringTimes[phase].length;
+      p.powerCell.avgCycleTime = tot / powerCellScoringTimes[phase].length;
     } else {
-      p.powerCell.avgScoringCycleTime = null;
+      p.powerCell.avgCycleTime = null;
     }
 
     // powerCell high/low accuracy
@@ -290,32 +280,33 @@ export const calculateReportTotals = (report) => {
     const lowDenom = p.powerCell.lowScoreCount + p.powerCell.lowMissCount;
     p.powerCell.lowAccuracy = lowDenom > 0 ? p.powerCell.lowScoreCount / lowDenom : 0;
 
-    // control panel average times
-    const posTimes = controlPanelTimes[phase].position;
-    const rotTimes = controlPanelTimes[phase].rotation;
-    if (posTimes.length > 0) {
-      p.controlPanel.positionAvgTime = posTimes.reduce((a, b) => a + b, 0) / posTimes.length;
-    } else {
-      p.controlPanel.positionAvgTime = null;
-    }
-    if (rotTimes.length > 0) {
-      p.controlPanel.rotationAvgTime = rotTimes.reduce((a, b) => a + b, 0) / rotTimes.length;
-    } else {
-      p.controlPanel.rotationAvgTime = null;
-    }
+    if (phase==="tele"){
+      // control panel average times
+      const posTimes = controlPanelTimes.position;
+      const rotTimes = controlPanelTimes.rotation;
+      if (posTimes.length > 0 && posTimes.every(t => typeof t ==="number")) {
+        console.log("posTimes", posTimes);
+        p.controlPanel.positionAvgTime = posTimes.reduce((a, b) => a + b, 0) / posTimes.length;
+      } else {
+        p.controlPanel.positionAvgTime = null;
+      }
+      if (rotTimes.length > 0 && posTimes.every(t => typeof t ==="number")) {
+        p.controlPanel.rotationAvgTime = rotTimes.reduce((a, b) => a + b, 0) / rotTimes.length;
+      } else {
+        p.controlPanel.rotationAvgTime = null;
+      }
 
-    // percent done (per-match, so either 0 or 1)
-    p.controlPanel.percentPositionDone = p.controlPanel.positionCompleted > 0 ? 1 : 0;
-    p.controlPanel.percentRotationDone = p.controlPanel.rotationCompleted > 0 ? 1 : 0;
-
-    // hang success rate (successfulCount / attempts)
-    if (p.hang.attempts > 0) {
-      p.hang.hangSuccessRate = p.hang.successfulCount / p.hang.attempts;
-    } else {
-      p.hang.hangSuccessRate = 0;
+      // hang success rate (successfulCount / attempts)
+      if (p.hang.attempts > 0) {
+        console.log("abcde", p.hang.successRate, p.hang.attempts)
+        p.hang.hangSuccessRate = p.hang.successRate / p.hang.attempts;
+      } else {
+        p.hang.hangSuccessRate = 0;
+      }
     }
   }
 
+  console.log("results", results);
   return results;
 };
 
@@ -329,11 +320,12 @@ export const calculateAverageMetrics = (reports) => {
     tele: {},
   };
 
-  // disabled: average over numeric values
+  // disabled: average over numeric values, excluding zeros
   let disabledSum = 0;
   let disabledCount = 0;
   reports.forEach((r) => {
-    if (r.totals && typeof r.totals.disabled === "number") {
+    // MODIFIED: Added '&& r.totals.disabled !== 0' to ignore zero values
+    if (r.totals && typeof r.totals.disabled === "number" && r.totals.disabled !== 0) {
       disabledSum += r.totals.disabled;
       disabledCount++;
     }
@@ -354,7 +346,8 @@ export const calculateAverageMetrics = (reports) => {
         reports.forEach((r) => {
           if (r.totals && r.totals[phase] && typeof r.totals[phase][category] !== "undefined") {
             const val = r.totals[phase][category][key];
-            if (typeof val === "number") {
+            // MODIFIED: Added '&& val !== 0' to ignore zero values
+            if (typeof val === "number" && val !== 0) {
               sum += val;
               count++;
             }

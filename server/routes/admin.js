@@ -1,7 +1,7 @@
 // routes/admin.js
 import express from "express";
 import notion from "../services/notionClient.js"; // adjust the path as needed
-import { storePitScouting } from "../database/pit_scouting.js";
+// import { storePitScouting } from "../database/pit_scouting.js";
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ router.post("/importNotionPitScouting", async (req, res) => {
     const pages = notionResponse.results;
     // console.log(pages);
     // Store (upsert) the pit scouting data into the SQL table.
-    await storePitScouting(req, eventKey, pages);
+    // await storePitScouting(req, eventKey, pages);
 
     res.json({
       message: "Notion pit scouting data imported successfully",

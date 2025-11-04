@@ -16,7 +16,6 @@ import MenuIcon from "@mui/icons-material/Menu";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
 
-import AlgaeIcon from "../../assets/scouting-2025/algaeIcon.png";
 import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
 import Sidebar from "../Sidebar.js";
 

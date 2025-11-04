@@ -1,5 +1,9 @@
 html, body, #root{
-    width: 100%;
-    height: 100%;
-    background-color: "#000033  "
+    min-width: 100%;
+    min-height: 100vh;
+    background-color: "#000033"
+}
+
+body{
+    background-color: #11181a !important;
 }

@@ -1,8 +1,4 @@
-// Only load dotenv locally
-if (process.env.NODE_ENV !== "production") {
-  const dotenv = await import('dotenv');
-  dotenv.config(); // looks for .env in root by default
-}
+import "dotenv/config";
 import path from "path";
 import { fileURLToPath } from "url";
 

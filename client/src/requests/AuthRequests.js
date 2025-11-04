@@ -3,7 +3,7 @@ import axios from "axios";
 const SERVER_URL =
   process.env.NODE_ENV == "development"
     ? "http://localhost:3001/auth"
-    : "/auth";
+    : process.env.REACT_APP_API_URL + "/auth";
 
 const SIGN_IN_ROUTE = SERVER_URL + "/signin";
 const CREATE_USER_ROUTE = SERVER_URL + "/createUser";

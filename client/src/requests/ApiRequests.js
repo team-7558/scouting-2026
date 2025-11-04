@@ -4,7 +4,7 @@ import ApiClient from "./ApiClient";
 import { getAuthHeaders } from "./AuthRequests.js";
 
 const SERVER_URL =
-  process.env.NODE_ENV === "development" ? "http://localhost:3001/api" : "/api";
+  process.env.NODE_ENV === "development" ? "http://localhost:3001/api" : process.env.REACT_APP_API_URL + "/api";
 
 const api = new ApiClient(SERVER_URL);
 

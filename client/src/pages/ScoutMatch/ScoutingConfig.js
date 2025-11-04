@@ -186,7 +186,7 @@ export const SCOUTING_CONFIG = {
     dimensions: {width: 400, height: 200},
     showFunction: (match) => {
       console.log(match.cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT));
-      return !match.cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && !match.autoMovement.endTime
+      return !match.cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && !(match.autoMovement && match.autoMovement.endTime)
     },
     onClick: (match) => {
       match.setAutoMovement({...match.autoMovement, endTime: match.getCurrentTime()});

@@ -195,7 +195,11 @@ const ScoutMatch = () => {
     setMatchStartTime(null);
     setDisplayTime(null);
     setCycles([]);
-    setAutoMovement({ startTime: 0 });
+    setAutoMovement({
+      startTime: 0,
+      attainedLocation: null,
+      endTime: null,
+    });
     setPowerCellCycles([
       { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
       { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
@@ -313,11 +317,13 @@ const ScoutMatch = () => {
   const saveEndedCycles = () => {
     let cyclesToAdd = [];
     setAutoMovement(prevAutoMovement => {
-      console.log("autoMovement", prevAutoMovement);
-      if (!cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && startingPosition>=0 && (prevAutoMovement?.endTime || phase==PHASES.TELE)){
-        cyclesToAdd.push({type: CYCLE_TYPES.AUTO_MOVEMENT, phase, ...prevAutoMovement, attainedLocation: startingPosition});
-        return {};
+      const safeAutoMovement = prevAutoMovement ?? { startTime: 0, attainedLocation: null, endTime: null };
+      console.log("autoMovement", safeAutoMovement);
+      if (!cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && startingPosition>=0 && (safeAutoMovement?.endTime || phase==PHASES.TELE)){
+        cyclesToAdd.push({type: CYCLE_TYPES.AUTO_MOVEMENT, phase, ...safeAutoMovement, attainedLocation: startingPosition});
+        return { startTime: 0, attainedLocation: null, endTime: null };;
       }
+      return safeAutoMovement;
     })
     setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
       if (cycle.endTime){

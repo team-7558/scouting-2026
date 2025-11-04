@@ -41,10 +41,10 @@ app.use("/auth", authRoutes);
 app.use("/webhook", webhookRoutes);
 
 // Have Node serve the files for our built React app
-app.use(express.static(path.resolve(__dirname, "../client/build")));
-app.get("*", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "../client/build", "index.html"));
-});
+// app.use(express.static(path.resolve(__dirname, "../client/build")));
+// app.get("*", (req, res) => {
+//   res.sendFile(path.resolve(__dirname, "../client/build", "index.html"));
+// });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

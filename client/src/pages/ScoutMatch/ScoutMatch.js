@@ -315,71 +315,64 @@ const ScoutMatch = () => {
   console.log("autoMovement", autoMovement);
 
   const saveEndedCycles = () => {
-    const newCycles = [];
-
-    // Safe autoMovement
-    const safeAutoMovement = autoMovement ?? { startTime: 0, attainedLocation: null, endTime: null };
-    console.log("autoMovement", safeAutoMovement);
-    let newAutoMovement = safeAutoMovement;
-    if (!cycles.some(cycle => cycle.type === CYCLE_TYPES.AUTO_MOVEMENT) && startingPosition >= 0 && (safeAutoMovement?.endTime || phase === PHASES.TELE)) {
-      newCycles.push({
-        type: CYCLE_TYPES.AUTO_MOVEMENT,
-        phase,
-        ...safeAutoMovement,
-        attainedLocation: startingPosition,
-      });
-      newAutoMovement = { startTime: 0, attainedLocation: null, endTime: null };
-    }
-
-    // Safe powerCellCycles
-    const newPowerCellCycles = powerCellCycles.map(cycle => {
-      console.log("prevCycle", cycle);
-      if (cycle?.endTime != null) {
-        newCycles.push({ type: CYCLE_TYPES.POWER_CELL, phase, ...cycle });
-        return {}; // reset finished cycle
+    let cyclesToAdd = [];
+    setAutoMovement(prevAutoMovement => {
+      const safeAutoMovement = prevAutoMovement ?? { startTime: 0, attainedLocation: null, endTime: null };
+      console.log("autoMovement", safeAutoMovement);
+      if (!cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && startingPosition>=0 && (safeAutoMovement?.endTime || phase==PHASES.TELE)){
+        cyclesToAdd.push({type: CYCLE_TYPES.AUTO_MOVEMENT, phase, ...safeAutoMovement, attainedLocation: startingPosition});
+        return { startTime: 0, attainedLocation: null, endTime: null };;
+      }
+      return safeAutoMovement;
+    })
+    setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
+      console.log("prevCycles", prevCycles);
+      if (cycle.endTime){
+       console.log("added cycle", {type: CYCLE_TYPES.POWER_CELL, phase, ...cycle});
+        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.POWER_CELL, phase, ...cycle}])
+        return {};
       }
       return cycle;
+    }));
+    setHang(prevHang => {
+      console.log("prevHang", prevHang)
+      if (prevHang.endTime!=null){
+        console.log("added cycle", {type: CYCLE_TYPES.HANG, phase, ...prevHang});
+        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.HANG, phase, ...prevHang}])
+        return {};
+      }
+      return prevHang;
     });
-
-    // Safe hang
-    const newHang = (hang?.endTime != null) ? (() => {
-      console.log("prevHang", hang);
-      newCycles.push({ type: CYCLE_TYPES.HANG, phase, ...hang });
-      return {};
-    })() : hang;
-
-    // Safe controlPanel
-    const newControlPanel = (controlPanel?.endTime != null) ? (() => {
-      console.log("prevControlPanel", controlPanel);
-      newCycles.push({ type: CYCLE_TYPES.CONTROL_PANEL, phase, ...controlPanel });
-      return {};
-    })() : controlPanel;
-
-    // Safe defense
-    const newDefense = (defense?.endTime != null) ? (() => {
-      console.log("prevDefense", defense);
-      newCycles.push({ type: CYCLE_TYPES.DEFENSE, phase, ...defense });
-      return {};
-    })() : defense;
-
-    // Safe contact
-    const newContact = (contact?.endTime != null) ? (() => {
-      console.log("prevContact", contact);
-      newCycles.push({ type: CYCLE_TYPES.CONTACT, phase, ...contact });
-      return {};
-    })() : contact;
-
-    // Update all states in one go
-    setAutoMovement(newAutoMovement);
-    setPowerCellCycles(newPowerCellCycles);
-    setHang(newHang);
-    setControlPanel(newControlPanel);
-    setDefense(newDefense);
-    setContact(newContact);
-    setCycles(prev => [...prev, ...newCycles]);
-
-    console.log("Added cycles:", newCycles);
-  };
+    setControlPanel(prevPanel => {
+      console.log("prevPanel", prevPanel)
+      if (prevPanel.endTime!=null){
+        console.log("added cycle", {type: CYCLE_TYPES.CONTROL_PANEL, phase, ...prevPanel});
+        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.CONTROL_PANEL, phase, ...prevPanel}])
+        return {};
+      }
+      return prevPanel
+    });
+    setDefense(prevDefense => {
+      console.log("prevDefense", prevDefense)
+      if (prevDefense.endTime!=null){
+        console.log("added cycle", {type: CYCLE_TYPES.DEFENSE, phase, ...prevDefense});
+        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.DEFENSE, phase, ...prevDefense}])
+        return {};
+      }
+      return prevDefense
+    });
+    setContact(prevContact => {
+      console.log("prevContact", prevContact)
+      if (prevContact.endTime!=null){
+        console.log("added cycle", {type: CYCLE_TYPES.CONTACT, phase, ...prevContact});
+        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.CONTACT, phase, ...prevContact}])
+        return {};
+      }
+      return prevContact
+    });
+    // setCycles(prevCycles => [...prevCycles, ...cyclesToAdd]);
+    // console.log("C2a", cyclesToAdd);
+  }
 
   // const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
   //   console.log("Clearing unfinished");

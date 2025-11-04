@@ -326,6 +326,7 @@ const ScoutMatch = () => {
       return safeAutoMovement;
     })
     setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
+      console.log("prevCycles", prevCycles);
       if (cycle.endTime){
         cyclesToAdd.push({type: CYCLE_TYPES.POWER_CELL, phase, ...cycle});
         return {};
@@ -333,6 +334,7 @@ const ScoutMatch = () => {
       return cycle;
     }));
     setHang(prevHang => {
+      console.log("prevHang", prevHang)
       if (prevHang.endTime!=null){
         cyclesToAdd.push({type: CYCLE_TYPES.HANG, phase, ...prevHang});
         return {};
@@ -340,6 +342,7 @@ const ScoutMatch = () => {
       return prevHang;
     });
     setControlPanel(prevPanel => {
+      console.log("prevPanel", prevPanel)
       if (prevPanel.endTime!=null){
         cyclesToAdd.push({type: CYCLE_TYPES.CONTROL_PANEL, phase, ...prevPanel});
         return {};
@@ -347,6 +350,7 @@ const ScoutMatch = () => {
       return prevPanel
     });
     setDefense(prevDefense => {
+      console.log("prevDefense", prevDefense)
       if (prevDefense.endTime!=null){
         cyclesToAdd.push({type: CYCLE_TYPES.DEFENSE, phase, ...prevDefense});
         return {};
@@ -354,6 +358,7 @@ const ScoutMatch = () => {
       return prevDefense
     });
     setContact(prevContact => {
+      console.log("prevContact", prevContact)
       if (prevContact.endTime!=null){
         cyclesToAdd.push({type: CYCLE_TYPES.CONTACT, phase, ...prevContact});
         return {};
@@ -361,7 +366,7 @@ const ScoutMatch = () => {
       return prevContact
     });
     setCycles(prevCycles => [...prevCycles, ...cyclesToAdd]);
-    console.log(cyclesToAdd);
+    console.log("C2a", cyclesToAdd);
   }
 
   // const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {

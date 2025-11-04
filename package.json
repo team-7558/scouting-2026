@@ -6,7 +6,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "node server",
+    "start": "node server/index.js",
     "server": "nodemon --quiet server",
     "client": "npm start --prefix client",
     "build": "cd client/ && npm install && npm run build",

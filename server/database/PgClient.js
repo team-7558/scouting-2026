@@ -1,8 +1,14 @@
 import pg from "pg";
+import path from "path";
+import { fileURLToPath } from "url";
 const { Pool } = pg;
-
 import { extractRoleFromRequest } from "../routes/auth.js";
 import { USER_ROLES } from "./auth.js";
+import dotenv from "dotenv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 // Database URI
 
@@ -20,6 +26,7 @@ const config = {
 };
 
 const pool = new Pool(config);
+console.log("connecting to", config);
 
 // the pool will emit an error on behalf of any idle clients
 // it contains if a backend error or network partition happens

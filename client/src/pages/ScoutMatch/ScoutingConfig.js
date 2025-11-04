@@ -183,7 +183,7 @@ export const SCOUTING_CONFIG = {
   LEFT_STARTING_AREA: {
     phases: [PHASES.AUTO],
     positions: {a: [1100, 800]},
-    dimensions: {width: 2200, height: 1600},
+    dimensions: {width: 400, height: 200},
     showFunction: (match) => {
       console.log(match.cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT));
       return !match.cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && !match.autoMovement.endTime

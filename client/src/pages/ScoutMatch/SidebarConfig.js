@@ -21,7 +21,6 @@ const exists = (value) => {
 
 const finishUnfinished = (match) => {
   match.setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
-    console.log("cycle", cycle);
     if (cycle.attainedLocation && !cycle.startTime){
       return {...cycle, startTime: match.getCurrentTime()};
     } else if (cycle.depositLocation && !cycle.endTime && exists(cycle.success)){
@@ -61,7 +60,6 @@ export const SIDEBAR_CONFIG = [
     label: (match, key) => `${match.getNumPowerCellsInBot()} Preload${match.getNumPowerCellsInBot()!=1 ? "s" : ""}`,
     onClick: (match, key) => {
       let newPowerCellCycles = [...match.powerCellCycles];
-      console.log(newPowerCellCycles);
       let slot = -1;
       for (let index in [1, 2, 3]) {
         if (!newPowerCellCycles[index].attainedLocation) {
@@ -69,7 +67,6 @@ export const SIDEBAR_CONFIG = [
           break;
         }
       }
-      console.log(slot);
       if (slot===-1) {
         match.setPowerCellCycles([{}, {}, {}, {}, {}]);
         return ;
@@ -122,8 +119,6 @@ export const SIDEBAR_CONFIG = [
           }
         }
       }
-
-      console.log(newPowerCellCycles);
 
       match.setPowerCellCycles(newPowerCellCycles);
     },
@@ -243,7 +238,7 @@ export const SIDEBAR_CONFIG = [
     color: (match, key) => COLORS.PENDING,
     sx: {},
     show: (match, key) =>{
-      console.log(match.contact); return match.isDefending() && match.contact.startTime == null;},
+      return match.isDefending() && match.contact.startTime == null;},
   },
   {
     phases: [PHASES.AUTO, PHASES.TELE],
@@ -353,7 +348,6 @@ export const SIDEBAR_CONFIG = [
         match.userToken,
         /* submitAfter= */ key==="DATA",
         (response) => {
-          console.log("successfully saved:", response);
           match.setScoutData(null);
           match.setSearchParams({
             eventKey: match.searchParams.get("eventKey"),

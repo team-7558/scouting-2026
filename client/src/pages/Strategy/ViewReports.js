@@ -33,6 +33,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 import { getReports } from "../../requests/ApiRequests";
 import { styled } from '@mui/material/styles';
+import HomeIcon from "@mui/icons-material/Home";
 
 import { CartesianGrid, Legend, Line, LineChart, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 
@@ -323,191 +324,200 @@ const RenderTopBar = ({
   handleSearchKeyDown,
   requiredParamKeys,
   searchParams
-}) => (
-  <Paper
-    sx={{
-      zIndex: 2,
-      p: 2,
-      pb: 0,
-      mb: 3,
-      backgroundColor: "#121212",
-      border: "1px solid #333",
-      // boxShadow: `0px 0px 10px ${accentColor}`
-      boxShadow: `0px 0px 10px #eee`
-    }}
-  >
-    <Box
+}) =>{ 
+  const navigate = useNavigate();
+  return (
+    <Paper
       sx={{
-        display: "flex",
-        flexDirection: { xs: "column", sm: "row" },
-        justifyContent: "space-between",
-        alignItems: "center",
-        mb: 2
+        zIndex: 2,
+        p: 2,
+        pb: 0,
+        mb: 3,
+        backgroundColor: "#121212",
+        border: "1px solid #333",
+        // boxShadow: `0px 0px 10px ${accentColor}`
+        boxShadow: `0px 0px 10px #eee`
       }}
     >
-      <Box sx={{display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
-        <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: accentColor, textAlign: "center"}}>
-          Team Reports
-        </Typography>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "space-evenly" }}>
-          {requiredParamKeys.map((key) => (
-            <Chip
-              key={key}
-              label={`${key}: ${searchParams.get(key)}`}
-              sx={{ backgroundColor: "#888", color: "#000" }}
-            />
-          ))}
+      <HomeIcon 
+        sx={{aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white"}} 
+        onClick={() => {
+          navigate("/");
+        }}
+      />
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2
+        }}
+      >
+        <Box sx={{display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
+          <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: accentColor, textAlign: "center"}}>
+            Team Reports
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "space-evenly" }}>
+            {requiredParamKeys.map((key) => (
+              <Chip
+                key={key}
+                label={`${key}: ${searchParams.get(key)}`}
+                sx={{ backgroundColor: "#888", color: "#000" }}
+              />
+            ))}
+          </Box>
         </Box>
-      </Box>
 
-      <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" }, alignItems: "center", height: "100%" }}>
-        <Box sx={{display: "flex", justifyContent: "space-evenly", height: "100%", flexDirection: { sm: "column", xs: "row" }, alignItems: "center"}}>
-          <Button
-            variant="outlined"
-            onClick={() => window.location.reload()}
-            size="large"
-            sx={{
-              borderRadius: "0.7vw",
-              border: "2px solid " + accentColor,
-              color: "#ddd",
-              "&:hover": { backgroundColor: "#009933" },
-              height: {xs: "50px", sm: "75px", md: "50px"},
-              margin: {xs: "1vh 5vw", sm: "1vh 1vw"},
-              width: {xs: "30vw", sm: "10vw"},
-              fontSize: 'calc(0.5vw + 7px)'
-            }}
-          >
-            RELOAD
-          </Button>
-
-          <Button
-            variant="outlined"
-            onClick={() => {
-              window.location.pathname = "/categorySort"
-            }}
-            sx={{
-              borderRadius: "0.7vw",
-              border: `2px solid ${accentColor}`,
-              color: "#ddd",
-              "&:hover": { backgroundColor: "#009933" },
-              height: {xs: "50px", sm: "75px", md: "50px"},
-              margin: {xs: "1vh 5vw", sm: "1vh 1vw"},
-              width: {xs: "30vw", sm: "10vw"},
-              fontSize: 'calc(0.5vw + 7px)'
-            }}
-          >
-            ALL DATA
-          </Button>
-        </Box>
-        <Box sx={{display: "flex", flexDirection: {xs: "row", sm: "column"}, justifyContent: "center", alignItems: "center"}}>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const url = new URL(window.location.href);
-              url.pathname = "/matches";
-              url.searchParams.set("matchKey", matchKeySearchTerm);
-              window.history.replaceState({}, "", url.toString());
-              window.location.href = window.location.href;
-            }}
-          >
-            <TextField
-              value={matchKeySearchTerm}
-              onChange={(e) => setMatchKeySearchTerm(e.target.value.toLowerCase())}
-              onKeyDown={handleSearchKeyDown("matchKey")}
+        <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" }, alignItems: "center", height: "100%" }}>
+          <Box sx={{display: "flex", justifyContent: "space-evenly", height: "100%", flexDirection: { sm: "column", xs: "row" }, alignItems: "center"}}>
+            <Button
               variant="outlined"
+              onClick={() => window.location.reload()}
               size="large"
-              placeholder="Search by match key"
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon sx={{ color: accentColor }} />
-                  </InputAdornment>
-                )
+              sx={{
+                borderRadius: "0.7vw",
+                border: "2px solid " + accentColor,
+                color: "#ddd",
+                "&:hover": { backgroundColor: "#009933" },
+                height: {xs: "50px", sm: "75px", md: "50px"},
+                margin: {xs: "1vh 5vw", sm: "1vh 1vw"},
+                width: {xs: "30vw", sm: "10vw"},
+                fontSize: 'calc(0.5vw + 7px)'
               }}
-              sx={{ width: { xs: "100%", sm: "20vw" }, bgcolor: "#222", input: { color: "#fff", fontSize: 'calc(0.7vw + 10px)'}, borderRadius: "10000px"}}
-            />
-          </form>
+            >
+              RELOAD
+            </Button>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const url = new URL(window.location.href);
-              url.pathname = "/robots";
-              setRobotSearchTerm(prevTerm => {
-                console.log("rst", prevTerm);
-                url.searchParams.set("robot", prevTerm.join(","));
-                console.log("here", url.href);
-                window.location.href = url.href;
-                return prevTerm;
-              })
-            }}
-            id="robotsForm"
-          >
-            <Autocomplete
-              multiple
-              freeSolo
-              options={[]}
-              value={Array.isArray(robotSearchTerm)
-                ? robotSearchTerm
-                : [robotSearchTerm]
-              }
-              onChange={(event, newValue) => {
-                console.log("abc", newValue.filter(v => v));
-                setRobotSearchTerm(newValue.filter(Boolean));
-                const form = document.getElementById("robotsForm");
-                const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
-                form.dispatchEvent(submitEvent);
+            <Button
+              variant="outlined"
+              onClick={() => {
+                window.location.pathname = "/categorySort"
               }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  variant="outlined"
-                  size="large"
-                  placeholder="Search by robots"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <SearchIcon sx={{ color: accentColor }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    width: { xs: "100%", sm: "20vw" },
-                    bgcolor: "#222",
-                    input: { color: "#fff" },
-                    mt: {sm: "1vh", xs: 0},
-                    borderRadius: "500px",
-                    fontSize: 'calc(0.7vw + 10px)'
-                  }}
-                />
-              )}
-              renderTags={(value, getItemProps) =>
-                value.map((option, index) => {
-                  const { key, ...itemProps } = getItemProps({ index });
-                  console.log("i", index);
-                  return (
-                    <Chip 
-                      variant="outlined" 
-                      label={option} 
-                      key={key} 
-                      size="large"
-                      sx={{color: "#bbb", fontSize: 'calc(0.5vw + 7px)'}} 
-                      {...itemProps}
-                      deleteIcon={<ClearIcon style={{ color: '#aaa', fontSize: '2vw' }} 
-                    />}
-                    />
-                  );
+              sx={{
+                borderRadius: "0.7vw",
+                border: `2px solid ${accentColor}`,
+                color: "#ddd",
+                "&:hover": { backgroundColor: "#009933" },
+                height: {xs: "50px", sm: "75px", md: "50px"},
+                margin: {xs: "1vh 5vw", sm: "1vh 1vw"},
+                width: {xs: "30vw", sm: "10vw"},
+                fontSize: 'calc(0.5vw + 7px)'
+              }}
+            >
+              ALL DATA
+            </Button>
+          </Box>
+          <Box sx={{display: "flex", flexDirection: {xs: "row", sm: "column"}, justifyContent: "center", alignItems: "center"}}>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const url = new URL(window.location.href);
+                url.pathname = "/matches";
+                url.searchParams.set("matchKey", matchKeySearchTerm);
+                window.history.replaceState({}, "", url.toString());
+                window.location.href = window.location.href;
+              }}
+            >
+              <TextField
+                value={matchKeySearchTerm}
+                onChange={(e) => setMatchKeySearchTerm(e.target.value.toLowerCase())}
+                onKeyDown={handleSearchKeyDown("matchKey")}
+                variant="outlined"
+                size="large"
+                placeholder="Search by match key"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <SearchIcon sx={{ color: accentColor }} />
+                    </InputAdornment>
+                  )
+                }}
+                sx={{ width: { xs: "100%", sm: "20vw" }, bgcolor: "#222", input: { color: "#fff", fontSize: 'calc(0.7vw + 10px)'}, borderRadius: "10000px"}}
+              />
+            </form>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const url = new URL(window.location.href);
+                url.pathname = "/robots";
+                setRobotSearchTerm(prevTerm => {
+                  console.log("rst", prevTerm);
+                  url.searchParams.set("robot", prevTerm.join(","));
+                  console.log("here", url.href);
+                  window.location.href = url.href;
+                  return prevTerm;
                 })
-              }
-            />
-          </form>
+              }}
+              id="robotsForm"
+            >
+              <Autocomplete
+                multiple
+                freeSolo
+                options={[]}
+                value={Array.isArray(robotSearchTerm)
+                  ? robotSearchTerm
+                  : [robotSearchTerm]
+                }
+                onChange={(event, newValue) => {
+                  console.log("abc", newValue.filter(v => v));
+                  setRobotSearchTerm(newValue.filter(Boolean));
+                  const form = document.getElementById("robotsForm");
+                  const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
+                  form.dispatchEvent(submitEvent);
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    size="large"
+                    placeholder="Search by robots"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <SearchIcon sx={{ color: accentColor }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      width: { xs: "100%", sm: "20vw" },
+                      bgcolor: "#222",
+                      input: { color: "#fff" },
+                      mt: {sm: "1vh", xs: 0},
+                      borderRadius: "500px",
+                      fontSize: 'calc(0.7vw + 10px)'
+                    }}
+                  />
+                )}
+                renderTags={(value, getItemProps) =>
+                  value.map((option, index) => {
+                    const { key, ...itemProps } = getItemProps({ index });
+                    console.log("i", index);
+                    return (
+                      <Chip 
+                        variant="outlined" 
+                        label={option} 
+                        key={key} 
+                        size="large"
+                        sx={{color: "#bbb", fontSize: 'calc(0.5vw + 7px)'}} 
+                        {...itemProps}
+                        deleteIcon={<ClearIcon style={{ color: '#aaa', fontSize: '2vw' }} 
+                      />}
+                      />
+                    );
+                  })
+                }
+              />
+            </form>
+          </Box>
         </Box>
       </Box>
-    </Box>
-  </Paper>
-);
+    </Paper>
+  );
+}
 
 // ================================
 // Category Table

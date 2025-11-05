@@ -28,6 +28,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 import { getReports } from "../../requests/ApiRequests";
+import HomeIcon from "@mui/icons-material/Home";
 
 // ----------------- Helper Functions -----------------
 const formatValue = (value, key) => {
@@ -308,7 +309,13 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
   return (
     <div style={{backgroundColor: "#000", width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto"}}>
       <Paper sx={{ p: 2, mb: 3, bgcolor: "#111" }}>
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <HomeIcon 
+            sx={{aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white"}} 
+            onClick={() => {
+              navigate("/");
+            }}
+          />
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center", mb: 2}}>
           <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: "#f00" }}>
             View Reports
           </Typography>
@@ -317,7 +324,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
             {requiredParamKeys.map((key) => <Chip key={key} label={`${key}: ${searchParams.get(key)}`} sx={{ bgcolor: "#222", color: "#f00" }} />)}
           </Box>
 
-          <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" }, width: { xs: "100%", sm: "auto" } }}>
+          <Box sx={{ display: "flex", gap: 2, flexDirection: "column", width: { xs: "100%", sm: "auto" } }}>
             <form onSubmit={(e) => {
               e.preventDefault();
               const url = new URL(window.location.href);

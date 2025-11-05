@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { Box, Button, Drawer, TextField } from "@mui/material";
+import { Box, Button, Drawer, TextField, Image } from "@mui/material";
 import { DRIVER_STATIONS, PERSPECTIVE } from "./ScoutMatch/Constants.js";
 import { useNavigate } from "react-router-dom";
+import HomeIcon from '@mui/icons-material/Home';
 
 const Sidebar = ({
   sidebarOpen,
@@ -55,6 +56,12 @@ const Sidebar = ({
   return (
     <Drawer open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
       {[
+        <HomeIcon 
+          sx={{aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", mt: "1vh", ml: "1vh", fontSize: "30px"}} 
+          onClick={() => {
+            navigate("/");
+          }}
+        />,
         <center key="sidebarNameHeader">
           <h3>NAME</h3>
         </center>,

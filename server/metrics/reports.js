@@ -124,7 +124,6 @@ export const calculateReportTotals = (report) => {
       }
 
       case "POWER_CELL": {
-        console.log("powercellcycle", cycle);
         // attainedCount = start_time not null (per your request)
         if (startTime !== null) phaseResults.powerCell.attainedCount += 1;
 
@@ -227,8 +226,6 @@ export const calculateReportTotals = (report) => {
         if (result === "BALANCED"){
           phaseResults.hang.balancedRate += 1
         }
-
-        console.log("hang cycle", phaseResults.hang);
         break;
       }
 
@@ -285,7 +282,6 @@ export const calculateReportTotals = (report) => {
       const posTimes = controlPanelTimes.position;
       const rotTimes = controlPanelTimes.rotation;
       if (posTimes.length > 0 && posTimes.every(t => typeof t ==="number")) {
-        console.log("posTimes", posTimes);
         p.controlPanel.positionAvgTime = posTimes.reduce((a, b) => a + b, 0) / posTimes.length;
       } else {
         p.controlPanel.positionAvgTime = null;
@@ -298,15 +294,12 @@ export const calculateReportTotals = (report) => {
 
       // hang success rate (successfulCount / attempts)
       if (p.hang.attempts > 0) {
-        console.log("abcde", p.hang.successRate, p.hang.attempts)
         p.hang.hangSuccessRate = p.hang.successRate / p.hang.attempts;
       } else {
         p.hang.hangSuccessRate = 0;
       }
     }
   }
-
-  console.log("results", results);
   return results;
 };
 

@@ -30,6 +30,8 @@ import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 import { getReports } from "../../requests/ApiRequests";
 import HomeIcon from "@mui/icons-material/Home";
 
+const accentColor = "#1fdb25";
+
 // ----------------- Helper Functions -----------------
 const formatValue = (value, key) => {
   if (value === null || value === undefined) return "-";
@@ -194,7 +196,7 @@ const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
                 display: "flex",
                 alignItems: "center",
                 p: 1,
-                bgcolor: "#000",
+                bgcolor: "#111",
                 color: headingColors?.[group] || "#0f0",
                 cursor: "pointer",
                 borderLeft: `4px solid ${headingColors?.[group] || "#0f0"}`,
@@ -307,7 +309,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
   };
 
   return (
-    <div style={{backgroundColor: "#000", width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto"}}>
+    <div style={{width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto"}}>
       <Paper sx={{ p: 2, mb: 3, bgcolor: "#111" }}>
         <HomeIcon 
             sx={{aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white"}} 
@@ -316,12 +318,12 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
             }}
           />
         <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center", mb: 2}}>
-          <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: "#f00" }}>
+          <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: accentColor }}>
             View Reports
           </Typography>
 
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
-            {requiredParamKeys.map((key) => <Chip key={key} label={`${key}: ${searchParams.get(key)}`} sx={{ bgcolor: "#222", color: "#f00" }} />)}
+            {requiredParamKeys.map((key) => <Chip key={key} label={`${key}: ${searchParams.get(key)}`} sx={{ bgcolor: "#222", color: accentColor }} />)}
           </Box>
 
           <Box sx={{ display: "flex", gap: 2, flexDirection: "column", width: { xs: "100%", sm: "auto" } }}>
@@ -379,10 +381,10 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
               value="all"
               aria-label="all phases"
               sx={{
-                color: "#f00",
+                color: accentColor,
                 '&.Mui-selected': {
-                  border: '2px solid red',
-                  color: "#f00",
+                  border: `2px solid ${accentColor}`,
+                  color: accentColor,
                 },
               }}
             >
@@ -392,10 +394,10 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
               value="auto"
               aria-label="auto phase"
               sx={{
-                color: "#f00",
+                color: accentColor,
                 '&.Mui-selected': {
                   border: '2px solid red',
-                  color: "#f00",
+                  color: accentColor,
                 },
               }}
             >
@@ -405,17 +407,17 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
               value="tele"
               aria-label="tele phase"
               sx={{
-                color: "#f00",
+                color: accentColor,
                 '&.Mui-selected': {
                   border: '2px solid red',
-                  color: "#f00",
+                  color: accentColor,
                 },
               }}
             >
               TELE
             </ToggleButton>
           </ToggleButtonGroup>
-          <Button variant="outlined" onClick={loadData} sx={{ color: "#f00", borderColor: "#f00" }}>Reload</Button>
+          <Button variant="outlined" onClick={loadData} sx={{ color: accentColor, borderColor: accentColor }}>Reload</Button>
         </Box>
       </Paper>
 

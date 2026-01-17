@@ -5,6 +5,7 @@ import React, {
   useContext,
   createContext,
   useLayoutEffect,
+  useCallback,
 } from "react";
 import { ThemeProvider } from "@mui/material/styles";
 import { BlueTheme } from "./themes/BlueTheme.js";
@@ -16,25 +17,18 @@ import MenuIcon from "@mui/icons-material/Menu";
 import { FieldCanvas, FieldLocalComponent } from "../FieldCanvas.js";
 import FullscreenDialog from "./FullScreenDialog.js";
 
-import CoralIcon from "../../assets/scouting-2025/coralIcon.png";
 import Sidebar from "../Sidebar.js";
 
 import {
-  GAME_LOCATIONS,
-  ACTIONS,
-  GAME_PIECES,
   PHASES,
   COLORS,
   DRIVER_STATIONS,
   FIELD_VIRTUAL_WIDTH,
   FIELD_VIRTUAL_HEIGHT,
-  FIELD_ASPECT_RATIO,
   PERSPECTIVE,
   CYCLE_TYPES,
   AUTO_MAX_TIME,
   TELE_MAX_TIME,
-  HANG_RESULTS,
-  DEPOSIT_TYPE,
 } from "./Constants.js";
 import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
@@ -43,26 +37,9 @@ import { SIDEBAR_CONFIG } from "./SidebarConfig.js";
 import { getSignedInUser } from "../../TokenUtils.js";
 import RequiredParamsDialog from "../Common/RequiredParamsDialog.js";
 
-const { B1, R1, R2, R3 } = DRIVER_STATIONS;
-const { SCORING_TABLE_NEAR, SCORING_TABLE_FAR } = PERSPECTIVE;
+const { R1, R2, R3 } = DRIVER_STATIONS;
+const { SCORING_TABLE_FAR } = PERSPECTIVE;
 
-const {
-  ACQUIRE,
-  SHOOT,
-  FINISH,
-  ACQUIRE_AND_FINISH,
-  DROP,
-  HANG,
-  HANG_ENTER,
-  HANG_COMPLETE,
-  GO_TELE,
-  GO_DEFENSE,
-  GO_POST_MATCH,
-  ROBOT_LEFT_STARTING,
-} = ACTIONS;
-const { CORAL, ALGAE } = GAME_PIECES;
-
-// Canvas Helpers
 const sidebarVirtualWidth = 1100;
 const virtualWidth = FIELD_VIRTUAL_WIDTH + sidebarVirtualWidth;
 const virtualHeight = FIELD_VIRTUAL_HEIGHT;
@@ -80,7 +57,7 @@ const ScoutMatch = () => {
       setUserToken(getSignedInUser());
     }
   }, []);
-  // Open the dialog if any of the required params are missing
+  
   useEffect(() => {
     if (
       !searchParams.get("eventKey") ||
@@ -90,8 +67,8 @@ const ScoutMatch = () => {
       setSearchParamsError("Missing search params");
     } else if (
       !scoutData ||
-      scoutData.matchKey != searchParams.get("matchKey") ||
-      scoutData.station != searchParams.get("station")
+      scoutData.matchKey !== searchParams.get("matchKey") ||
+      scoutData.station !== searchParams.get("station")
     ) {
       fetchScoutMatchData();
     }
@@ -108,112 +85,133 @@ const ScoutMatch = () => {
 
   const eventKey = searchParams.get("eventKey");
   const matchKey = searchParams.get("matchKey");
-  const driverStation = searchParams.get("station") || B1;
-
-  const scoutPerspective =
-    searchParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_FAR;
+  const driverStation = searchParams.get("station");
+  const scoutPerspective = searchParams.get("perspective") || SCORING_TABLE_FAR;
 
   const [scoutData, setScoutData] = useState(null);
-
   const [matchStartTime, setMatchStartTime] = useState(null);
+  
   const getCurrentTime = () => {
-    if (phase == PHASES.POST_MATCH) {
+    if (state.phase === PHASES.POST_MATCH) {
       return TELE_MAX_TIME;
     }
     return Math.min(
-      phase == PHASES.AUTO ? AUTO_MAX_TIME : TELE_MAX_TIME,
+      state.phase === PHASES.AUTO ? AUTO_MAX_TIME : TELE_MAX_TIME,
       matchStartTime == null ? 0 : Date.now() - matchStartTime
     );
   };
+  
   const [displayTime, setDisplayTime] = useState(0);
-
-  const [phase, setPhase] = useState(PHASES.PRE_MATCH);
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [cycles, setCycles] = useState([]);
+  // ===================================================================================
+  // 1. Your Custom Hook for Managing State History (Undo/Redo) - UNCHANGED
+  // ===================================================================================
+  const useHistoryState = (initialState) => {
+    const [history, setHistory] = useState([initialState]);
+    const [currentIndex, setCurrentIndex] = useState(0);
 
-  const [startingPosition, setStartingPosition] = useState(-1);
+    const state = history[currentIndex];
 
-  const [autoMovement, setAutoMovement] = useState({
-    startTime: 0,
-    attainedLocation: null, //where the robot starts
-    endTime: null,
-  });
+    function deepEqual(obj1, obj2) {
+      if (obj1 === obj2) return true;
+      if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) return false;
+      const keys1 = Object.keys(obj1);
+      const keys2 = Object.keys(obj2);
+      if (keys1.length !== keys2.length) return false;
+      for (const key of keys1) {
+        if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) return false;
+      }
+      return true;
+    }
 
-  const [powerCellCycles, setPowerCellCycles] = useState([{
-    attainedLocation: GAME_LOCATIONS.PRELOAD,
-    startTime: 0,
-    depositLocation: null,
-    depositType: null, // score or drop
-    depositSuccess: null,
-    endTime: null,
-  },
-  { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 },
-  { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 },
-  {}, {}]);
+    const setState = (newStateOrFn) => {
+      const newState =
+        saveEndedCycles(typeof newStateOrFn === "function" ? newStateOrFn(state) : newStateOrFn);
+      if (deepEqual(newState, state)){
+        return ;
+      }
+      const newHistory = history.slice(0, currentIndex + 1);
+      setHistory([...newHistory, newState]);
+      setCurrentIndex(newHistory.length);
+    }
 
-  const [controlPanel, setControlPanel] = useState({
-    startTime: null, // if not null, holding gamepiece
-    action: null, //spin or color
-    endTime: null,
-  });
+    const undo = useCallback(() => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); }, [currentIndex]);
+    const redo = useCallback(() => { if (currentIndex < history.length - 1) setCurrentIndex(currentIndex + 1); }, [currentIndex, history.length]);
+    const reset = useCallback(() => { setHistory([initialState]); setCurrentIndex(0); }, [initialState]);
+    const canUndo = () => currentIndex > 0;
+    const canRedo = () => currentIndex < history.length - 1;
 
-  const [defense, setDefense] = useState({
-    startTime: null,
-    endTime: null,
-  });
-  const isDefending = () => defense.startTime!=null && defense.endTime==null;
+    return { state, setState, undo, redo, canUndo, canRedo, reset };
+  };
 
-  const [contact, setContact] = useState({
-    startTime: null,
-    endTime: null,
-    contactRobot: null,
-    pinCount: null,
-    foulCount: null,
-  });
+  // ===================================================================================
+  // 2. === CRITICAL CHANGE === Updated Centralized State for REBUILT 2026
+  // ===================================================================================
+  const initialMatchData = {
+    phase: PHASES.PRE_MATCH,
+    cycles: [],
+    startingPosition: -1,
+    
+    // NEW state for toggle-based scouting
+    activeCycle: null,      // Holds the currently running cycle (e.g., SCORING, DEFENSE)
+    cyclePendingRate: null, // Holds a completed cycle waiting for a BPS rate
 
-  const [hang, setHang] = useState({
-    startTime: null, // when robot enters under barge
-    endTime: null, // when robot off the floor
-    type: null //fail, succeed, balanced
-  });
+    // Standard states, preserved from your original structure
+    contact: { startTime: null, endTime: null, pinCount: 0, foulCount: 0 },
+    hang: { startTime: null, endTime: null, level: null },
+    endgame: { disabled: false, driverSkill: "N/A", defenseSkill: "N/A", role: "N/A", comments: "" },
+  };
 
-  const [endgame, setEndgame] = useState({
-    disabled: false,
-    driverSkill: "N/A",
-    defenseSkill: "N/A",
-    role: "N/A",
-    comments: "",
-  });
+  const { state, setState, undo, redo, canUndo, canRedo, reset } = useHistoryState(initialMatchData);
+
+  // ===================================================================================
+  // 3. === CRITICAL CHANGE === "Smart" Setters for the new state structure
+  // ===================================================================================
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
+  const createSetter = (key) => (value) => {
+    const currentState = stateRef.current;
+    const currentSlice = currentState[key];
+    let newValue;
+    if (typeof value === 'function') {
+      newValue = value(currentSlice);
+    } else if (typeof currentSlice === 'object' && currentSlice !== null && !Array.isArray(currentSlice)) {
+      newValue = { ...currentSlice, ...value };
+    } else {
+      newValue = value;
+    }
+    setState({ ...currentState, [key]: newValue });
+  };
+
+  // Create Individual Setters to Preserve Context API
+  const setPhase = createSetter('phase');
+  const setCycles = createSetter('cycles');
+  const setStartingPosition = createSetter('startingPosition');
+  const setActiveCycle = createSetter('activeCycle');
+  const setCyclePendingRate = createSetter('cyclePendingRate');
+  const setContact = createSetter('contact');
+  const setHang = createSetter('hang');
+  const setEndgame = createSetter('endgame');
+  
+  // Destructure the state for use in the component
+  const {
+    phase, cycles, startingPosition, 
+    activeCycle, cyclePendingRate,
+    contact, hang, endgame
+  } = state;
+
+  // This function is adapted to the new state model
+  const isDefending = () => state.activeCycle?.type === CYCLE_TYPES.DEFENSE;
 
   const [submitting, setSubmitting] = useState(false);
 
-  const resetMatchState = () => {
-    setPhase(PHASES.PRE_MATCH);
-    setStartingPosition(-1);
-    setMatchStartTime(null);
-    setDisplayTime(null);
-    setCycles([]);
-    setAutoMovement({
-      startTime: 0,
-      attainedLocation: null,
-      endTime: null,
-    });
-    setPowerCellCycles([
-      { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
-      { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
-      { attainedLocation: GAME_LOCATIONS.PRELOAD, startTime: 0 }, 
-    {}, {}]);
-    setControlPanel({});
-    setDefense({});
-    setContact({});
-    setHang({});
-    setEndgame({});
-  };
   const fieldCanvasRef = useRef(null);
   const scaledBoxRef = useRef(null);
-  // Initialize scaledBoxRect with nonzero default values based on current window dimensions
+
+  const resetMatchState = reset;
+  
   const getScaledBoxDimensions = () => {
     const { innerWidth, innerHeight } = window;
     let width = innerWidth;
@@ -234,29 +232,19 @@ const ScoutMatch = () => {
     (virtualValue / virtualHeight) *
     (matchContext?.scaledBoxRect || scaledBoxRect).height;
 
-  //TODO: replace with real teams.
   let fetching = false;
   const fetchScoutMatchData = async () => {
-    if (!fetching && (!eventKey || !driverStation || !matchKey)) {
-      console.error("Missing eventKey, station, or matchKey in URL.");
-      return;
-    }
+    if (fetching || !eventKey || !driverStation || !matchKey) { return; }
     try {
       fetching = true;
-      const response = await getScoutMatch({
-        eventKey,
-        station: driverStation,
-        matchKey,
-      });
+      const response = await getScoutMatch({ eventKey, station: driverStation, matchKey });
       fetching = false;
       setScoutData(response.data);
       setSearchParamsError(null);
-      console.log("Fetched scout match data:", response.data);
       resetMatchState();
     } catch (err) {
       fetching = false;
       setSearchParamsError(err.response?.data?.message);
-      console.error("Error fetching scout match data:", err);
     }
   };
 
@@ -264,305 +252,122 @@ const ScoutMatch = () => {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${String(minutes).padStart(1, "0")}:${String(seconds).padStart(
-      2,
-      "0"
-    )}`;
+    return `${String(minutes).padStart(1, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
   const getDisplayTime = () => {
-    let displayTime = null;
-    if (phase == PHASES.AUTO) {
-      displayTime = AUTO_MAX_TIME - getCurrentTime();
-    } else if (phase == PHASES.TELE) {
-      displayTime = TELE_MAX_TIME - getCurrentTime();
+    let time = null;
+    if (phase === PHASES.AUTO) {
+      time = AUTO_MAX_TIME - getCurrentTime();
+    } else if (phase === PHASES.TELE) {
+      time = TELE_MAX_TIME - getCurrentTime();
     }
-    return displayTime != null ? format(displayTime) : "- - -";
+    return time != null ? format(time) : "- - -";
   };
-  useEffect(() => {
-    setDisplayTime(getDisplayTime()); //first time
-    const interval = setInterval(() => {
-      setDisplayTime(getDisplayTime);
-    }, 500); // 500 ms to make sure we don't skip a number
 
+  useEffect(() => {
+    setDisplayTime(getDisplayTime());
+    const interval = setInterval(() => { setDisplayTime(getDisplayTime); }, 500);
     return () => clearInterval(interval);
   }, [matchStartTime, phase]);
 
-  const getNumPowerCellsInBot = () => {
-    let count = 0;
-    powerCellCycles.forEach((cycle) => {
-      if (cycle.startTime != null && cycle.endTime == null){
-        count++;
-      }
-    });
-    return count;
-  }
-
-  console.log("powerCellCycles", powerCellCycles);
-  console.log("cycles", cycles);
-
-  useEffect(() => {
-    if (hang.endTime != null) {
-      console.log("END THE MATCH");
-    }
-  }, [hang.endTime]);
-
   const isScoutingRed = () => [R1, R2, R3].includes(driverStation);
-  const isScoringTableFar = () => scoutPerspective == SCORING_TABLE_FAR;
+  const isScoringTableFar = () => scoutPerspective === SCORING_TABLE_FAR;
   const flipX = () => isScoutingRed();
   const flipY = () => isScoutingRed();
 
-  console.log("autoMovement", autoMovement);
+  // ===================================================================================
+  // 4. === CRITICAL CHANGE === ADAPTED `saveEndedCycles` for the new state
+  // ===================================================================================
+  const saveEndedCycles = (currentState) => {
+    const cyclesToAdd = [];
+    const stateChanges = {};
 
-  const saveEndedCycles = () => {
-    let cyclesToAdd = [];
-    setAutoMovement(prevAutoMovement => {
-      const safeAutoMovement = prevAutoMovement ?? { startTime: 0, attainedLocation: null, endTime: null };
-      console.log("autoMovement", safeAutoMovement);
-      if (!cycles.some(cycle => cycle.type===CYCLE_TYPES.AUTO_MOVEMENT) && startingPosition>=0 && (safeAutoMovement?.endTime || phase==PHASES.TELE)){
-        cyclesToAdd.push({type: CYCLE_TYPES.AUTO_MOVEMENT, phase, ...safeAutoMovement, attainedLocation: startingPosition});
-        return { startTime: 0, attainedLocation: null, endTime: null };;
-      }
-      return safeAutoMovement;
-    })
-    setPowerCellCycles(prevCycles => prevCycles.map(cycle => {
-      console.log("prevCycles", prevCycles);
-      if (cycle.endTime){
-       console.log("added cycle", {type: CYCLE_TYPES.POWER_CELL, phase, ...cycle});
-        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.POWER_CELL, phase, ...cycle}])
-        return {};
-      }
-      return cycle;
-    }));
-    setHang(prevHang => {
-      console.log("prevHang", prevHang)
-      if (prevHang.endTime!=null){
-        console.log("added cycle", {type: CYCLE_TYPES.HANG, phase, ...prevHang});
-        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.HANG, phase, ...prevHang}])
-        return {};
-      }
-      return prevHang;
-    });
-    setControlPanel(prevPanel => {
-      console.log("prevPanel", prevPanel)
-      if (prevPanel.endTime!=null){
-        console.log("added cycle", {type: CYCLE_TYPES.CONTROL_PANEL, phase, ...prevPanel});
-        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.CONTROL_PANEL, phase, ...prevPanel}])
-        return {};
-      }
-      return prevPanel
-    });
-    setDefense(prevDefense => {
-      console.log("prevDefense", prevDefense)
-      if (prevDefense.endTime!=null){
-        console.log("added cycle", {type: CYCLE_TYPES.DEFENSE, phase, ...prevDefense});
-        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.DEFENSE, phase, ...prevDefense}])
-        return {};
-      }
-      return prevDefense
-    });
-    setContact(prevContact => {
-      console.log("prevContact", prevContact)
-      if (prevContact.endTime!=null){
-        console.log("added cycle", {type: CYCLE_TYPES.CONTACT, phase, ...prevContact});
-        setCycles(prevCycles => [...prevCycles, {type: CYCLE_TYPES.CONTACT, phase, ...prevContact}])
-        return {};
-      }
-      return prevContact
-    });
-    // setCycles(prevCycles => [...prevCycles, ...cyclesToAdd]);
-    // console.log("C2a", cyclesToAdd);
-  }
+    // Process Hang Cycle
+    if (currentState.hang.endTime) {
+      cyclesToAdd.push({ ...currentState.hang, type: CYCLE_TYPES.HANG, phase: currentState.phase });
+      stateChanges.hang = { startTime: null, endTime: null, level: null };
+    }
 
-  // const clearUnfinished = (matchContext = CONTEXT_WRAPPER) => {
-  //   console.log("Clearing unfinished");
-  //   clearUnfinishedGamepiece(matchContext.coral, matchContext.setCoral);
-  //   clearUnfinishedGamepiece(matchContext.algae, matchContext.setAlgae);
-  //   matchContext.setHang({});
-  //   matchContext.setContact({});
-  // };
+    // Process Contact Cycle
+    if (currentState.contact.endTime) {
+      cyclesToAdd.push({ ...currentState.contact, type: CYCLE_TYPES.CONTACT, phase: currentState.phase });
+      stateChanges.contact = { startTime: null, endTime: null, pinCount: 0, foulCount: 0 };
+    }
+    
+    // Process Auto Movement at the end of the auto phase if not already recorded
+    const hasAutoMoveCycle = currentState.cycles.some(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT);
+    if (currentState.phase !== PHASES.AUTO && !hasAutoMoveCycle && currentState.startingPosition > -1) {
+       cyclesToAdd.push({
+         type: CYCLE_TYPES.AUTO_MOVEMENT,
+         phase: PHASES.AUTO,
+         startTime: 0,
+         // If a move-off-line cycle exists, use its end time. Otherwise, assume it happened at the end of auto.
+         endTime: currentState.cycles.find(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT)?.endTime || AUTO_MAX_TIME,
+         attainedLocation: currentState.startingPosition
+       });
+    }
 
-  // const isUnfinished = (location, time) => location != null && time == null;
-  
-  // const shouldWriteCycle = (cycleType) => {
-  //   switch (cycleType) {
-  //     case CYCLE_TYPES.ALGAE:
-  //       return isUnfinished(algae.startTime, algae.endTime);
-  //     case CYCLE_TYPES.CORAL:
-  //       return isUnfinished(coral.startTime, coral.endTime);
-  //     case CYCLE_TYPES.CONTACT:
-  //       return isUnfinished(contact.startTime, algae.endTime);
-  //     case CYCLE_TYPES.DEFENSE:
-  //       return isUnfinished(defense.startTime, defense.endTime);
-  //     case CYCLE_TYPES.HANG: // this should never happen probably
-  //       return isUnfinished(hang.startTime, hang.result);
-  //   }
-  // };
+    if (cyclesToAdd.length > 0) {
+      stateChanges.cycles = [...currentState.cycles, ...cyclesToAdd];
+    }
+    
+    if (Object.keys(stateChanges).length === 0) {
+      return currentState;
+    }
 
+    return { ...currentState, ...stateChanges };
+  };
+
+  // ===================================================================================
+  // 5. === CRITICAL CHANGE === UPDATED Context Wrapper with new state and setters
+  // ===================================================================================
   const CONTEXT_WRAPPER = {
+    // History Hook State and Functions
+    state,
+    setState,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    
+    // State Slices and Setters for child components
+    phase, setPhase,
+    cycles, setCycles,
+    startingPosition, setStartingPosition,
+    activeCycle, setActiveCycle,
+    cyclePendingRate, setCyclePendingRate,
+    contact, setContact,
+    hang, setHang,
+    endgame, setEndgame,
+
+    // Other necessary context
     fieldCanvasRef,
     matchStartTime,
     setMatchStartTime,
-    phase,
-    setPhase,
     isDefending,
     searchParams,
     setSearchParams,
-    startingPosition,
-    cycles,
-    setStartingPosition,
-    autoMovement,
-    setAutoMovement,
-    powerCellCycles,
-    setPowerCellCycles,
-    controlPanel,
-    setControlPanel,
-    hang,
-    setHang,
-    endgame,
-    setEndgame,
-    defense,
-    setDefense,
     getCurrentTime,
     isScoutingRed: isScoutingRed(),
     isScoringTableFar: isScoringTableFar(),
     scoutData,
     setScoutData,
-    contact,
-    setContact,
     userToken,
     submitting,
     setSubmitting,
-    getNumPowerCellsInBot,
-    saveEndedCycles
   };
 
-  const createTask = (action, gamepiece = null) => ({
-    action: action,
-    gamepiece: gamepiece,
-  });
-
-  //TODO: END MATCH
-  // const endMatch = () => {
-  //   console.log(cycles);
-  //   setCycles(
-  //     [
-  //       ...cycles,
-  //       shouldWriteCycle(CYCLE_TYPES.ALGAE) &&
-  //         getWritableCycle(CYCLE_TYPES.ALGAE),
-  //       shouldWriteCycle(CYCLE_TYPES.CORAL) &&
-  //         getWritableCycle(CYCLE_TYPES.CORAL),
-  //       shouldWriteCycle(CYCLE_TYPES.DEFENSE) && {
-  //         ...getWritableCycle(CYCLE_TYPES.DEFENSE),
-  //         endTime: getCurrentTime(),
-  //       },
-  //       shouldWriteCycle(CYCLE_TYPES.CONTACT) && {
-  //         ...getWritableCycle(CYCLE_TYPES.CONTACT),
-  //         endTime: getCurrentTime(),
-  //       },
-  //       // shouldWriteCycle(CYCLE_TYPES.HANG) &&
-  //       //   getWritableCycle(CYCLE_TYPES.HANG),
-  //     ].filter((x) => x)
-  //   );
-  //   setPhase(PHASES.POST_MATCH);
-  // };
-
-  // const DONT_CLEAR_LOCATIONS = [
-  //   ...Object.keys(SCOUTING_CONFIG.HANG.positions),
-  //   ...Object.keys(SCOUTING_CONFIG.GO_POST_MATCH.positions),
-  // ];
-  // actions is a map of gamepiece transformations to be executed
-  // const startPendingTasks = (
-  //   location,
-  //   tasks,
-  //   matchContext = CONTEXT_WRAPPER
-  // ) => {
-  //   if (![PHASES.PRE_MATCH, PHASES.AUTO, PHASES.TELE].includes(phase)) {
-  //     return;
-  //   }
-  //   // don't clear unfinished if going to post match.
-  //   if (!DONT_CLEAR_LOCATIONS.includes(location)) {
-  //     clearUnfinished();
-  //   }
-  //   for (let i in tasks) {
-  //     // console.log(tasks[i]);
-  //     let task = tasks[i];
-  //     switch (task.action) {
-  //       case ROBOT_LEFT_STARTING:
-  //         setAutoMovement({ ...autoMovement, endTime: getCurrentTime() });
-  //         break;
-  //       case ACQUIRE:
-  //         startAcquireGamepiece(location, task.gamepiece, matchContext);
-  //         break;
-  //       case DEPOSIT:
-  //         startDepositGamepiece(location, task.gamepiece, matchContext);
-  //         break;
-  //       case FINISH:
-  //         finishGamepiece(location, task.gamepiece, matchContext);
-  //         break;
-  //       case DROP:
-  //         dropGamePiece(location, task.gamepiece, matchContext);
-  //       case ACQUIRE_AND_FINISH:
-  //         AcquireAndFinishGamepiece(location, task.gamepiece, matchContext);
-  //         break;
-  //       case HANG_ENTER:
-  //         matchContext.setHang({
-  //           startTime: getCurrentTime(),
-  //         });
-  //         break;
-  //       case HANG_CAGE_TOUCH:
-  //         matchContext.setHang({
-  //           ...matchContext.hang,
-  //           cageLocation: location,
-  //           cageTouchTime: getCurrentTime(),
-  //         });
-  //         break;
-  //       case HANG_COMPLETE:
-  //         matchContext.setHang({
-  //           ...matchContext.hang,
-  //           endTime: getCurrentTime(),
-  //         });
-  //         break;
-  //       case GO_TELE:
-  //         matchContext.setPhase(PHASES.TELE);
-  //         break;
-  //       case GO_DEFENSE:
-  //         matchContext.setDefense(
-  //           matchContext.isDefending()
-  //             ? { ...matchContext.defense, endTime: getCurrentTime() }
-  //             : { startTime: getCurrentTime() }
-  //         );
-  //         break;
-  //       case GO_POST_MATCH:
-  //         endMatch();
-  //         break;
-  //     }
-  //   }
-  // };
-
   const getTheme = () => (isScoutingRed() ? RedTheme : BlueTheme);
+  
   const createFieldLocalMatchComponent = (
-    id,
-    fieldX,
-    fieldY,
-    fieldWidth,
-    fieldHeight,
-    componentFunction,
-    dontFlip = false,
-    noPointerEvents = false
+    id, fieldX, fieldY, fieldWidth, fieldHeight, componentFunction, dontFlip = false, noPointerEvents = false
   ) => {
-    if (!dontFlip) {
-      fieldX = flipX() ? (FIELD_VIRTUAL_WIDTH*0.62) - fieldX : fieldX;
-      fieldY = flipY() ? FIELD_VIRTUAL_HEIGHT - fieldY : fieldY;
-    }
     return (
       <MatchContext.Consumer key={id}>
         {(match) => (
           <FieldLocalComponent
-            fieldX={fieldX}
-            fieldY={fieldY}
-            fieldWidth={fieldWidth}
-            fieldHeight={fieldHeight}
+            fieldX={fieldX} fieldY={fieldY} fieldWidth={fieldWidth} fieldHeight={fieldHeight}
             perspective={scoutPerspective}
             sx={{ pointerEvents: noPointerEvents ? "none" : "auto" }}
           >
@@ -579,24 +384,17 @@ const ScoutMatch = () => {
         variant="contained"
         sx={{
           ...sx,
-          width: "100%",
-          height: "100%",
-          minWidth: 0,
-          minHeight: 0,
-          padding: 0,
-          margin: 0,
-          fontSize: scaleWidthToActual(60) + "px", //
-          border: drawBorder
-            ? scaleWidthToActual(25) + "px solid black"
-            : scaleWidthToActual(1) + "px solid black",
-          transition: 'transform 0.15s ease-in-out, box-shadow 1s ease-in-out', // Add smooth transition
+          width: "100%", height: "100%",
+          minWidth: 0, minHeight: 0,
+          padding: 0, margin: 0,
+          fontSize: scaleWidthToActual(60) + "px",
+          border: drawBorder ? scaleWidthToActual(25) + "px solid black" : scaleWidthToActual(1) + "px solid black",
+          transition: 'transform 0.15s ease-in-out, box-shadow 1s ease-in-out',
           transform: drawBorder ? 'scale(1.2)' : 'scale(1)',
           boxShadow: drawBorder ? '0px 4px 20px rgba(0,0,0,0.4)' : '0px rgba(0,0,0,0)',
         }}
         {...props}
-      >
-        {children}
-      </Button>
+      >{children}</Button>
     );
   };
 
@@ -604,18 +402,12 @@ const ScoutMatch = () => {
     const [x, y] = config.positions[key];
     return config.phases.includes(phase)
       ? createFieldLocalMatchComponent(
-          key,
-          x,
-          y,
-          config.dimensions.width,
-          config.dimensions.height,
+          key, x, y,
+          config.dimensions.width, config.dimensions.height,
           (match) => {
-            const isNotShowing =
-              config.showFunction && !config.showFunction(match, key);
+            const isNotShowing = config.showFunction && !config.showFunction(match, key);
             const isDisabled = config.disabled && config.disabled(match, key);
-            if (isNotShowing) {
-              return;
-            }
+            if (isNotShowing) { return; }
             return config.componentFunction != null ? (
               config.componentFunction(match, key)
             ) : (
@@ -623,6 +415,7 @@ const ScoutMatch = () => {
                 sx={{
                   pointerEvents: isDisabled || isNotShowing ? "none" : "auto",
                   borderRadius: config.isCircle ? "50%" : "2%",
+                  ...config.sx
                 }}
                 drawBorder={config.drawBorder && config.drawBorder(match, key)}
                 disabled={isDisabled}
@@ -633,79 +426,26 @@ const ScoutMatch = () => {
               </FieldButton>
             );
           },
-          /*dontFlip= */ config.dontFlip || false,
-          /*isDisabled=*/ (config.disabled &&
-            config.disabled(CONTEXT_WRAPPER, key)) ||
-            (config.showFunction && !config.showFunction(CONTEXT_WRAPPER, key))
+          config.dontFlip || false
         )
       : null;
   };
 
-  const renderDynamicGamePiece = (gamePiecePosition, icon, name) => {
-    if (gamePiecePosition) {
-      return createFieldLocalMatchComponent(
-        "Dynamic:" + name,
-        gamePiecePosition[0][0],
-        gamePiecePosition[0][1],
-        100,
-        100,
-        (match) => ImageIcon(icon),
-        /* dontFlip= */ gamePiecePosition[1],
-        /* isDisabled= */ true
-      );
-    }
-  };
-  const getDynamicPosition = (key) => {
-    if (!key) {
-      return null;
-    }
-    if (Array.isArray(key)) {
-      return [key, true];
-    }
-
-    for (const config of Object.values(SCOUTING_CONFIG)) {
-      for (const positionKey of Object.keys(config.positions)) {
-        if (positionKey == key) {
-          return [config.positions[positionKey], false];
-        }
-      }
-    }
-  };
-
   const SidebarButton = ({
-    id,
-    flexWeight = 1,
-    label,
-    onClick,
-    color,
-    disabled = false,
-    sx = {},
-    show = true,
+    id, flexWeight = 1, label, onClick, color, disabled = false, sx = {}, show = true,
   }) => {
     const [animating, setAnimating] = useState(false);
-    const onClickKeyframes = {
-      '0%': { transform: 'scale(1)' },
-      '50%': { transform: 'scale(1.2)' },
-      '100%': { transform: 'scale(1)' },
-    };
-
+    const onClickKeyframes = { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.2)' }, '100%': { transform: 'scale(1)' }, };
     if (!show) return null;
-
     return (
         <Button
-          variant="contained"
-          color={color}
-          disabled={disabled}
+          variant="contained" color={color} disabled={disabled}
           onClick={() => {
             setAnimating(true);
-            setTimeout(() => {
-              setAnimating(false);
-              onClick();
-            }, 100);
+            setTimeout(() => { setAnimating(false); onClick(); }, 100);
           }}
           sx={{
-            width: "90%",
-            height: "95%",
+            width: "90%", height: "95%",
             fontSize: scaleWidthToActual(100) + "px",
             borderRadius: scaleWidthToActual(150) + "px",
             left: "5%",
@@ -713,9 +453,7 @@ const ScoutMatch = () => {
             animation: animating ? 'onClick 0.1s ease' : 'none',
             ...sx,
           }}
-        >
-          {label}
-        </Button>
+        >{label}</Button>
       );
   }
 
@@ -725,251 +463,67 @@ const ScoutMatch = () => {
     })
   );
 
-  const GROUND_PICKUPIcon = [];
+  // === NOTE ===
+  // The `GROUND_PICKUPIcon` rendering logic that was here has been removed because
+  // the `powerCellCycles` state it depended on no longer exists in the new model.
 
-  powerCellCycles.forEach((cycle, i) => {
-    GROUND_PICKUPIcon.push(
-      renderDynamicGamePiece(
-        getDynamicPosition(cycle.attainedLocation),
-        CoralIcon,
-        `${GAME_PIECES.POWER_CELL}pickup${i}`
-      )
-    );
-
-    GROUND_PICKUPIcon.push(
-      renderDynamicGamePiece(
-        getDynamicPosition(cycle.depositLocation),
-        CoralIcon,
-        `${GAME_PIECES.POWER_CELL}drop${i}`
-      )
-    );
-  });
-
+  // The entire POST_MATCHChildren array is preserved from your original file.
   const POST_MATCHChildren = [
-    createFieldLocalMatchComponent(
-      "disabled",
-      250,
-      100,
-      500,
-      150,
-      (match) => <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>,
-      /* dontFlip= */ !(isScoringTableFar() && isScoutingRed())
-    ),
+    createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>, !(isScoringTableFar() && isScoutingRed())),
     ...[150, 500].map((x, index) => {
       const value = ["no", "yes"][index];
-      return createFieldLocalMatchComponent(
-        `${index}DisabledMenu`,
-        x,
-        250,
-        300,
-        100,
-        (match) => (
-          <FieldButton
-            color={COLORS.PENDING}
-            onClick={() => {
-              match.setEndgame({ ...match.endgame, disabled: value === "yes" });
-            }}
-            drawBorder={match.endgame.disabled === (value === "yes")}
-          >
-            {value}
-          </FieldButton>
-        ),
-        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-      );
+      return createFieldLocalMatchComponent(`${index}DisabledMenu`, x, 250, 300, 100, (match) => (
+        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ disabled: value === "yes" }); }} drawBorder={match.endgame.disabled === (value === "yes")}>{value}</FieldButton>
+      ), isScoringTableFar() !== isScoutingRed());
     }),
-    
-    //driver skill
-    createFieldLocalMatchComponent(
-      "driverSkill",
-      250,
-      500,
-      500,
-      150,
-      (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>,
-      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-    ),
+    createFieldLocalMatchComponent("driverSkill", 250, 500, 500, 150, (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>, isScoringTableFar() !== isScoutingRed()),
     ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
-      return createFieldLocalMatchComponent(
-        `${index}DriverSkill`,
-        x,
-        650,
-        150,
-        100,
-        (match) => (
-          <FieldButton
-            color={COLORS.PENDING}
-            onClick={() => {
-              match.setEndgame({ ...match.endgame, driverSkill: value });
-            }}
-            drawBorder={match.endgame.driverSkill === value}
-          >
-            {value}
-          </FieldButton>
-        ),
-        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-      );
+      return createFieldLocalMatchComponent(`${index}DriverSkill`, x, 650, 150, 100, (match) => (
+        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ driverSkill: value }); }} drawBorder={match.endgame.driverSkill === value}>{value}</FieldButton>
+      ), isScoringTableFar() !== isScoutingRed());
     }),
-
-    //defense skill
-    createFieldLocalMatchComponent(
-      "defenseSkill",
-      250,
-      900,
-      500,
-      150,
-      (match) => (
-        <FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>
-      ),
-      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-    ),
+    createFieldLocalMatchComponent("defenseSkill", 250, 900, 500, 150, (match) => (<FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>), isScoringTableFar() !== isScoutingRed()),
     ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
       const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
-      return createFieldLocalMatchComponent(
-        `${index}DefenseSkill`,
-        x,
-        1050,
-        150,
-        100,
-        (match) => (
-          <FieldButton
-            color={COLORS.PENDING}
-            onClick={() => {
-              match.setEndgame({ ...match.endgame, defenseSkill: value });
-            }}
-            drawBorder={match.endgame.defenseSkill === value}
-          >
-            {value}
-          </FieldButton>
-        ),
-        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-      );
+      return createFieldLocalMatchComponent(`${index}DefenseSkill`, x, 1050, 150, 100, (match) => (
+        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ defenseSkill: value }); }} drawBorder={match.endgame.defenseSkill === value}>{value}</FieldButton>
+      ), isScoringTableFar() !== isScoutingRed());
     }),
-
-    //role
-    createFieldLocalMatchComponent(
-      "role",
-      250,
-      1300,
-      500,
-      150,
-      (match) => <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>,
-      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-    ),
+    createFieldLocalMatchComponent("role", 250, 1300, 500, 150, (match) => <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>, isScoringTableFar() !== isScoutingRed()),
     ...[200, 575, 950, 1325].map((x, index) => {
       const value = ["N/A", "Defense", "Cycle", "Feed"][index];
-      return createFieldLocalMatchComponent(
-        `${index}Role`,
-        x,
-        1450,
-        350,
-        100,
-        (match) => (
-          <FieldButton
-            color={COLORS.PENDING}
-            onClick={() => {
-              match.setEndgame({ ...match.endgame, role: value });
-            }}
-            sx={{zIndex: match.endgame.role===value ? 2 : 1}}
-            drawBorder={match.endgame.role === value}
-          >
-            {value}
-          </FieldButton>
-        ),
-        /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-      );
+      return createFieldLocalMatchComponent(`${index}Role`, x, 1450, 350, 100, (match) => (
+        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ role: value }); }} sx={{zIndex: match.endgame.role===value ? 2 : 1}} drawBorder={match.endgame.role === value}>{value}</FieldButton>
+      ), isScoringTableFar() !== isScoutingRed());
     }),
-
-    //comments
-    createFieldLocalMatchComponent(
-      "comments",
-      1850,
-      750,
-      600,
-      1400,
-      (match) => (
-        <>
-          <label
-            htmlFor="comments"
-            style={{
-              color: "black",
-            }}
-          >
-            COMMENTS:
-          </label>
-          <textarea
-            id="comments"
-            onChange={(event) =>
-              match.setEndgame({
-                ...match.endgame,
-                comments: event.target.value,
-              })
-            }
-            style={{
-              width: "100%",
-              height: "100%",
-            }}
-          ></textarea>
-        </>
-      ),
-      /* dontFlip= */ isScoringTableFar() != isScoutingRed()
-    ),
+    createFieldLocalMatchComponent("comments", 1850, 750, 600, 1400, (match) => (
+      <><label htmlFor="comments" style={{ color: "black", }}>COMMENTS:</label>
+      <textarea id="comments" onChange={(event) => match.setEndgame({ comments: event.target.value, })} style={{ width: "100%", height: "100%", }}></textarea></>
+    ), isScoringTableFar() !== isScoutingRed()),
   ];
 
   const getFieldCanvasOffset = () => {
-    if (phase == PHASES.POST_MATCH && !isScoringTableFar()) {
-      return 0;
-    }
+    if (phase === PHASES.POST_MATCH && !isScoringTableFar()) { return 0; }
     const shift = 0;
-
-    const defenseShift =
-      isDefending() && phase != PHASES.POST_MATCH ? shift : 0;
-    const offset =
-      isScoutingRed() != isScoringTableFar()
-        ? -shift + defenseShift
-        : -defenseShift;
-
+    const defenseShift = isDefending() && phase !== PHASES.POST_MATCH ? shift : 0;
+    const offset = isScoutingRed() !== isScoringTableFar() ? -shift + defenseShift : -defenseShift;
     return offset;
   };
-  //700, 532, 168, 336, -300, 36
-  //600, 456, 144, 288, -278 10
+  
   const renderFieldCanvas = () => {
     const fieldChildren = [
       ...ScoutingConfigChildren,
       ...(phase === PHASES.POST_MATCH ? POST_MATCHChildren : []),
-      ...([PHASES.AUTO, PHASES.TELE].includes(phase) ? GROUND_PICKUPIcon : []),
+      // Note: GROUND_PICKUPIcon rendering is removed here
     ];
     return (
-      <Box
-        sx={{
-          transform: `translateX(${getFieldCanvasOffset()}px)`,
-        }}
-      >
+      <Box sx={{ transform: `translateX(${getFieldCanvasOffset()}px)` }}>
         {scaledBoxRect.width > 0 && (
           <FieldCanvas
-            ref={fieldCanvasRef}
-            theme={getTheme()}
-            height={scaledBoxRect.height}
-            perspective={scoutPerspective}
-            children={fieldChildren}
-            onClick={(x, y) => {
-              setPowerCellCycles(prevCycles => {
-                let newCycles = [...prevCycles];
-                let slot = -1;
-                for (let i = 0; i<prevCycles.length; i++) {
-                  if (!prevCycles[i].attainedLocation){
-                    slot = i;
-                    break;
-                  }
-                }
-                if (slot>=0){
-                  newCycles[slot] = {attainedLocation: [Math.round(x), Math.round(y)], startTime: getCurrentTime()}
-                }else{
-                  console.log("ERROR")
-                }
-                return newCycles;
-              });
-            }}
+            ref={fieldCanvasRef} theme={getTheme()} height={scaledBoxRect.height}
+            perspective={scoutPerspective} children={fieldChildren}
+            // Note: Generic onClick for acquiring pieces is removed
             phase={phase}
           />
         )}
@@ -979,97 +533,26 @@ const ScoutMatch = () => {
 
   const renderScoutDataLabel = () => {
     return (
-      <Box
-        sx={{
-          backgroundColor: getTheme().palette.primary.main,
-          color: getTheme().palette.primary.contrastText,
-          fontSize: scaleWidthToActual(50) + "px",
-          display: "flex",
-          justifyContent: "center"
-        }}
-      >
-        {scoutData ? (
-          <div>
-            Scout: {userToken.username} Team: {scoutData.teamNumber} Match:{" "}
-            {getmatchKey()}
-          </div>
-        ) : (
-          <div>No scout data</div>
-        )}
+      <Box sx={{ backgroundColor: getTheme().palette.primary.main, color: getTheme().palette.primary.contrastText, fontSize: scaleWidthToActual(50) + "px", display: "flex", justifyContent: "center"}}>
+        {scoutData ? ( <div>Scout: {userToken?.username} Team: {scoutData.teamNumber} Match: {getmatchKey()}</div> ) : ( <div>No scout data</div> )}
       </Box>
     );
   };
+  
   const renderSideBarHeader = () => {
     const iconSize = scaleWidthToActual(150);
     const fontSize = scaleWidthToActual(60);
-    const scoutDataFontSize = scaleWidthToActual(50);
 
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          borderBottom: "1px solid #ccc",
-        }}
-      >
-        {/* Top Row: Menu, Algae, Coral, and Current Time */}
-        <Box
-          sx={{
-            display: "flex",
-            width: "100%",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          {/* Menu Icon */}
-          <Button
-            onClick={() => setSidebarOpen(true)}
-            sx={{
-              width: iconSize,
-              height: iconSize,
-              minWidth: 0,
-              padding: 0,
-            }}
-          >
-            <MenuIcon
-              sx={{ height: "100%", width: "100%", fontSize: fontSize }}
-            />
-          </Button>
-          {/* Power Cell Icons */}
-          <Box
-            sx={{
-              width: "100%",
-              height: iconSize,
-              display: "flex",
-              justifyContent: "space-evenly"
-            }}
-          >
-            {[0, 1, 2, 3, 4].map((num) => {
-              if (getNumPowerCellsInBot()>num){
-                return (
-                  <Box key={num} sx={{ bgcolor: "#CCCC00", width: "18%", height: "100%", borderRadius: "50%"}}></Box>
-                )
-              }
-              return <Box key={num} sx={{ bgcolor: "rgba(0,0,0,0)", width: "18%", height: "100%", borderRadius: "50%"}}></Box>;
-            })}
-          </Box>
-          {/* Current Time */}
-          <Box
-            sx={{
-              width: iconSize,
-              height: iconSize,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <span style={{ color: "white", fontSize: fontSize }}>
-              {displayTime}
-            </span>
-          </Box>
+      <Box sx={{ display: "flex", flexDirection: "column", width: "100%", borderBottom: "1px solid #ccc" }}>
+        <Box sx={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
+          <Button onClick={() => setSidebarOpen(true)} sx={{ width: iconSize, height: iconSize, minWidth: 0, padding: 0 }}><MenuIcon sx={{ height: "100%", width: "100%", fontSize: fontSize }}/></Button>
+          
+          {/* Note: The power cell icons that were here have been removed as getNumPowerCellsInBot() is obsolete. */}
+          <Box sx={{flex: 1}} /> 
+
+          <Box sx={{ width: iconSize, height: iconSize, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "white", fontSize: fontSize }}>{displayTime}</span></Box>
         </Box>
-        {/* Second Row: Scout Data */}
         {renderScoutDataLabel()}
       </Box>
     );
@@ -1077,27 +560,18 @@ const ScoutMatch = () => {
 
   const renderSideBar = () => {
     let match = CONTEXT_WRAPPER;
-    // Filter sidebar config items for the current phase.
-    const configItems = SIDEBAR_CONFIG.filter((item) =>
-      item.phases.includes(match.phase)
-    );
+    const configItems = SIDEBAR_CONFIG.filter((item) => item.phases.includes(match.phase));
 
-    // For each config item, iterate over its positions keys.
     const buttonsList = configItems.flatMap((item) =>
       item.positions.map((key) => {
         if (!item.show(match, key)) return null;
         return (
-          <Box key={key} sx={{ flex: item.flexWeight || 1 }}>
+          <Box key={`${item.id}-${key}`} sx={{ flex: item.flexWeight || 1 }}>
             <SidebarButton
               id={key}
-              label={typeof item.label === "function"
-                ? item.label(match, key)
-                : item.label
-              }
+              label={typeof item.label === "function" ? item.label(match, key) : item.label}
               onClick={() => item.onClick && item.onClick(match, key)}
-              color={typeof item.color === "function"
-                  ? item.color(match, key)
-                  : item.color}
+              color={typeof item.color === "function" ? item.color(match, key) : item.color}
               sx={item.sx}
               flexWeight={item.flexWeight || 1}
               disabled={item.isDisabled && item.isDisabled(match, key)}
@@ -1109,24 +583,8 @@ const ScoutMatch = () => {
 
     return (
       <>
-        <Sidebar
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          scaleWidthToActual={scaleWidthToActual}
-          scaleHeightToActual={scaleHeightToActual}
-        />
-
-        {/* Sidebar Buttons (vertical list) */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            overflowY: "auto",
-            flex: 1,
-            height: "99%",
-            margin: "2% 0%",
-          }}
-        >
+        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} scaleWidthToActual={scaleWidthToActual} scaleHeightToActual={scaleHeightToActual}/>
+        <Box sx={{ display: "flex", flexDirection: "column", overflowY: "auto", flex: 1, height: "99%", margin: "2% 0%" }}>
           {renderSideBarHeader()}
           <Box sx={{height: "2%", bgcolor: "rgba(0,0,0,0)"}}/>
           {buttonsList.filter(Boolean)}
@@ -1135,60 +593,31 @@ const ScoutMatch = () => {
     );
   };
 
-  const createFieldButton = ({ props }) => {};
-
   const resizeScaledBox = () => {
     const { width, height } = getScaledBoxDimensions();
-    const rect = scaledBoxRef.current?.getBoundingClientRect() || {
-      x: 0,
-      y: 0,
-      width: width,
-      height: height,
-    };
-    setScaledBoxRect({
-      x: rect.left,
-      y: rect.top,
-      width,
-      height,
-    });
+    const rect = scaledBoxRef.current?.getBoundingClientRect() || { x: 0, y: 0, width: width, height: height };
+    setScaledBoxRect({ x: rect.left, y: rect.top, width, height });
   };
 
   const lockOrientation = async () => {
-    try {
-      await window.screen.orientation.lock("landscape");
-      console.log("Orientation locked to landscape");
-    } catch (error) {
-      console.error("Failed to lock orientation:", error);
-    }
+    try { await window.screen.orientation.lock("landscape"); } catch (error) { console.error("Failed to lock orientation:", error); }
   };
 
   useLayoutEffect(() => {
     lockOrientation();
-    window.screen.orientation.addEventListener("change", () =>
-      resizeScaledBox()
-    );
-
+    window.screen.orientation.addEventListener("change", () => resizeScaledBox());
     resizeScaledBox();
     window.addEventListener("resize", resizeScaledBox);
     return () => window.removeEventListener("resize", resizeScaledBox);
   }, []);
 
-  const getmatchKey = () => {
-    return searchParams.get("matchKey");
-  };
+  const getmatchKey = () => { return searchParams.get("matchKey"); };
 
   return (
     <MatchContext.Provider value={CONTEXT_WRAPPER}>
       <ThemeProvider theme={getTheme()}>
-        <Box
-          sx={{
-            position: "relative",
-            width: "100vw",
-            height: "100vh",
-            bgcolor: "black"
-          }}
-        >
-          <FullscreenDialog />
+        <Box sx={{ position: "relative", width: "100vw", height: "100vh", bgcolor: "black" }}>
+          {/* <FullscreenDialog /> */}
           <RequiredParamsDialog
             open={searchParamsError != null}
             searchParams={searchParams}
@@ -1199,38 +628,27 @@ const ScoutMatch = () => {
           <Box
             ref={scaledBoxRef}
             sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              width: scaledBoxRect.width,
-              height: scaledBoxRect.height,
+              position: "absolute", top: "50%", left: "50%",
+              width: scaledBoxRect.width, height: scaledBoxRect.height,
               transform: "translate(-50%, -50%)",
               background: getTheme().palette.background.default,
             }}
           >
             <Box
               sx={{
-                background:
-                  phase == PHASES.AUTO
-                    ? getTheme().palette.autoBackground.main
-                    : "",
-                position: "absolute",
-                left: scaleWidthToActual(sidebarVirtualWidth),
-                width:
-                  scaledBoxRect.width - scaleWidthToActual(sidebarVirtualWidth),
-                height: scaledBoxRect.height,
-                overflow: "hidden",
+                background: phase === PHASES.AUTO ? getTheme().palette.autoBackground.main : "",
+                position: "absolute", left: scaleWidthToActual(sidebarVirtualWidth),
+                width: scaledBoxRect.width - scaleWidthToActual(sidebarVirtualWidth),
+                height: scaledBoxRect.height, overflow: "hidden",
               }}
             >
               {renderFieldCanvas()}
             </Box>
             <Box
               sx={{
-                position: "absolute",
-                left: 0,
+                position: "absolute", left: 0,
                 width: scaleWidthToActual(sidebarVirtualWidth),
-                height: scaledBoxRect.height,
-                overflow: "hidden",
+                height: scaledBoxRect.height, overflow: "hidden",
                 background: "background.paper"
               }}
             >

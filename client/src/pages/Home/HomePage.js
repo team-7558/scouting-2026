@@ -86,6 +86,7 @@ const HomePage = () => {
         {/* Less Important Actions */}
         <TertiaryButton onClick={() => navigate("/signIn")}>Log Out</TertiaryButton>
         <TertiaryButton onClick={() => navigate("/admin")}>Admin</TertiaryButton>
+        <TertiaryButton onClick={() => navigate("/scan")}>Scan QR</TertiaryButton>
 
         <UpdatePassword />
       </ButtonGrid>

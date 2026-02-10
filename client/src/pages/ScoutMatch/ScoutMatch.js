@@ -30,7 +30,7 @@ import {
   AUTO_MAX_TIME,
   TELE_MAX_TIME,
 } from "./Constants.js";
-import { SCOUTING_CONFIG } from "./ScoutingConfig.js";
+import { SCOUTING_CONFIG, ENDGAME_CONFIG } from "./ScoutingConfig.js";
 import { getScoutMatch } from "../../requests/ApiRequests.js";
 import { ImageIcon } from "./CustomFieldComponents.js";
 import { SIDEBAR_CONFIG } from "./SidebarConfig.js";
@@ -47,6 +47,10 @@ const aspectRatio = 16 / 9;
 
 const MatchContext = createContext();
 
+const exists = (val) => {
+  return val !== null && val !== undefined;
+};
+
 // Scout Match Component
 const ScoutMatch = () => {
   const [userToken, setUserToken] = useState(null);
@@ -57,7 +61,7 @@ const ScoutMatch = () => {
       setUserToken(getSignedInUser());
     }
   }, []);
-  
+
   useEffect(() => {
     if (
       !searchParams.get("eventKey") ||
@@ -90,7 +94,7 @@ const ScoutMatch = () => {
 
   const [scoutData, setScoutData] = useState(null);
   const [matchStartTime, setMatchStartTime] = useState(null);
-  
+
   const getCurrentTime = () => {
     if (state.phase === PHASES.POST_MATCH) {
       return TELE_MAX_TIME;
@@ -100,47 +104,90 @@ const ScoutMatch = () => {
       matchStartTime == null ? 0 : Date.now() - matchStartTime
     );
   };
-  
+
   const [displayTime, setDisplayTime] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isUndoingRef = useRef(false);
 
   // ===================================================================================
   // 1. Your Custom Hook for Managing State History (Undo/Redo) - UNCHANGED
   // ===================================================================================
   const useHistoryState = (initialState) => {
-    const [history, setHistory] = useState([initialState]);
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [historyState, setHistoryState1] = useState(() => ({
+      history: [initialState],
+      index: 0,
+    }));
 
-    const state = history[currentIndex];
-
-    function deepEqual(obj1, obj2) {
-      if (obj1 === obj2) return true;
-      if (typeof obj1 !== 'object' || obj1 === null || typeof obj2 !== 'object' || obj2 === null) return false;
-      const keys1 = Object.keys(obj1);
-      const keys2 = Object.keys(obj2);
-      if (keys1.length !== keys2.length) return false;
-      for (const key of keys1) {
-        if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) return false;
-      }
-      return true;
+    const setHistoryState = (val) => {
+      setHistoryState1(val);
+      console.trace("Setting new state");
     }
 
-    const setState = (newStateOrFn) => {
-      const newState =
-        saveEndedCycles(typeof newStateOrFn === "function" ? newStateOrFn(state) : newStateOrFn);
-      if (deepEqual(newState, state)){
-        return ;
-      }
-      const newHistory = history.slice(0, currentIndex + 1);
-      setHistory([...newHistory, newState]);
-      setCurrentIndex(newHistory.length);
+    const state = historyState.history[historyState.index];
+
+    // ========== SET STATE ==========
+    const setState = useCallback((newStateOrFn) => {
+      setHistoryState(prev => {
+        const currentState = prev.history[prev.index];
+
+        const newState =
+          typeof newStateOrFn === "function"
+            ? newStateOrFn(currentState)
+            : newStateOrFn;
+
+        // Bail if reference didn't change
+        if (newState === currentState) {
+          return prev;
+        }
+
+        const newHistory = prev.history.slice(0, prev.index + 1);
+
+        console.log("newState:", newState);
+        console.log("newHistory:", newHistory, prev.index);
+
+        return {
+          history: [...newHistory, newState],
+          index: newHistory.length
+        };
+      });
+    }, []);
+
+    // ========== UNDO ==========
+    const undo = () => {
+      isUndoingRef.current = true;
+      setHistoryState(prev => {
+        console.log("UNDO PREV INDEX:", prev.index);
+        if (prev.index === 0) return prev;
+        const next = { ...prev, index: prev.index - 1 };
+        console.log("UNDO NEXT INDEX:", next.index);
+        return next;
+      });
     }
 
-    const undo = useCallback(() => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); }, [currentIndex]);
-    const redo = useCallback(() => { if (currentIndex < history.length - 1) setCurrentIndex(currentIndex + 1); }, [currentIndex, history.length]);
-    const reset = useCallback(() => { setHistory([initialState]); setCurrentIndex(0); }, [initialState]);
-    const canUndo = () => currentIndex > 0;
-    const canRedo = () => currentIndex < history.length - 1;
+    // ========== REDO ==========
+    const redo = useCallback(() => {
+      setHistoryState(prev => {
+        if (prev.index >= prev.history.length - 1) return prev;
+        return {
+          ...prev,
+          index: prev.index + 1
+        };
+      });
+    }, []);
+
+    // ========== RESET ==========
+    const reset = useCallback(() => {
+      setHistoryState({
+        history: [initialState],
+        index: 0
+      });
+    }, [initialState]);
+
+    // ========== HELPERS ==========
+    const canUndo = () => historyState.index > 0;
+    const canRedo = () =>
+      historyState.index < historyState.history.length - 1;
 
     return { state, setState, undo, redo, canUndo, canRedo, reset };
   };
@@ -152,15 +199,13 @@ const ScoutMatch = () => {
     phase: PHASES.PRE_MATCH,
     cycles: [],
     startingPosition: -1,
-    
-    // NEW state for toggle-based scouting
-    activeCycle: null,      // Holds the currently running cycle (e.g., SCORING, DEFENSE)
-    cyclePendingRate: null, // Holds a completed cycle waiting for a BPS rate
 
-    // Standard states, preserved from your original structure
-    contact: { startTime: null, endTime: null, pinCount: 0, foulCount: 0 },
-    hang: { startTime: null, endTime: null, level: null },
-    endgame: { disabled: false, driverSkill: "N/A", defenseSkill: "N/A", role: "N/A", comments: "" },
+    // NEW state for toggle-based scouting
+    activeCycle: {},      // Holds the currently running cycle (e.g., SCORING, CONTACT)
+    defenseCycle: {}, //type, phase, startTime, endTime
+
+    // endgame: { disabled: false, driverSkill: "N/A", defenseSkill: "N/A", role: "N/A", comments: "" },
+    endgame: { disabled: "No", driverSkill: "N/A", defenseSkill: "N/A", roles: [], comments: "" },
   };
 
   const { state, setState, undo, redo, canUndo, canRedo, reset } = useHistoryState(initialMatchData);
@@ -168,21 +213,30 @@ const ScoutMatch = () => {
   // ===================================================================================
   // 3. === CRITICAL CHANGE === "Smart" Setters for the new state structure
   // ===================================================================================
-  const stateRef = useRef(state);
-  useEffect(() => { stateRef.current = state; }, [state]);
 
   const createSetter = (key) => (value) => {
-    const currentState = stateRef.current;
-    const currentSlice = currentState[key];
-    let newValue;
-    if (typeof value === 'function') {
-      newValue = value(currentSlice);
-    } else if (typeof currentSlice === 'object' && currentSlice !== null && !Array.isArray(currentSlice)) {
-      newValue = { ...currentSlice, ...value };
-    } else {
-      newValue = value;
-    }
-    setState({ ...currentState, [key]: newValue });
+    setState(prev => {
+      const currentSlice = prev[key];
+
+      let newValue;
+      if (typeof value === "function") {
+        newValue = value(currentSlice);
+      } else if (
+        typeof currentSlice === "object" &&
+        currentSlice !== null &&
+        !Array.isArray(currentSlice)
+      ) {
+        newValue = { ...currentSlice, ...value };
+      } else {
+        newValue = value;
+      }
+
+      // IMPORTANT: Return a NEW state object
+      return {
+        ...prev,
+        [key]: newValue
+      };
+    });
   };
 
   // Create Individual Setters to Preserve Context API
@@ -190,20 +244,18 @@ const ScoutMatch = () => {
   const setCycles = createSetter('cycles');
   const setStartingPosition = createSetter('startingPosition');
   const setActiveCycle = createSetter('activeCycle');
-  const setCyclePendingRate = createSetter('cyclePendingRate');
-  const setContact = createSetter('contact');
-  const setHang = createSetter('hang');
+  const setDefenseCycle = createSetter('defenseCycle');
   const setEndgame = createSetter('endgame');
-  
+
   // Destructure the state for use in the component
   const {
-    phase, cycles, startingPosition, 
-    activeCycle, cyclePendingRate,
-    contact, hang, endgame
+    phase, cycles, startingPosition,
+    activeCycle, defenseCycle,
+    endgame
   } = state;
 
   // This function is adapted to the new state model
-  const isDefending = () => state.activeCycle?.type === CYCLE_TYPES.DEFENSE;
+  const isDefending = () => state.defenseCycle && exists(state.defenseCycle.startTime) && !exists(state.defenseCycle.endTime);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -211,7 +263,7 @@ const ScoutMatch = () => {
   const scaledBoxRef = useRef(null);
 
   const resetMatchState = reset;
-  
+
   const getScaledBoxDimensions = () => {
     const { innerWidth, innerHeight } = window;
     let width = innerWidth;
@@ -240,6 +292,7 @@ const ScoutMatch = () => {
       const response = await getScoutMatch({ eventKey, station: driverStation, matchKey });
       fetching = false;
       setScoutData(response.data);
+      console.log("Scout data:", response.data);
       setSearchParamsError(null);
       resetMatchState();
     } catch (err) {
@@ -277,49 +330,6 @@ const ScoutMatch = () => {
   const flipY = () => isScoutingRed();
 
   // ===================================================================================
-  // 4. === CRITICAL CHANGE === ADAPTED `saveEndedCycles` for the new state
-  // ===================================================================================
-  const saveEndedCycles = (currentState) => {
-    const cyclesToAdd = [];
-    const stateChanges = {};
-
-    // Process Hang Cycle
-    if (currentState.hang.endTime) {
-      cyclesToAdd.push({ ...currentState.hang, type: CYCLE_TYPES.HANG, phase: currentState.phase });
-      stateChanges.hang = { startTime: null, endTime: null, level: null };
-    }
-
-    // Process Contact Cycle
-    if (currentState.contact.endTime) {
-      cyclesToAdd.push({ ...currentState.contact, type: CYCLE_TYPES.CONTACT, phase: currentState.phase });
-      stateChanges.contact = { startTime: null, endTime: null, pinCount: 0, foulCount: 0 };
-    }
-    
-    // Process Auto Movement at the end of the auto phase if not already recorded
-    const hasAutoMoveCycle = currentState.cycles.some(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT);
-    if (currentState.phase !== PHASES.AUTO && !hasAutoMoveCycle && currentState.startingPosition > -1) {
-       cyclesToAdd.push({
-         type: CYCLE_TYPES.AUTO_MOVEMENT,
-         phase: PHASES.AUTO,
-         startTime: 0,
-         // If a move-off-line cycle exists, use its end time. Otherwise, assume it happened at the end of auto.
-         endTime: currentState.cycles.find(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT)?.endTime || AUTO_MAX_TIME,
-         attainedLocation: currentState.startingPosition
-       });
-    }
-
-    if (cyclesToAdd.length > 0) {
-      stateChanges.cycles = [...currentState.cycles, ...cyclesToAdd];
-    }
-    
-    if (Object.keys(stateChanges).length === 0) {
-      return currentState;
-    }
-
-    return { ...currentState, ...stateChanges };
-  };
-
-  // ===================================================================================
   // 5. === CRITICAL CHANGE === UPDATED Context Wrapper with new state and setters
   // ===================================================================================
   const CONTEXT_WRAPPER = {
@@ -330,15 +340,13 @@ const ScoutMatch = () => {
     redo,
     canUndo,
     canRedo,
-    
+
     // State Slices and Setters for child components
     phase, setPhase,
     cycles, setCycles,
     startingPosition, setStartingPosition,
     activeCycle, setActiveCycle,
-    cyclePendingRate, setCyclePendingRate,
-    contact, setContact,
-    hang, setHang,
+    defenseCycle, setDefenseCycle,
     endgame, setEndgame,
 
     // Other necessary context
@@ -356,29 +364,92 @@ const ScoutMatch = () => {
     userToken,
     submitting,
     setSubmitting,
+    scaleWidthToActual,
   };
 
+
+  useEffect(() => {
+    console.log("in useEffect");
+    if (isUndoingRef.current) {
+      isUndoingRef.current = false;
+      return;
+    }
+    switch (activeCycle.type) {
+      case CYCLE_TYPES.SHOOTING:
+      case CYCLE_TYPES.INTAKE:
+      case CYCLE_TYPES.SNOWBALL:
+        if (exists(activeCycle.rate)) {
+          setState(prevState => ({
+            ...prevState,
+            cycles: [...prevState.cycles, activeCycle],
+            activeCycle: {}
+          }));
+        }
+        break;
+      case CYCLE_TYPES.AUTO_MOVEMENT:
+        if (exists(activeCycle.startTime)) {
+          setState(prevState => ({
+            ...prevState,
+            cycles: [...prevState.cycles, activeCycle],
+            activeCycle: {}
+          }));
+        }
+        break;
+      case CYCLE_TYPES.CONTACT:
+      case CYCLE_TYPES.HANG:
+        if (exists(activeCycle.endTime)) {
+          setState(prevState => ({
+            ...prevState,
+            cycles: [...prevState.cycles, activeCycle],
+            activeCycle: {}
+          }));
+        }
+        break;
+    }
+  }, [activeCycle]);
+
+  useEffect(() => {
+    if (exists(defenseCycle.endTime)) {
+      if (isUndoingRef.current) {
+        isUndoingRef.current = false;
+        return;
+      }
+      setState(prevState => ({
+        ...prevState,
+        defenseCycle: {},
+        cycles: [...prevState.cycles, defenseCycle]
+      }));
+    }
+  }, [defenseCycle]);
+
   const getTheme = () => (isScoutingRed() ? RedTheme : BlueTheme);
-  
+
   const createFieldLocalMatchComponent = (
     id, fieldX, fieldY, fieldWidth, fieldHeight, componentFunction, dontFlip = false, noPointerEvents = false
   ) => {
     return (
       <MatchContext.Consumer key={id}>
-        {(match) => (
-          <FieldLocalComponent
-            fieldX={fieldX} fieldY={fieldY} fieldWidth={fieldWidth} fieldHeight={fieldHeight}
-            perspective={scoutPerspective}
-            sx={{ pointerEvents: noPointerEvents ? "none" : "auto" }}
-          >
-            {componentFunction(match)}
-          </FieldLocalComponent>
-        )}
+        {(match) => {
+          if (componentFunction(match) == null) {
+            return null;
+          }
+          return (
+            <FieldLocalComponent
+              fieldX={fieldX} fieldY={fieldY} fieldWidth={fieldWidth} fieldHeight={fieldHeight}
+              perspective={scoutPerspective}
+              isDefending={match.isDefending()}
+              sx={{ pointerEvents: noPointerEvents ? "none" : "auto" }}
+              flip={!dontFlip}
+            >
+              {componentFunction(match)}
+            </FieldLocalComponent>
+          )
+        }}
       </MatchContext.Consumer>
     );
   };
 
-  const FieldButton = ({ children, sx, drawBorder, ...props }) => {
+  const FieldButton = ({ children, sx, drawBorder, fontSize, ...props }) => {
     return (
       <Button
         variant="contained"
@@ -387,8 +458,8 @@ const ScoutMatch = () => {
           width: "100%", height: "100%",
           minWidth: 0, minHeight: 0,
           padding: 0, margin: 0,
-          fontSize: scaleWidthToActual(60) + "px",
-          border: drawBorder ? scaleWidthToActual(25) + "px solid black" : scaleWidthToActual(1) + "px solid black",
+          fontSize: scaleWidthToActual(fontSize) + "px",
+          border: drawBorder ? scaleWidthToActual(25) + "px solid black" : scaleWidthToActual(15) + "px solid black",
           transition: 'transform 0.15s ease-in-out, box-shadow 1s ease-in-out',
           transform: drawBorder ? 'scale(1.2)' : 'scale(1)',
           boxShadow: drawBorder ? '0px 4px 20px rgba(0,0,0,0.4)' : '0px rgba(0,0,0,0)',
@@ -402,32 +473,40 @@ const ScoutMatch = () => {
     const [x, y] = config.positions[key];
     return config.phases.includes(phase)
       ? createFieldLocalMatchComponent(
-          key, x, y,
-          config.dimensions.width, config.dimensions.height,
-          (match) => {
-            const isNotShowing = config.showFunction && !config.showFunction(match, key);
-            const isDisabled = config.disabled && config.disabled(match, key);
-            if (isNotShowing) { return; }
-            return config.componentFunction != null ? (
-              config.componentFunction(match, key)
-            ) : (
-              <FieldButton
-                sx={{
-                  pointerEvents: isDisabled || isNotShowing ? "none" : "auto",
-                  borderRadius: config.isCircle ? "50%" : "2%",
-                  ...config.sx
-                }}
-                drawBorder={config.drawBorder && config.drawBorder(match, key)}
-                disabled={isDisabled}
-                color={config.color || COLORS.ACTIVE}
-                onClick={config.onClick ? () => config.onClick(CONTEXT_WRAPPER, key) : () => null}
-              >
-                {config.textFunction && config.textFunction(match, key)}
-              </FieldButton>
-            );
-          },
-          config.dontFlip || false
-        )
+        key, x, y,
+        config.dimensions.width, config.dimensions.height,
+        (match) => {
+          const isNotShowing = (config.showFunction && !config.showFunction(match, key));
+          const isDisabled = config.disabled && config.disabled(match, key);
+          const isSelected = config.isSelected && config.isSelected(match, key);
+          if (isNotShowing) {
+            console.log("key2", key);
+            return null;
+          }
+          console.log("key", key);
+          return config.componentFunction != null ? (
+            config.componentFunction(match, key)
+          ) : (
+            <FieldButton
+              sx={{
+                pointerEvents: "auto",
+                borderRadius: config.isCircle ? "50%" : "2%",
+                opacity: isSelected ? 1 : 0.68,
+                border: isSelected ? "10px solid black" : "5px solid black",
+                ...config.sx && config.sx(match)
+              }}
+              fontSize={config.fontSize || 60}
+              drawBorder={isSelected}
+              disabled={isDisabled}
+              color={config.color || COLORS.ACTIVE}
+              onClick={config.onClick ? () => config.onClick(CONTEXT_WRAPPER, key) : () => null}
+            >
+              {config.textFunction && config.textFunction(match, key)}
+            </FieldButton>
+          );
+        },
+        config.dontFlip || false
+      )
       : null;
   };
 
@@ -438,83 +517,184 @@ const ScoutMatch = () => {
     const onClickKeyframes = { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.2)' }, '100%': { transform: 'scale(1)' }, };
     if (!show) return null;
     return (
-        <Button
-          variant="contained" color={color} disabled={disabled}
-          onClick={() => {
-            setAnimating(true);
-            setTimeout(() => { setAnimating(false); onClick(); }, 100);
-          }}
-          sx={{
-            width: "90%", height: "95%",
-            fontSize: scaleWidthToActual(100) + "px",
-            borderRadius: scaleWidthToActual(150) + "px",
-            left: "5%",
-            '@keyframes onClick': onClickKeyframes,
-            animation: animating ? 'onClick 0.1s ease' : 'none',
-            ...sx,
-          }}
-        >{label}</Button>
-      );
+      <Button
+        variant="contained" color={color} disabled={disabled}
+        onClick={() => {
+          setAnimating(true);
+          setTimeout(() => { setAnimating(false); onClick(); }, 100);
+        }}
+        sx={{
+          width: "90%", height: "95%",
+          fontSize: scaleWidthToActual(100) + "px",
+          borderRadius: scaleWidthToActual(150) + "px",
+          left: "5%",
+          '@keyframes onClick': onClickKeyframes,
+          animation: animating ? 'onClick 0.1s ease' : 'none',
+          ...sx,
+        }}
+      >{label}</Button>
+    );
   }
 
-  const ScoutingConfigChildren = Object.values(SCOUTING_CONFIG).map((config) =>
-    Object.keys(config.positions).map((position) => {
+  const ScoutingConfigChildren = Object.values(SCOUTING_CONFIG).map((config) => {
+    if (!config.phases.includes(phase)) {
+      return null;
+    }
+    return Object.keys(config.positions).map((position) => {
       return createScoutingConfigChild(config, position);
     })
-  );
+  });
 
   // === NOTE ===
   // The `GROUND_PICKUPIcon` rendering logic that was here has been removed because
   // the `powerCellCycles` state it depended on no longer exists in the new model.
 
   // The entire POST_MATCHChildren array is preserved from your original file.
-  const POST_MATCHChildren = [
-    createFieldLocalMatchComponent("disabled", 250, 100, 500, 150, (match) => <FieldButton color={COLORS.PRIMARY}>DISABLED?</FieldButton>, !(isScoringTableFar() && isScoutingRed())),
-    ...[150, 500].map((x, index) => {
-      const value = ["no", "yes"][index];
-      return createFieldLocalMatchComponent(`${index}DisabledMenu`, x, 250, 300, 100, (match) => (
-        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ disabled: value === "yes" }); }} drawBorder={match.endgame.disabled === (value === "yes")}>{value}</FieldButton>
-      ), isScoringTableFar() !== isScoutingRed());
-    }),
-    createFieldLocalMatchComponent("driverSkill", 250, 500, 500, 150, (match) => <FieldButton color={COLORS.PRIMARY}>Driver Skill</FieldButton>, isScoringTableFar() !== isScoutingRed()),
-    ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
-      const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
-      return createFieldLocalMatchComponent(`${index}DriverSkill`, x, 650, 150, 100, (match) => (
-        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ driverSkill: value }); }} drawBorder={match.endgame.driverSkill === value}>{value}</FieldButton>
-      ), isScoringTableFar() !== isScoutingRed());
-    }),
-    createFieldLocalMatchComponent("defenseSkill", 250, 900, 500, 150, (match) => (<FieldButton color={COLORS.PRIMARY}>Defense Skill</FieldButton>), isScoringTableFar() !== isScoutingRed()),
-    ...[75, 250, 425, 600, 775, 950, 1125].map((x, index) => {
-      const value = ["N/A", 0, 1, 2, 3, 4, 5][index];
-      return createFieldLocalMatchComponent(`${index}DefenseSkill`, x, 1050, 150, 100, (match) => (
-        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ defenseSkill: value }); }} drawBorder={match.endgame.defenseSkill === value}>{value}</FieldButton>
-      ), isScoringTableFar() !== isScoutingRed());
-    }),
-    createFieldLocalMatchComponent("role", 250, 1300, 500, 150, (match) => <FieldButton color={COLORS.PRIMARY}>Role</FieldButton>, isScoringTableFar() !== isScoutingRed()),
-    ...[200, 575, 950, 1325].map((x, index) => {
-      const value = ["N/A", "Defense", "Cycle", "Feed"][index];
-      return createFieldLocalMatchComponent(`${index}Role`, x, 1450, 350, 100, (match) => (
-        <FieldButton color={COLORS.PENDING} onClick={() => { match.setEndgame({ role: value }); }} sx={{zIndex: match.endgame.role===value ? 2 : 1}} drawBorder={match.endgame.role === value}>{value}</FieldButton>
-      ), isScoringTableFar() !== isScoutingRed());
-    }),
-    createFieldLocalMatchComponent("comments", 1850, 750, 600, 1400, (match) => (
-      <><label htmlFor="comments" style={{ color: "black", }}>COMMENTS:</label>
-      <textarea id="comments" onChange={(event) => match.setEndgame({ comments: event.target.value, })} style={{ width: "100%", height: "100%", }}></textarea></>
-    ), isScoringTableFar() !== isScoutingRed()),
-  ];
+  const renderEndgame = () => {
+    return ENDGAME_CONFIG.map((field) => {
+      return createFieldLocalMatchComponent(
+        field.id, field.fieldX, field.fieldY, field.width, field.height,
+        (match) => {
+          // Inner rendering logic based on type
+          const label = (
+            <Box sx={{
+              position: "absolute", left: scaleWidthToActual(field.labelParams?.x || 0), top: scaleHeightToActual(field.labelParams?.y || 0),
+              width: scaleWidthToActual(field.labelParams?.width || field.width), height: scaleHeightToActual(field.labelParams?.height || 50),
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: scaleWidthToActual(100) + "px",
+            }}>
+              <FieldButton color={COLORS.PRIMARY}>{field.label}</FieldButton>
+            </Box>
+          );
+
+          if (field.type === "TOGGLE" || field.type === "SCALE") {
+            const options = field.options || ["N/A", ...Array.from({ length: field.max - field.min + 1 }, (_, i) => i + field.min)];
+            const row = (
+              <Box sx={{
+                position: "absolute", left: scaleWidthToActual(field.rowParams?.x || 0 + field.labelParams?.width), top: scaleHeightToActual(field.rowParams?.y + field.labelParams?.height || 50 + field.labelParams?.height),
+                width: scaleWidthToActual(field.rowParams?.width || field.width), height: scaleHeightToActual(field.rowParams?.height || field.height - 50),
+                display: "flex", gap: scaleWidthToActual(field.rowParams?.gap || 10)
+              }}>
+                {options.map((opt, idx) => (
+                  <Box key={idx} sx={{ flex: 1 }}>
+                    <FieldButton
+                      color={COLORS.PENDING}
+                      onClick={() => match.setEndgame({ [field.id]: opt })}
+                      drawBorder={match.endgame[field.id] == opt}
+                    >{opt}</FieldButton>
+                  </Box>
+                ))}
+              </Box>
+            );
+            return <>{label} {row}</>;
+          }
+
+          if (field.type === "OPTIONS") {
+            const label = (
+              <Box sx={{
+                position: "absolute", left: scaleWidthToActual(field.labelParams?.x || 0), top: scaleHeightToActual(field.labelParams?.y || 0),
+                width: scaleWidthToActual(field.labelParams?.width || field.width), height: scaleHeightToActual(field.labelParams?.height || 50),
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: scaleWidthToActual(100) + "px",
+              }}>
+                <FieldButton color={COLORS.PRIMARY}>{field.label}</FieldButton>
+              </Box>
+            );
+            const options = field.options;
+
+            // Ensure we always have an array
+            const selected = Array.isArray(match.endgame[field.id])
+              ? match.endgame[field.id]
+              : [];
+
+            const row = (
+              <Box sx={{
+                position: "absolute",
+                left: scaleWidthToActual(
+                  (field.rowParams?.x || 0) + (field.labelParams?.width || 0)
+                ),
+                top: scaleHeightToActual(
+                  (field.rowParams?.y || 50) + (field.labelParams?.height || 0)
+                ),
+                width: scaleWidthToActual(field.rowParams?.width || field.width),
+                height: scaleHeightToActual(field.rowParams?.height || field.height - 50),
+                display: "flex",
+                gap: scaleWidthToActual(field.rowParams?.gap || 10)
+              }}>
+                {options.map((opt, idx) => {
+                  const isSelected = selected.includes(opt);
+
+                  return (
+                    <Box key={idx} sx={{ flex: 1 }}>
+                      <FieldButton
+                        color={isSelected ? COLORS.ACTIVE : COLORS.PENDING}
+                        onClick={() => {
+                          let newValues;
+
+                          if (isSelected) {
+                            // Remove
+                            newValues = selected.filter(v => v !== opt);
+                          } else {
+                            // Add
+                            newValues = [...selected, opt];
+                          }
+
+                          match.setEndgame({ [field.id]: newValues });
+                        }}
+                        drawBorder={isSelected}
+                        sx={{
+                          fontSize: scaleWidthToActual(20) + "px",
+                        }}
+                      >
+                        {opt}
+                      </FieldButton>
+                    </Box>
+                  );
+                })}
+              </Box>
+            );
+
+            return [label, row];
+          }
+
+          if (field.type === "TEXT_AREA") {
+            return (
+              <>
+                {label}
+                <Box sx={{
+                  position: "absolute", left: scaleWidthToActual(field.textParams?.x || 0), top: scaleHeightToActual(field.textParams?.y || 100),
+                  width: scaleWidthToActual(field.textParams?.width || field.width), height: scaleHeightToActual(field.textParams?.height || field.height - 100),
+                  bgcolor: "white"
+                }}>
+                  <textarea
+                    value={match.endgame.comments || ""}
+                    onChange={(e) => match.setEndgame({ comments: e.target.value })}
+                    style={{ width: "100%", height: "100%", fontSize: scaleWidthToActual(40) + "px", padding: "10px" }}
+                  />
+                </Box>
+              </>
+            );
+          }
+          return null;
+        },
+        // dontFlip
+        true // Dont flip condition same as before
+      );
+    });
+  };
 
   const getFieldCanvasOffset = () => {
     if (phase === PHASES.POST_MATCH && !isScoringTableFar()) { return 0; }
-    const shift = 0;
+    const shift = FIELD_VIRTUAL_WIDTH * 0;
     const defenseShift = isDefending() && phase !== PHASES.POST_MATCH ? shift : 0;
     const offset = isScoutingRed() !== isScoringTableFar() ? -shift + defenseShift : -defenseShift;
     return offset;
   };
-  
+
   const renderFieldCanvas = () => {
     const fieldChildren = [
       ...ScoutingConfigChildren,
-      ...(phase === PHASES.POST_MATCH ? POST_MATCHChildren : []),
+      ...(phase === PHASES.POST_MATCH || phase === PHASES.ENDGAME ? renderEndgame() : []),
       // Note: GROUND_PICKUPIcon rendering is removed here
     ];
     return (
@@ -522,9 +702,7 @@ const ScoutMatch = () => {
         {scaledBoxRect.width > 0 && (
           <FieldCanvas
             ref={fieldCanvasRef} theme={getTheme()} height={scaledBoxRect.height}
-            perspective={scoutPerspective} children={fieldChildren}
-            // Note: Generic onClick for acquiring pieces is removed
-            phase={phase}
+            perspective={scoutPerspective} children={fieldChildren} match={CONTEXT_WRAPPER}
           />
         )}
       </Box>
@@ -533,12 +711,12 @@ const ScoutMatch = () => {
 
   const renderScoutDataLabel = () => {
     return (
-      <Box sx={{ backgroundColor: getTheme().palette.primary.main, color: getTheme().palette.primary.contrastText, fontSize: scaleWidthToActual(50) + "px", display: "flex", justifyContent: "center"}}>
-        {scoutData ? ( <div>Scout: {userToken?.username} Team: {scoutData.teamNumber} Match: {getmatchKey()}</div> ) : ( <div>No scout data</div> )}
+      <Box sx={{ backgroundColor: getTheme().palette.primary.main, color: getTheme().palette.primary.contrastText, fontSize: scaleWidthToActual(50) + "px", display: "flex", justifyContent: "center" }}>
+        {scoutData ? (<div>Scout: {userToken?.username} Team: {scoutData.teamNumber} Match: {getmatchKey()}</div>) : (<div>No scout data</div>)}
       </Box>
     );
   };
-  
+
   const renderSideBarHeader = () => {
     const iconSize = scaleWidthToActual(150);
     const fontSize = scaleWidthToActual(60);
@@ -546,10 +724,10 @@ const ScoutMatch = () => {
     return (
       <Box sx={{ display: "flex", flexDirection: "column", width: "100%", borderBottom: "1px solid #ccc" }}>
         <Box sx={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
-          <Button onClick={() => setSidebarOpen(true)} sx={{ width: iconSize, height: iconSize, minWidth: 0, padding: 0 }}><MenuIcon sx={{ height: "100%", width: "100%", fontSize: fontSize }}/></Button>
-          
+          <Button onClick={() => setSidebarOpen(true)} sx={{ width: iconSize, height: iconSize, minWidth: 0, padding: 0 }}><MenuIcon sx={{ height: "100%", width: "100%", fontSize: fontSize }} /></Button>
+
           {/* Note: The power cell icons that were here have been removed as getNumPowerCellsInBot() is obsolete. */}
-          <Box sx={{flex: 1}} /> 
+          <Box sx={{ flex: 1 }} />
 
           <Box sx={{ width: iconSize, height: iconSize, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "white", fontSize: fontSize }}>{displayTime}</span></Box>
         </Box>
@@ -583,10 +761,10 @@ const ScoutMatch = () => {
 
     return (
       <>
-        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} scaleWidthToActual={scaleWidthToActual} scaleHeightToActual={scaleHeightToActual}/>
+        <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} scaleWidthToActual={scaleWidthToActual} scaleHeightToActual={scaleHeightToActual} />
         <Box sx={{ display: "flex", flexDirection: "column", overflowY: "auto", flex: 1, height: "99%", margin: "2% 0%" }}>
           {renderSideBarHeader()}
-          <Box sx={{height: "2%", bgcolor: "rgba(0,0,0,0)"}}/>
+          <Box sx={{ height: "2%", bgcolor: "rgba(0,0,0,0)" }} />
           {buttonsList.filter(Boolean)}
         </Box>
       </>
@@ -636,7 +814,7 @@ const ScoutMatch = () => {
           >
             <Box
               sx={{
-                background: phase === PHASES.AUTO ? getTheme().palette.autoBackground.main : "",
+                // background: phase === PHASES.AUTO ? getTheme().palette.autoBackground.main : "",
                 position: "absolute", left: scaleWidthToActual(sidebarVirtualWidth),
                 width: scaledBoxRect.width - scaleWidthToActual(sidebarVirtualWidth),
                 height: scaledBoxRect.height, overflow: "hidden",

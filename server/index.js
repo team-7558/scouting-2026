@@ -20,6 +20,23 @@ const logRequest = (req, res, next) => {
   const { method, url } = req;
   const start = Date.now();
 
+  console.log("----- INCOMING REQUEST -----");
+  console.log("Time:", new Date().toISOString());
+  console.log("Method:", req.method);
+  console.log("URL:", req.originalUrl);
+
+  console.log("Headers:", {
+    "content-type": req.headers["content-type"],
+    authorization: req.headers["authorization"],
+    origin: req.headers["origin"]
+  });
+
+  console.log("Query:", req.query);
+  console.log("Params:", req.params);
+  console.log("Body:", req.body);
+
+  console.log("----------------------------");
+
   res.on("finish", () => {
     const duration = Date.now() - start;
     console.log(`${method} ${url} ${res.statusCode} - ${duration}ms`);
@@ -29,9 +46,13 @@ const logRequest = (req, res, next) => {
 };
 
 const app = express();
-app.use(logRequest);
 app.use(express.json());
+app.use((err, req, res, next) => {
+  console.error("JSON parse error:", err.message);
+  res.status(400).json({ error: err.message });
+});
 app.use(cors());
+app.use(logRequest);
 // console.log(app);
 
 // Use the auth routes

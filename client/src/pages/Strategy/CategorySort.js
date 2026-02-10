@@ -38,7 +38,7 @@ const formatValue = (value, key) => {
   const v = Array.isArray(value) ? value[0] : value;
 
   if (typeof v === "number") {
-    if (v===0) return "-";
+    if (v === 0) return "-";
     if (key.toLowerCase().includes("time")) return (v / 1000).toFixed(1) + "s";
     if (key.toLowerCase().includes("rate") || key.toLowerCase().includes("accuracy"))
       return (v * 100).toFixed(1) + "%";
@@ -111,10 +111,12 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
                 <TableSortLabel
                   active={orderBy === key}
                   direction={orderBy === key ? order : "asc"}
-                  sx={{ color: headingColor, '&.Mui-active': {
-                     color: "#fff" ,
-                     fontSize: "40px"
-                    }}}
+                  sx={{
+                    color: headingColor, '&.Mui-active': {
+                      color: "#fff",
+                      fontSize: "40px"
+                    }
+                  }}
                   onClick={(e) => handleRequestSort(e, key)}
                 >
                   {camelCaseToWords(key)}
@@ -153,6 +155,8 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
 // ----------------- AveragesTable -----------------
 const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
   const [openGroups, setOpenGroups] = useState({});
+
+  console.log("avg", averages);
 
   const categoryRows = {};
   Object.keys(averages).forEach((robotId) => {
@@ -227,12 +231,11 @@ const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
 
 // ----------------- CategorySort -----------------
 const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
-  powerCell: "#FFD600",
-  controlPanel: "#8D5FD3",
-  hang: "#E63946",
-  defense: "#0DB7ED", 
-  contact: "#FF6F3C",
-  movement: "#0f0"
+  fuel: "#fcec4e",
+  hang: "#e06bfa",
+  defense: "#FCA311",
+  contact: "#00B4D8",
+  movement: "#FCA311"
 } }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -309,15 +312,15 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
   };
 
   return (
-    <div style={{width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto"}}>
+    <div style={{ width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto" }}>
       <Paper sx={{ p: 2, mb: 3, bgcolor: "#111" }}>
-        <HomeIcon 
-            sx={{aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white"}} 
-            onClick={() => {
-              navigate("/");
-            }}
-          />
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center", mb: 2}}>
+        <HomeIcon
+          sx={{ aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white" }}
+          onClick={() => {
+            navigate("/");
+          }}
+        />
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: "center", mb: 2 }}>
           <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: accentColor }}>
             View Reports
           </Typography>
@@ -396,7 +399,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
               sx={{
                 color: accentColor,
                 '&.Mui-selected': {
-                  border: '2px solid red',
+                  border: `2px solid ${accentColor}`,
                   color: accentColor,
                 },
               }}
@@ -409,7 +412,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
               sx={{
                 color: accentColor,
                 '&.Mui-selected': {
-                  border: '2px solid red',
+                  border: `2px solid ${accentColor}`,
                   color: accentColor,
                 },
               }}

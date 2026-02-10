@@ -3,14 +3,17 @@ import { createTheme } from "@mui/material/styles";
 export const BlueTheme = createTheme({
   palette: {
     mode: "dark",
+    primary: {
+      main: "#5f90de"
+    },
     intake: {
-      main: "#ff5757", // A vibrant blue for primary actions
+      main: "#ff5757", 
     },
     shoot: {
-      main: "#ffde59", // A teal accent color
+      main: "#ffde59", 
     },
     hangDefense: {
-      main: "#63bbf4", // A clear red for errors
+      main: "#00d68f", 
     },
     undo: {
       main: "#cb6ce6", // Lighter blue for informational elements
@@ -21,5 +24,8 @@ export const BlueTheme = createTheme({
     fail: {
       main: "#ff5757",
     },
+    info: {
+      main: "#999798"
+    }
   },
 });

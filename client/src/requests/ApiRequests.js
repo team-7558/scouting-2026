@@ -25,6 +25,7 @@ export const submitMatch = async ({
   station,
   matchData,
 }) => {
+  console.log("submitMatch", eventKey, matchKey, station, matchData, getAuthHeaders());
   return api.post(
     `/reports/submit`,
     { eventKey, matchKey, station, matchData },

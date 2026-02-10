@@ -24,17 +24,9 @@ const parseAttainedLocation = (attained) => {
 export const calculateReportTotals = (report) => {
   // Default per-phase structure
   const DEFAULT_PHASE_STRUCTURE = {
-    powerCell: {
+    fuel: {
       attainedCount: 0,
-      highScoreCount: 0,
-      highMissCount: 0,
-      lowScoreCount: 0,
-      lowMissCount: 0,
-      totalScoreCount: 0,
-      feedCount: 0,
-      avgCycleTime: null,
-      highAccuracy: 0,
-      lowAccuracy: 0,
+      shotCount: 0,
     },
   };
 
@@ -47,26 +39,25 @@ export const calculateReportTotals = (report) => {
     auto: {
       ...structuredClone(DEFAULT_PHASE_STRUCTURE),
       movement: {
-        movementTime: 0,
+        bumps: 0,
+        trenches: 0,
+        movements: 0,
+      },
+      hang: {
         attempts: 0,
-        successfulEnds: 0,
-        movementRate: 0,
+        lOneRate: 0,
+        cycleTime: null,
       },
     },
     tele: {
       ...structuredClone(DEFAULT_PHASE_STRUCTURE),
-      controlPanel: {
-        positionControlRate: 0, 
-        positionAvgTime: null,
-        rotationControlRate: 0,
-        rotationAvgTime: null,
-      },
       hang: {
         attempts: 0,
-        successRate: 0,
+        lOneRate: 0,
+        lTwoRate: 0,
+        lThreeRate: 0,
+        avgHangPoints: 0,
         cycleTime: null,
-        hangSuccessRate: 0,
-        balancedRate: 0,
       },
       defense: {
         totalTime: 0,
@@ -76,15 +67,7 @@ export const calculateReportTotals = (report) => {
         foulCount: 0,
         pinCount: 0,
       },
-  },
-  };
-
-  // For averaging scoring times per phase for power cell
-  const powerCellScoringTimes = { auto: [], tele: [] };
-
-  // For control panel times per phase/type
-  const controlPanelTimes = {
-    position: [], rotation: [],
+    },
   };
 
   // Keep disabled value
@@ -105,107 +88,48 @@ export const calculateReportTotals = (report) => {
     const cycleType = cycle.type;
     const startTime = cycle.start_time !== undefined ? cycle.start_time : null;
     const endTime = cycle.end_time !== undefined ? cycle.end_time : null;
-    const cycleTime = cycle.cycle_time !== undefined ? cycle.cycle_time : null;
-    const depositType = cycle.deposit_type !== undefined ? cycle.deposit_type : null;
-    const depositLocation = cycle.deposit_location !== undefined ? cycle.deposit_location : null;
+    const location = cycle.location !== undefined ? cycle.location : null;
+    const cycleTime = endTime - startTime;;
     const attainedLocationRaw = cycle.attained_location !== undefined ? cycle.attained_location : null;
     const attainedLocation = parseAttainedLocation(attainedLocationRaw);
 
     switch (cycleType) {
       case "AUTO_MOVEMENT": {
-        // Count attempt when startTime exists or even when cycle is present
-        phaseResults.movement.attempts += 1;
-        // record movementTime as the cycleTime (last one will be stored)
-        if (cycleTime !== null) phaseResults.movement.movementTime = cycleTime;
-        // successful end if end_time present
-        if (endTime !== null) phaseResults.movement.successfulEnds += 1;
-        // movementRate will be derived later
+        if (location === "BUMP") {
+          phaseResults.movement.bumps += 1;
+        } else if (location === "TRENCH") {
+          phaseResults.movement.trenches += 1;
+        } else {
+          phaseResults.movement.movementTime = endTime;
+        }
         break;
       }
 
-      case "POWER_CELL": {
-        // attainedCount = start_time not null (per your request)
-        if (startTime !== null) phaseResults.powerCell.attainedCount += 1;
+      case "SHOOT":
+      case "SNOWBALL":
+      case "INTAKE": {
+        // Calculate count using rate * duration if available
+        let count = 1;
+        const rate = cycle.rate || 0;
 
-        // Determine success: prefer explicit success boolean, otherwise use end_time presence
-        const success = cycleSucceeded(cycle);
-
-        // Normalize depositLocation to string
-        const locStr = depositLocation ? String(depositLocation).toUpperCase() : "";
-
-        const isHigh =locStr.includes("POWER_PORT_HIGH");
-        const isLow = locStr.includes("POWER_PORT_LOW");
-        const isFeed = locStr.includes("FEED");
-
-        if (isHigh) {
-          if (success) phaseResults.powerCell.highScoreCount += 1;
-          else phaseResults.powerCell.highMissCount += 1;
-        } else if (isLow) {
-          if (success) phaseResults.powerCell.lowScoreCount += 1;
-          else phaseResults.powerCell.lowMissCount += 1;
-        } else if (isFeed) {
-          phaseResults.powerCell.feedCount += 1;
+        // If rate is provided (items/sec) and we have a duration, calculate total items
+        if (rate > 0 && startTime !== null && endTime !== null) {
+          const duration = endTime - startTime;
+          count = Math.max(1, Math.round((rate * duration) / 1000));
         }
 
-        // totalScoreCount: count successes regardless of high/low
-        if (success) phaseResults.powerCell.totalScoreCount += 1;
-
-        // store cycleTime for averaging if success and cycleTime present
-        if (cycleTime !== null) {
-          powerCellScoringTimes[phase].push(cycleTime);
+        // Intake -> Attained
+        if (cycleType === "INTAKE") {
+          phaseResults.fuel.attainedCount += count;
         }
-
-        break;
-      }
-
-      case "CONTROL_PANEL": {
-        // attained_location is JSON with 'position' or 'rotation', but could be string or object.
-        // We'll interpret both object form and string forms.
-        // Consider an attempt when startTime exists or when cycle exists.
-        const loc = attainedLocation;
-        // position detection
-        let positionHit = false;
-        let rotationHit = false;
-
-        if (loc) {
-          if (typeof loc === "string") {
-            const s = loc.toLowerCase();
-            if (s.includes("position")) positionHit = true;
-            if (s.includes("rotation")) rotationHit = true;
-
-            if (positionHit)
-              controlPanelTimes.position.push(cycleTime);
-            if (rotationHit)
-            controlPanelTimes.rotation.push(cycleTime);
-          } else if (typeof loc === "object") {
-            // check common keys & truthy values or explicit markers
-            // e.g., { position: true } or { type: "position" }
-            if (loc.position === true || loc.position === "true" || loc.type === "position" || loc.type === "POSITION")
-              positionHit = true;
-            if (loc.rotation === true || loc.rotation === "true" || loc.type === "rotation" || loc.type === "ROTATION")
-              rotationHit = true;
-            // also tolerate a key whose name contains position/rotation
-            for (const k of Object.keys(loc)) {
-              const lk = k.toLowerCase();
-              if (lk.includes("position")) positionHit = positionHit || Boolean(loc[k]);
-              if (lk.includes("rotation")) rotationHit = rotationHit || Boolean(loc[k]);
-            }
-
-            if (positionHit)
-              controlPanelTimes.position.push(cycleTime);
-            if (rotationHit)
-              controlPanelTimes.rotation.push(cycleTime);
-          }
+        // Shoot -> Shot (Score)
+        else if (cycleType === "SHOOT") {
+          phaseResults.fuel.shotCount += count;
         }
-
-        // If it's a position attempt
-        if (positionHit || (!positionHit && !rotationHit && String(attainedLocationRaw).toLowerCase().includes("position"))) {
-          phaseResults.controlPanel.positionControlRate += 1;
-        }
-
-        //If it's a rotation attempt
-        if (rotationHit || (!rotationHit && !positionHit && String(attainedLocationRaw).toLowerCase().includes("rotation"))){
-          phaseResults.controlPanel.rotationControlRate += 1;
+        // Snowball -> Feed
+        else if (cycleType === "SNOWBALL") {
+          phaseResults.fuel.attainedCount += count;
+          phaseResults.fuel.shotCount += count;
         }
 
         break;
@@ -214,18 +138,21 @@ export const calculateReportTotals = (report) => {
       case "HANG": {
         phaseResults.hang.attempts += 1;
         if (cycleTime !== null) {
-          phaseResults.hang.cycleTime = cycleTime; // last recorded cycleTime
+          phaseResults.hang.cycleTime = cycleTime;
         }
 
-        // result: FAIL_HANG, HANG, BALANCED, etc.
-        const result = depositLocation.toUpperCase();
-        if (result === "HANG" || result === "BALANCED") {
-          // per your note: hang and balanced count as successful
-          phaseResults.hang.successRate += 1;
+        // Normalize location
+        const loc = (cycle.location ? String(cycle.location) : "").toUpperCase();
+
+        // Check levels
+        if (loc.includes("LEVEL_1")) {
+          phaseResults.hang.lOneRate += 1;
+        } else if (loc.includes("LEVEL_2")) {
+          phaseResults.hang.lTwoRate += 1;
+        } else if (loc.includes("LEVEL_3")) {
+          phaseResults.hang.lThreeRate += 1;
         }
-        if (result === "BALANCED"){
-          phaseResults.hang.balancedRate += 1
-        }
+
         break;
       }
 
@@ -250,56 +177,6 @@ export const calculateReportTotals = (report) => {
     }
   });
 
-  // Derived metrics per phase
-  for (const phase of ["auto", "tele"]) {
-    const p = results[phase];
-
-    // movementRate: successfulEnds / attempts (guard divide-by-zero)
-    if (phase==="auto"){
-      if (p.movement.attempts > 0) {
-        p.movement.movementRate = p.movement.successfulEnds / p.movement.attempts;
-      } else {
-        p.movement.movementRate = 0;
-      }
-    }
-
-    // powerCell avg scoring cycle time
-    if (powerCellScoringTimes[phase].length > 0) {
-      const tot = powerCellScoringTimes[phase].reduce((acc, cur) => acc + cur, 0);
-      p.powerCell.avgCycleTime = tot / powerCellScoringTimes[phase].length;
-    } else {
-      p.powerCell.avgCycleTime = null;
-    }
-
-    // powerCell high/low accuracy
-    const highDenom = p.powerCell.highScoreCount + p.powerCell.highMissCount;
-    p.powerCell.highAccuracy = highDenom > 0 ? p.powerCell.highScoreCount / highDenom : 0;
-    const lowDenom = p.powerCell.lowScoreCount + p.powerCell.lowMissCount;
-    p.powerCell.lowAccuracy = lowDenom > 0 ? p.powerCell.lowScoreCount / lowDenom : 0;
-
-    if (phase==="tele"){
-      // control panel average times
-      const posTimes = controlPanelTimes.position;
-      const rotTimes = controlPanelTimes.rotation;
-      if (posTimes.length > 0 && posTimes.every(t => typeof t ==="number")) {
-        p.controlPanel.positionAvgTime = posTimes.reduce((a, b) => a + b, 0) / posTimes.length;
-      } else {
-        p.controlPanel.positionAvgTime = null;
-      }
-      if (rotTimes.length > 0 && posTimes.every(t => typeof t ==="number")) {
-        p.controlPanel.rotationAvgTime = rotTimes.reduce((a, b) => a + b, 0) / rotTimes.length;
-      } else {
-        p.controlPanel.rotationAvgTime = null;
-      }
-
-      // hang success rate (successfulCount / attempts)
-      if (p.hang.attempts > 0) {
-        p.hang.hangSuccessRate = p.hang.successRate / p.hang.attempts;
-      } else {
-        p.hang.hangSuccessRate = 0;
-      }
-    }
-  }
   return results;
 };
 
@@ -315,21 +192,22 @@ export const calculateAverageMetrics = (reports) => {
 
   // disabled: average over numeric values, excluding zeros
   let disabledSum = 0;
-  let disabledCount = 0;
   reports.forEach((r) => {
     // MODIFIED: Added '&& r.totals.disabled !== 0' to ignore zero values
     if (r.totals && typeof r.totals.disabled === "number" && r.totals.disabled !== 0) {
-      disabledSum += r.totals.disabled;
-      disabledCount++;
+      console.log("disabled", r.totals.disabled);
+      disabledSum += { No: 0, Yes: 1, Partially: 0.5 }[r.totals.disabled];
     }
+    console.log("report", r);
   });
-  averageMetrics.disabled = disabledCount > 0 ? disabledSum / disabledCount : null;
+  averageMetrics.disabled = disabledSum / reports.length;
 
   // helper to average numeric fields for phases
   const accumulatePhase = (phase) => {
     // take keys from first report's totals if present
     const structure = {};
     const firstTotals = reports[0].totals && reports[0].totals[phase] ? reports[0].totals[phase] : {};
+    console.log("firstTotals", firstTotals);
     for (const category of Object.keys(firstTotals)) {
       structure[category] = {};
       for (const key of Object.keys(firstTotals[category])) {
@@ -350,6 +228,7 @@ export const calculateAverageMetrics = (reports) => {
         structure[category][key] = count > 0 ? [sum / reports.length, sum / count] : null;
       }
     }
+    console.log("structure", structure);
     return structure;
   };
 

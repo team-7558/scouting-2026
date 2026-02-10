@@ -7,32 +7,9 @@ import {
 } from "./Constants";
 import { saveMatch } from "../../storage/MatchStorageManager";
 
-// Helper to start a new cycle, ensuring no other cycle is active
-const startCycle = (match, cycleType) => {
-  if (match.activeCycle || match.cyclePendingRate) return; // Prevent starting a new cycle if one is active/pending
-  match.setActiveCycle({
-    type: cycleType,
-    startTime: match.getCurrentTime(),
-  });
-};
-
-// Helper to stop a scoring/shuttling cycle and move it to the pending state for rate selection
-const stopScoringCycle = (match) => {
-  const endTime = match.getCurrentTime();
-  if (match.activeCycle) {
-    match.setCyclePendingRate({ ...match.activeCycle, endTime });
-    match.setActiveCycle(null);
-  }
-};
-
-// Helper to stop a generic cycle (like Defense)
-const stopGenericCycle = (match) => {
-  const endTime = match.getCurrentTime();
-  if (match.activeCycle) {
-    match.setCycles(prev => [...prev, { ...match.activeCycle, endTime, phase: match.phase }]);
-    match.setActiveCycle(null);
-  }
-};
+const exists = (val) => {
+  return val !== null && val !== undefined
+}
 
 
 export const SIDEBAR_CONFIG = [
@@ -46,132 +23,145 @@ export const SIDEBAR_CONFIG = [
     onClick: (match) => {
       match.setMatchStartTime(Date.now());
       match.setPhase(PHASES.AUTO);
+      match.setCycles([{
+        type: CYCLE_TYPES.AUTO_MOVEMENT,
+        startTime: 0,
+        location: match.startingPosition,
+        phase: PHASES.AUTO,
+      }])
     },
     show: () => true,
     isDisabled: (match) => match.startingPosition < 0,
   },
 
-  // ---------- CYCLE START BUTTONS (Scoring, Shuttling) ----------
+  // ------------ CYCLE/INTAKE/SNOWBALLING Stop --------------
   {
     phases: [PHASES.AUTO, PHASES.TELE],
-    id: "startCycles",
-    positions: [CYCLE_TYPES.SCORING, CYCLE_TYPES.SHUTTLING],
-    label: (match, key) => `Start ${key}`,
-    onClick: (match, key) => startCycle(match, key),
-    color: () => COLORS.ACTIVE,
-    show: (match) => !match.activeCycle && !match.cyclePendingRate && !match.hang.startTime,
-  },
-
-  // ---------- CYCLE STOP BUTTONS ----------
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "stopCycle",
+    id: "stopCycleIntakeSnowball",
     positions: ["stop"],
-    label: (match) => `Stop ${match.activeCycle?.type}`,
-    onClick: (match) => {
-      const type = match.activeCycle?.type;
-      if (type === CYCLE_TYPES.SCORING || type === CYCLE_TYPES.SHUTTLING) {
-        stopScoringCycle(match);
-      } else if (type === CYCLE_TYPES.DEFENSE) {
-        stopGenericCycle(match);
-      }
-    },
-    color: () => COLORS.ERROR,
-    show: (match) => !!match.activeCycle,
+    flexWeight: 2,
+    label: (match) => `Stop ${match.activeCycle.type.toLowerCase()}ing`,
+    show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
+      ([CYCLE_TYPES.INTAKE, CYCLE_TYPES.SHOOTING, CYCLE_TYPES.SNOWBALL].includes(match.activeCycle.type)),
+    onClick: (match, key) => {
+      match.setActiveCycle({
+        ...match.activeCycle,
+        endTime: match.getCurrentTime(),
+      })
+    }
   },
 
-  // ---------- BPS RATE SELECTION ----------
+  // ------------ CYCLE/INTAKE/SNOWBALLING Rate --------------
   {
     phases: [PHASES.AUTO, PHASES.TELE],
-    id: "rateSelection",
+    id: "stopCycleIntakeSnowball",
     positions: Object.keys(BPS_RANGES),
-    flexWeight: 1.5,
+    flexWeight: 2,
     label: (match, key) => BPS_RANGES[key].label,
+    show: (match, key) => exists(match.activeCycle.endTime) && !exists(match.activeCycle.rate) &&
+      ([CYCLE_TYPES.INTAKE, CYCLE_TYPES.SHOOTING, CYCLE_TYPES.SNOWBALL].includes(match.activeCycle.type)),
     onClick: (match, key) => {
-      const range = BPS_RANGES[key];
-      const cycle = match.cyclePendingRate;
-      const duration = (cycle.endTime - cycle.startTime) / 1000; // in seconds
-      
-      match.setCycles(prev => [...prev, {
-        ...cycle,
-        phase: match.phase,
-        bpsMin: range.min,
-        bpsMax: range.max,
-        ballCountMin: Math.round(duration * range.min),
-        ballCountMax: Math.round(duration * range.max),
-      }]);
-      match.setCyclePendingRate(null); // Clear pending cycle
-    },
-    color: () => COLORS.SUCCESS,
-    show: (match) => !!match.cyclePendingRate,
+      match.setActiveCycle({
+        ...match.activeCycle,
+        rate: BPS_RANGES[key].value,
+      })
+    }
   },
 
-  // ---------- HANG ----------
+  // ------------- HANG LEVEL --------------------------
   {
-    phases: [PHASES.TELE],
-    id: "hangLevels",
-    positions: Object.keys(HANG_LEVELS).filter(l => l !== 'NONE'),
+    phases: [PHASES.AUTO, PHASES.TELE], // Hanging is a TeleOp action
+    id: "hangLevelSelection",
+    // Use the HANG_LEVELS constants you just added
+    positions: Object.keys(HANG_LEVELS),
     flexWeight: 1.5,
-    label: (match, key) => key.replace("_", " "),
+    label: (match, key) => key.replace("_", " "), // "LEVEL_1" becomes "Level 1"
+
+    // When a level is clicked, we update the activeCycle with the selected level.
     onClick: (match, key) => {
-        match.setHang({ ...match.hang, level: HANG_LEVELS[key], endTime: match.getCurrentTime() });
-        match.saveEndedCycles();
+      match.setActiveCycle(prev => ({ ...prev, location: key }));
     },
-    color: (match, key) => (key === "FAIL" ? COLORS.ERROR : COLORS.SUCCESS),
-    show: (match) => match.hang.startTime && !match.hang.endTime,
+    color: () => COLORS.PRIMARY, // Use a neutral color for a multi-step process
+
+    // This is the magic: Show only if the cycle is HANG and no level is set yet.
+    show: (match) =>
+      match.state.activeCycle?.type === CYCLE_TYPES.HANG && !match.state.activeCycle.level,
   },
+
+  // --------------- HANG SUCCESS ------------------------
   {
-    phases: [PHASES.TELE],
-    id: "cancelHang",
-    positions: ["Cancel"],
-    label: () => "Cancel Hang",
-    onClick: (match) => match.setHang({ startTime: null, endTime: null, level: null }),
-    color: () => COLORS.CANCEL,
-    show: (match) => match.hang.startTime && !match.hang.endTime,
+    phases: [PHASES.AUTO, PHASES.TELE],
+    id: "hangOutcomeSelection",
+    positions: ["SUCCESS", "FAIL"],
+    flexWeight: 2,
+    label: (match, key) => key,
+
+    // This is the final step. We finalize the cycle and save it.
+    onClick: (match, key) => {
+      // Clear the activeCycle to return the sidebar to its normal state.
+      match.setActiveCycle({
+        ...match.activeCycle,
+        success: key === "SUCCESS",
+        endTime: match.getCurrentTime(),
+      });
+    },
+
+    // Use green for success and red for failure.
+    color: (match, key) => key === "SUCCESS" ? COLORS.SUCCESS : COLORS.FAIL,
+
+    // This is the magic: Show only if the cycle is HANG and a level IS set.
+    show: (match) =>
+      match.activeCycle?.type === CYCLE_TYPES.HANG && !!match.activeCycle.location && !exists(match.activeCycle.endTime)
   },
-  
+
   // ---------- DEFENSE & CONTACT (Contextual) ----------
-  {
-    phases: [PHASES.TELE],
-    id: "contactToggle",
-    positions: ["contact"],
-    label: (match) => match.contact.startTime && !match.contact.endTime ? "Stop Contact" : "Start Contact",
-    onClick: (match) => {
-        if (match.contact.startTime && !match.contact.endTime) { // Stop contact
-            match.setContact(prev => ({ ...prev, endTime: match.getCurrentTime() }));
-            match.saveEndedCycles(); // Save it immediately
-        } else { // Start contact
-            match.setContact({ startTime: match.getCurrentTime(), pinCount: 0, foulCount: 0 });
-        }
-    },
-    color: (match) => match.contact.startTime && !match.contact.endTime ? COLORS.WARNING : COLORS.PENDING,
-    show: (match) => match.activeCycle?.type === CYCLE_TYPES.DEFENSE,
-  },
   {
     phases: [PHASES.TELE],
     id: "contactCounters",
     positions: ["pin", "foul"],
-    label: (match, key) => `${key.charAt(0).toUpperCase() + key.slice(1)}s: ${match.contact[`${key}Count`]}`,
+    flexWeight: 1,
+    label: (match, key) => `${key.charAt(0).toUpperCase() + key.slice(1)}s: ${match.activeCycle[`${key}Count`] || 0}`,
     onClick: (match, key) => {
-      match.setContact(prev => ({...prev, [`${key}Count`]: (prev[`${key}Count`] || 0) + 1 }));
+      match.setActiveCycle(prev => ({ ...prev, [`${key}Count`]: (prev[`${key}Count`] || 0) + 1 }));
     },
-    color: (match, key) => key === 'pin' ? COLORS.SUCCESS : COLORS.WARNING,
-    show: (match) => match.activeCycle?.type === CYCLE_TYPES.DEFENSE && match.contact.startTime && !match.contact.endTime,
+    color: (match, key) => key === 'pin' ? COLORS.SUCCESS : COLORS.FAIL,
+    show: (match) => match.activeCycle?.type === CYCLE_TYPES.CONTACT && exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
   },
 
-  // ---------- POST_MATCH ----------
   {
-    phases: [PHASES.POST_MATCH],
-    positions: ["submit"],
-    label: () => "Submit",
-    onClick: (match) => match.setSubmitting(true),
-    show: (match) => !match.submitting,
+    phases: [PHASES.TELE],
+    id: "contactEnd",
+    positions: ["endContact"],
+    flexWeight: 2,
+    label: () => "End Contact Cycle",
+    onClick: (match) => {
+      match.setActiveCycle(prev => ({ ...prev, endTime: match.getCurrentTime() }));
+    },
+    color: () => COLORS.ACTIVE,
+    show: (match) => match.activeCycle?.type === CYCLE_TYPES.CONTACT && exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
   },
+
+  // Generic CANCEL button for ANY active cycle (except Auto movement which is instant)
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    id: "cancelActiveCycle",
+    positions: ["Cancel"],
+    flexWeight: 0.5,
+    label: () => "Cancel",
+    onClick: (match) => match.setActiveCycle({}),
+    color: () => COLORS.UNDO,
+    show: (match) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
+  },
+
   {
     phases: [PHASES.POST_MATCH],
-    positions: ["QR Code", "DATA"],
-    label: (match, key) => key,
-    onClick: (match, key) => {
+    id: "submitMatchNetwork",
+    positions: ["submitNet"],
+    flexWeight: 2,
+
+    label: () => "Submit Match (Network)",
+
+    onClick: (match) => {
       saveMatch(
         {
           reportId: match.scoutData.reportId,
@@ -182,32 +172,62 @@ export const SIDEBAR_CONFIG = [
           cycles: match.cycles,
           endgame: match.endgame,
         },
-        { 
-          eventKey: match.searchParams.get("eventKey"),
-          matchKey: match.searchParams.get("matchKey"),
-          station: match.searchParams.get("station"),
-        },
+        match.searchParams,
         match.userToken,
-        key === "DATA", // submitAfter
-        (response) => { 
-          // success callback to go to next match
-          match.setScoutData(null);
-          match.setSearchParams({
-            eventKey: match.searchParams.get("eventKey"),
-            matchKey: match.scoutData.nextMatchKey,
-            station: match.searchParams.get("station"),
-          });
-          window.location.reload();
-         }
+        true, // submitAfter = true → NETWORK
+        (response) => {
+          if (response?.status === 200) {
+            alert("Match submitted successfully!");
+            match.setScoutData(null);
+            match.setSearchParams({
+              eventKey: match.searchParams.get("eventKey"),
+              matchKey: match.scoutData.nextMatchKey,
+              station: match.searchParams.get("station"),
+            });
+            window.location.href = window.location.href;
+          } else {
+            alert("Submission failed — saved locally for resync.");
+          }
+        }
       );
     },
-    show: (match) => match.submitting,
+
+    color: () => COLORS.SUCCESS,
+    show: () => true
   },
   {
     phases: [PHASES.POST_MATCH],
-    positions: ["cancelSubmit"],
-    label: () => "Cancel",
-    onClick: (match) => match.setSubmitting(false),
-    show: (match) => match.submitting,
+    id: "submitMatchQR",
+    positions: ["submitQR"],
+    flexWeight: 1.5,
+
+    label: () => "Submit Match (QR)",
+
+    onClick: (match) => {
+
+      const matchData = {
+        reportId: match.scoutData.reportId,
+        matchStartTime: match.matchStartTime,
+        robot: match.scoutData.teamNumber,
+        scoutId: match.userToken.id,
+        scoutName: match.userToken.username,
+        cycles: match.cycles,
+        endgame: match.endgame,
+      };
+      const params = Object.fromEntries(match.searchParams);
+
+      console.log(matchData);
+      console.log(params);
+
+      saveMatch(
+        { ...matchData, ...params },
+        match.searchParams,
+        match.userToken,
+        false // submitAfter = false → QR MODE
+      );
+    },
+
+    color: () => COLORS.INFO,
+    show: () => true
   }
 ];

@@ -27,8 +27,10 @@ const SignInPage = () => {
       const response = await postSignIn(username, password);
       // JSON.parse(atob(response.data.token.split(".")[1]));
       console.log(response.data.token);
+      localStorage.setItem("token", "test");
+      console.log(localStorage.getItem("token"));
       localStorage.setItem("token", response.data.token);
-      if (redirectUrl!="null"){
+      if (redirectUrl != "null") {
         navigate(redirectUrl);
       } else {
         navigate("/");

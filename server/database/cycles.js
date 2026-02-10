@@ -14,21 +14,18 @@ export const storeCyclesInternal = async (
     // Update the table schema to include new HANG cycle fields.
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS ${tableName} (
-        key TEXT PRIMARY KEY,
+        "key" TEXT PRIMARY KEY,
         match_key TEXT,
         cycle_index INT,
         phase TEXT,
         type TEXT,
-        attained_location JSONB,
+        location TEXT,
         start_time INT,
         success BOOLEAN,
-        deposit_type TEXT,
-        deposit_location JSONB,
         end_time INT,
-        cycle_time INT,
+        rate INT,
         robot TEXT,
         report_id TEXT,
-        contact_robot TEXT,
         pin_count INT,
         foul_count INT
       );
@@ -40,13 +37,9 @@ export const storeCyclesInternal = async (
       const cycle = cycles[i];
 
       // Always stringify JSON values if not null.
-      const attainedLocation =
-        cycle.attainedLocation != null
-          ? JSON.stringify(cycle.attainedLocation)
-          : null;
-      const depositLocation =
-        cycle.depositLocation != null
-          ? JSON.stringify(cycle.depositLocation)
+      const location =
+        cycle.location != null
+          ? JSON.stringify(cycle.location)
           : null;
 
       const cycleTime =
@@ -55,30 +48,26 @@ export const storeCyclesInternal = async (
           : null;
       const key = `${eventKey}_${matchKey}_${additionalData.reportId}_${i}`;
 
-      const contactRobot = cycle.contactRobot || null;
       const pinCount = cycle.pinCount || null;
       const foulCount = cycle.foulCount || null;
 
       const insertQuery = `
         INSERT INTO ${tableName} 
-          (key, 
+          ("key", 
           match_key,
           cycle_index,
           phase, 
           type, 
-          attained_location, 
+          location, 
           start_time,
           success,
-          deposit_type, 
-          deposit_location,
           end_time,
-          cycle_time,
+          rate,
           robot,
           report_id,
-          contact_robot, 
-          pin_count, 
+          pin_count,
           foul_count)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         ON CONFLICT (key) DO NOTHING;
       `;
       const values = [
@@ -87,16 +76,13 @@ export const storeCyclesInternal = async (
         i,
         cycle.phase,
         cycle.type,
-        attainedLocation,
+        location,
         cycle.startTime,
         cycle.success,
-        cycle.depositType,
-        depositLocation,
         cycle.endTime,
-        cycleTime,
+        cycle.rate,
         additionalData.robot,
         additionalData.reportId,
-        contactRobot,
         pinCount,
         foulCount,
       ];
@@ -134,15 +120,7 @@ export const getCyclesByReportInternal = async (eventKey, reportId) => {
       ORDER BY cycle_index ASC
     `;
     const result = await client.query(query, [reportId]);
-    return result.rows.map((row) => ({
-      ...row,
-      attained_location: row.attained_location
-        ? safeJSONParse(row.attained_location)
-        : null,
-      deposit_location: row.deposit_location
-        ? safeJSONParse(row.deposit_location)
-        : null,
-    }));
+    return result.rows;
   } finally {
     await client.release();
   }

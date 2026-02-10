@@ -46,7 +46,7 @@ const redTeamColor = "#fa1919";
 // CONFIG: group colors
 // ================================
 const GROUP_COLORS = {
-  powerCell: "#fcec4e",
+  fuel: "#fcec4e",
   controlPanel: "#00B4D8",
   hang: "#e06bfa",
   defense: "#FCA311",
@@ -78,240 +78,230 @@ const formatValue = (value, key, roundingCount) => {
 };
 
 const ViewReportGraphs = ({ data, headingColors }) => {
-  const [selectedMetric, setSelectedMetric] = useState("powerCell");
-  const [selectedPhase, setSelectedPhase] = useState("TELE");
+  const [selectedPhase, setSelectedPhase] = useState("tele");
 
-  const MetricsChart = ({data, title}) => {
-    console.log("data", data);
-    let newData = []
-    const maxReportsCount = Math.max(...Object.keys(data).map(key => data[key].length));
-    for (let i = 0; i<maxReportsCount; i++){
-      let nextElement = {name: `Report ${i+1}`};
-      Object.keys(data).map(key => {
-        nextElement[key] = data[key][i] || 0
-      });
+  const getAvailableMetrics = () => {
+    if (!data?.reports?.[0]?.totals?.[selectedPhase]) {
+      return [];
+    }
+    return Object.keys(data.reports[0].totals[selectedPhase]);
+  };
+
+  const [selectedMetric, setSelectedMetric] = useState(getAvailableMetrics()[0] || "");
+
+  useEffect(() => {
+    const availableMetrics = getAvailableMetrics();
+    if (!availableMetrics.includes(selectedMetric)) {
+      setSelectedMetric(availableMetrics[0] || "");
+    }
+  }, [selectedPhase, data]);
+
+
+  const MetricsChart = ({ data, title }) => {
+    let newData = [];
+    const maxReportsCount = Math.max(...Object.values(data).map(arr => arr.length));
+
+    for (let i = 0; i < maxReportsCount; i++) {
+      let nextElement = { name: `Report ${i + 1}` };
+      for (const key in data) {
+        nextElement[key] = data[key][i] || 0;
+      }
       newData.push(nextElement);
     }
 
-    console.log("newData", newData);
 
-    const colors = [
-      "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FFA500", "#800080", "#008000", "#000080",
-      "#FFC0CB", "#FFD700", "#40E0D0", "#FF6347", "#7FFF00", "#DC143C", "#00CED1", "#FF4500", "#DA70D6", "#32CD32",
-      "#FF1493", "#1E90FF", "#B22222", "#00FF7F", "#8A2BE2", "#FF69B4", "#00BFFF", "#FF8C00", "#ADFF2F", "#9932CC",
-      "#FF4500", "#2E8B57", "#FF6347", "#48D1CC", "#FF69B4", "#1E90FF", "#DAA520", "#00FA9A", "#BA55D3", "#FFA07A",
-      "#00FFFF", "#FF00FF", "#7CFC00", "#D2691E", "#66CDAA", "#FFB6C1", "#8B0000", "#ADFF2F", "#00008B", "#E9967A",
-      "#00FF7F", "#8B008B", "#FFC125", "#7B68EE", "#00CED1", "#B0C4DE", "#FF4500", "#FF69B4", "#40E0D0", "#7FFF00",
-      "#DC143C", "#00BFFF", "#FF6347", "#FF1493", "#32CD32", "#FF8C00", "#9932CC", "#48D1CC", "#1E90FF", "#DAA520",
-      "#00FA9A", "#BA55D3", "#FFA07A", "#0000FF", "#00FF00", "#FF0000", "#FFFF00", "#FF00FF", "#00FFFF", "#FFA500",
-      "#800080", "#008000", "#000080", "#FFC0CB", "#FFD700", "#40E0D0", "#FF6347", "#7FFF00", "#DC143C", "#00CED1",
-      "#FF4500", "#DA70D6", "#32CD32", "#FF1493", "#1E90FF", "#B22222", "#00FF7F", "#8A2BE2", "#FF69B4", "#00BFFF"
-    ];
+    const colors = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FFA500", "#800080", "#008000", "#000080"];
 
-
-    return <Box sx={{width: {xs: "90%", sm: "33%"}, aspectRatio: "13/9"}}>
-      <Typography variant="h5" sx={{textAlign: "center", color: "#ccc", height: "15%"}}>{camelCaseToWords(title)}</Typography>
-      <Box sx={{width: "100%", height: "85%"}}>
-        <ResponsiveContainer>
-          <LineChart width={500} height={300} data={newData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid stroke="#ccc" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {Object.keys(newData[0]).filter(name => name!=="name").map((robot, i) => 
-              <Line 
-                key={robot.toString()} 
-                type="monotone" 
-                dataKey={robot.toString()} 
-                stroke={colors[i]} 
-              />
-            )}
-          </LineChart>
-        </ResponsiveContainer>
+    return (
+      <Box sx={{ width: { xs: "90%", sm: "45%" }, aspectRatio: "16/9", mb: 4 }}>
+        <Typography variant="h6" sx={{ textAlign: "center", color: "#ccc", height: "15%" }}>
+          {camelCaseToWords(title)}
+        </Typography>
+        <Box sx={{ width: "100%", height: "85%" }}>
+          <ResponsiveContainer>
+            <LineChart data={newData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid stroke="#ccc" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              {Object.keys(data).map((robot, i) => {
+                return (
+                  <Line
+                    key={robot.toString()}
+                    type="monotone"
+                    dataKey={robot.toString()}
+                    stroke={colors[i % colors.length]}
+                  />
+                )
+              })}
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
       </Box>
-    </Box>
+    );
+  };
+
+  if (!data?.reports || data.reports.length === 0) {
+    return null;
   }
-  return (<Paper sx={{ 
-      bgcolor: "#111", 
-      margin: "2%", 
-      width: "96%", 
-      padding: "2vh 2vw",
-      // boxShadow: `4px -4px 15px 0px ${accentColor}, -4px 4px 15px 0px ${accentColor}`,
-      boxShadow: `0px 0px 10px #aaa`
-      // border: `1px solid ${accentColor}`,
-    }}>
-      {/* top selectors */}
-      <Box
-        sx={{display: "flex", justifyContent: "space-between", mb: 4}}
-      >
-        <Box>
-          <InputLabel id="phaseSelector" sx={{color: "#ccc"}}>Phase</InputLabel>
+
+  const availableMetrics = getAvailableMetrics();
+  const submetrics = selectedMetric ? Object.keys(data.reports[0].totals[selectedPhase][selectedMetric] || {}) : [];
+  return (
+    <Paper sx={{ bgcolor: "#111", margin: "2%", width: "96%", padding: "2vh 2vw", boxShadow: `0px 0px 10px #aaa` }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 4 }}>
+        <FormControl>
+          <InputLabel id="phaseSelector-label" sx={{ color: "#ccc" }}>Phase</InputLabel>
           <Select
-            labelId="phaseSelector"
+            labelId="phaseSelector-label"
             value={selectedPhase}
             label="Phase"
-            onChange={(e) => setSelectedPhase(String(e.target.value))}
-            sx={{color: "#eee", border: `2px solid #ccc`, svg: {color: "#ccc"}}}
+            onChange={(e) => setSelectedPhase(e.target.value)}
+            sx={{ color: "#eee", border: `2px solid #ccc`, svg: { color: "#ccc" } }}
           >
-            <MenuItem value={"AUTO"}>AUTO</MenuItem>
-            <MenuItem value={"TELE"}>TELE</MenuItem>
+            <MenuItem value={"auto"}>AUTO</MenuItem>
+            <MenuItem value={"tele"}>TELE</MenuItem>
           </Select>
-        </Box>
-        <Box>
-          <InputLabel id="phaseSelector" sx={{color: "#ccc"}}>Metric</InputLabel>
-          <Select
-            labelId="phaseSelector"
-            value={selectedMetric}
-            label="Phase"
-            onChange={(e) => setSelectedMetric(String(e.target.value))}
-            sx={{color: "#eee", border: "2px solid #ccc", svg: {color: "#ccc"} }}
-          >
-            {Object.keys(data.reports[0].totals[selectedPhase.toLowerCase()]).map(name => {
-              return <MenuItem value={name}>{camelCaseToWords(name)}</MenuItem>
-            })}
-          </Select>
-        </Box>
+        </FormControl>
+
+        {availableMetrics.length > 0 && (
+          <FormControl>
+            <InputLabel id="metricSelector-label" sx={{ color: "#ccc" }}>Metric</InputLabel>
+            <Select
+              labelId="metricSelector-label"
+              value={selectedMetric}
+              label="Metric"
+              onChange={(e) => setSelectedMetric(e.target.value)}
+              sx={{ color: "#eee", border: "2px solid #ccc", svg: { color: "#ccc" } }}
+            >
+              {availableMetrics.map(name => (
+                <MenuItem key={name} value={name}>{camelCaseToWords(name)}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
       </Box>
 
-      {/* viewing charts */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "space-evenly"
-        }}
-      >
-      {Object.keys(data.reports[0].totals[selectedPhase.toLowerCase()][selectedMetric]).map(submetricName => {
-        let allData = {}
-        data.reports.forEach(report => {
-          if (!allData[report.robot]){
-            allData[report.robot] = [];
-          }
-          allData[report.robot].push(report.totals[selectedPhase.toLowerCase()][selectedMetric][submetricName])
-        })
-        return <MetricsChart data={allData} title={submetricName}/>
-      })}
+      <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-evenly" }}>
+        {submetrics.map(submetricName => {
+          let allData = {};
+          data.reports.forEach(report => {
+            if (!allData[report.robot]) {
+              allData[report.robot] = [];
+            }
+            const value = report.totals[selectedPhase]?.[selectedMetric]?.[submetricName];
+            allData[report.robot].push(Array.isArray(value) ? value[0] : value);
+          });
+          console.log("allData", allData);
+          return <MetricsChart key={submetricName} data={allData} title={submetricName} />;
+        })}
       </Box>
     </Paper>
   );
 };
 
-const ViewIndividualReports = ({reports, headingColors}) => {
+const ViewIndividualReports = ({ reports, headingColors }) => {
   const [currentReport, setCurrentReport] = useState(0);
   const [selectedPhase, setSelectedPhase] = useState("tele");
-  console.log("cr", reports, currentReport, "totals", selectedPhase);
 
-  const MetricTable = ({metric, sx}) => {
-    const data = reports[currentReport].totals[selectedPhase][metric];
-
+  if (!reports || reports.length === 0) {
     return (
-      <Table size="small" sx={{ ...sx }}>
-        <TableHead>
-          <TableRow>
-            {Object.keys(data).map(categoryKey => {
-              return (
-                <TableCell
-                  key={categoryKey}
-                  sx={{
-                    color: GROUP_COLORS[metric],
-                    backgroundColor: "#444",
-                    border: `2px solid ${GROUP_COLORS[metric]}`,
-                    padding: "10px"
-                  }}
-                >
-                  {camelCaseToWords(categoryKey)}
-                </TableCell>
-              )
-            })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {Object.keys(data).map(categoryKey => {
-            return (
-              <TableCell
-                key={`values ${categoryKey} ${metric}`}
-                sx={{
-                  color: GROUP_COLORS[metric],
-                  backgroundColor: "#444",
-                  border: `2px solid ${GROUP_COLORS[metric]}`,
-                  padding: "10px"
-                }}
-              >
-                {formatValue(data[categoryKey], categoryKey, 1)}
-              </TableCell>
-            )
-          })}
-        </TableBody>
-      </Table>
+      <Paper sx={{ bgcolor: "#111", margin: "2%", width: "96%", padding: "2vh 2vw", boxShadow: `0px 0px 10px #aaa` }}>
+        <Typography sx={{ color: "#888", textAlign: "center" }}>No individual reports available.</Typography>
+      </Paper>
     );
   }
 
+  const MetricTable = ({ metric, sx }) => {
+    const data = reports[currentReport].totals[selectedPhase]?.[metric];
+
+    if (!data) return null;
+
+    return (
+      <Table size="small" sx={{ ...sx, mt: 1 }}>
+        <TableHead>
+          <TableRow>
+            {Object.keys(data).map(categoryKey => (
+              <TableCell key={categoryKey} sx={{ color: GROUP_COLORS[metric] || '#fff', backgroundColor: "#444", border: `2px solid ${GROUP_COLORS[metric] || '#fff'}` }}>
+                {camelCaseToWords(categoryKey)}
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          <TableRow>
+            {Object.keys(data).map(categoryKey => (
+              <TableCell key={`values-${categoryKey}-${metric}`} sx={{ color: GROUP_COLORS[metric] || '#fff', backgroundColor: "#444", border: `2px solid ${GROUP_COLORS[metric] || '#fff'}` }}>
+                {formatValue(data[categoryKey], categoryKey, 1)}
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableBody>
+      </Table>
+    );
+  };
+
   return (
-    <Paper sx={{ 
-      bgcolor: "#111", 
-      margin: "2%", 
-      width: "96%", 
-      padding: "2vh 2vw",
-      // boxShadow: `4px -4px 15px 0px ${accentColor}, -4px 4px 15px 0px ${accentColor}`,
-      boxShadow: `0px 0px 10px #aaa`
-    }}>
-      {reports.map((report, index) => (
-        <Chip
+    <Paper sx={{ bgcolor: "#111", margin: "2%", width: "96%", padding: "2vh 2vw", boxShadow: `0px 0px 10px #aaa` }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+        {reports.map((report, index) => (
+          <Chip
             key={report.id}
             label={`${report.robot}: ${report.match_key}`}
             sx={{
-              backgroundColor: index===currentReport ? "#888" : (report.station.startsWith("b") ? blueTeamColor : redTeamColor), 
-              color: "#000", 
-              margin: "2px", 
+              backgroundColor: index === currentReport ? "#888" : (report.station?.startsWith("b") ? blueTeamColor : redTeamColor),
+              color: "#000",
               cursor: "pointer",
-              '&:hover': {
-                backgroundColor: "#888"
-              }
+              '&:hover': { backgroundColor: "#888" }
             }}
             onClick={() => setCurrentReport(index)}
           />
-      ))}
-      {/* phase selector */}
-      {currentReport>=0 && <Select
-            labelId="phaseSelector"
+        ))}
+      </Box>
+
+      {currentReport >= 0 && (
+        <>
+          <Select
             value={selectedPhase}
-            label="Phase"
-            onChange={(e) => setSelectedPhase(String(e.target.value))}
-            sx={{color: "#eee", border: `2px solid #ccc`, svg: {color: "#ccc"}, float: "right", height: "80%", mb: 2}}
+            onChange={(e) => setSelectedPhase(e.target.value)}
+            sx={{ color: "#eee", border: `2px solid #ccc`, svg: { color: "#ccc" }, float: "right", height: "40px", mb: 2 }}
           >
             <MenuItem value={"auto"}>AUTO</MenuItem>
             <MenuItem value={"tele"}>TELE</MenuItem>
-          </Select>}
+          </Select>
 
-      {currentReport>=0 && <Box>
-        {/* disabled */}
-        {reports[currentReport].disabled && <Typography variant="h4" sx={{backgroundColor: accentColor, textAlign: "center", borderRadius: "1000px"}}>DISABLED</Typography>}
-        {/* post-match data */}
-        <Box sx={{display: "flex", gap: "3vw", flexDirection: {xs: "column", sm: "row"}, mt: 2, width: "100%"}}>
-          <Typography sx={{color: "#ccc", width: "80%", borderBottom: `2px solid ${blueTeamColor}`}}>{reports[currentReport].comments}</Typography>
-          <Box sx={{display: "flex", gap: "2vw", borderBottom: `2px solid ${blueTeamColor}`, justifyContent: "space-between"}}>
-            <Box sx={{display: "flex", flexDirection: "column", justifyContent: "flex-end"}}>
-              <Typography sx={{color: "#ccc", verticalAlign: "bottom"}}>Driver Skill: {reports[currentReport].driver_skill}</Typography>
+          <Box>
+            {reports[currentReport].disabled === "Yes" && (
+              <Typography variant="h4" sx={{ backgroundColor: accentColor, textAlign: "center", borderRadius: "1000px", my: 2 }}>
+                DISABLED
+              </Typography>
+            )}
+            <Box sx={{ display: "flex", gap: "3vw", flexDirection: { xs: "column", sm: "row" }, mt: 2, width: "100%" }}>
+              <Typography sx={{ color: "#ccc", width: "80%", borderBottom: `2px solid ${blueTeamColor}` }}>
+                {reports[currentReport].comments}
+              </Typography>
+              <Box sx={{ display: "flex", gap: "2vw", borderBottom: `2px solid ${blueTeamColor}`, justifyContent: "space-between" }}>
+                <Typography sx={{ color: "#ccc" }}>Driver Skill: {reports[currentReport].driver_skill}</Typography>
+                <Typography sx={{ color: "#ccc" }}>Defense Skill: {reports[currentReport].defense_skill}</Typography>
+                <Typography sx={{ color: "#ccc" }}>Roles: {JSON.parse(reports[currentReport].roles).join(', ')}</Typography>
+              </Box>
             </Box>
-            <Box sx={{display: "flex", flexDirection: "column", justifyContent: "flex-end"}}>
-              <Typography sx={{color: "#ccc", verticalAlign: "bottom"}}>Defense Skill: {reports[currentReport].defense_skill}</Typography>
-            </Box>
-            <Box sx={{display: "flex", flexDirection: "column", justifyContent: "flex-end"}}>
-              <Typography sx={{color: "#ccc", verticalAlign: "bottom"}}>Role: {reports[currentReport].role}</Typography>
-            </Box>
+
+            {Object.keys(reports[currentReport].totals[selectedPhase] || {}).map(groupName => (
+              <div key={groupName}>
+                <Typography variant="h6" sx={{ color: GROUP_COLORS[groupName] || '#fff', mt: "1vh" }}>
+                  {camelCaseToWords(groupName)}
+                </Typography>
+                <MetricTable metric={groupName} />
+              </div>
+            ))}
           </Box>
-        </Box>
-
-        {Object.keys(reports[currentReport].totals[selectedPhase]).map(groupName => <>
-          <Typography variant="h6" sx={{color: GROUP_COLORS[groupName], mt: "1vh"}}>{camelCaseToWords(groupName)}</Typography>
-          <MetricTable metric={groupName} />
-        </>)}
-      </Box>
-      }
+        </>
+      )}
     </Paper>
-  )
-}
+  );
+};
 
 // ================================
 // Top Bar
@@ -324,7 +314,7 @@ const RenderTopBar = ({
   handleSearchKeyDown,
   requiredParamKeys,
   searchParams
-}) =>{ 
+}) => {
   const navigate = useNavigate();
   return (
     <Paper
@@ -339,8 +329,8 @@ const RenderTopBar = ({
         boxShadow: `0px 0px 10px #eee`
       }}
     >
-      <HomeIcon 
-        sx={{aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white"}} 
+      <HomeIcon
+        sx={{ aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white" }}
         onClick={() => {
           navigate("/");
         }}
@@ -354,8 +344,8 @@ const RenderTopBar = ({
           mb: 2
         }}
       >
-        <Box sx={{display: "flex", flexDirection: "column", justifyContent: "space-between"}}>
-          <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: accentColor, textAlign: "center"}}>
+        <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <Typography variant="h2" sx={{ mb: { xs: 2, sm: 0 }, color: accentColor, textAlign: "center" }}>
             Team Reports
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "space-evenly" }}>
@@ -370,7 +360,7 @@ const RenderTopBar = ({
         </Box>
 
         <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", sm: "row" }, alignItems: "center", height: "100%" }}>
-          <Box sx={{display: "flex", justifyContent: "space-evenly", height: "100%", flexDirection: { sm: "column", xs: "row" }, alignItems: "center"}}>
+          <Box sx={{ display: "flex", justifyContent: "space-evenly", height: "100%", flexDirection: { sm: "column", xs: "row" }, alignItems: "center" }}>
             <Button
               variant="outlined"
               onClick={() => window.location.reload()}
@@ -380,9 +370,9 @@ const RenderTopBar = ({
                 border: "2px solid " + accentColor,
                 color: "#ddd",
                 "&:hover": { backgroundColor: "#009933" },
-                height: {xs: "50px", sm: "75px", md: "50px"},
-                margin: {xs: "1vh 5vw", sm: "1vh 1vw"},
-                width: {xs: "30vw", sm: "10vw"},
+                height: { xs: "50px", sm: "75px", md: "50px" },
+                margin: { xs: "1vh 5vw", sm: "1vh 1vw" },
+                width: { xs: "30vw", sm: "10vw" },
                 fontSize: 'calc(0.5vw + 7px)'
               }}
             >
@@ -399,16 +389,16 @@ const RenderTopBar = ({
                 border: `2px solid ${accentColor}`,
                 color: "#ddd",
                 "&:hover": { backgroundColor: "#009933" },
-                height: {xs: "50px", sm: "75px", md: "50px"},
-                margin: {xs: "1vh 5vw", sm: "1vh 1vw"},
-                width: {xs: "30vw", sm: "10vw"},
+                height: { xs: "50px", sm: "75px", md: "50px" },
+                margin: { xs: "1vh 5vw", sm: "1vh 1vw" },
+                width: { xs: "30vw", sm: "10vw" },
                 fontSize: 'calc(0.5vw + 7px)'
               }}
             >
               ALL DATA
             </Button>
           </Box>
-          <Box sx={{display: "flex", flexDirection: {xs: "row", sm: "column"}, justifyContent: "center", alignItems: "center"}}>
+          <Box sx={{ display: "flex", flexDirection: { xs: "row", sm: "column" }, justifyContent: "center", alignItems: "center" }}>
 
             <form
               onSubmit={(e) => {
@@ -434,7 +424,7 @@ const RenderTopBar = ({
                     </InputAdornment>
                   )
                 }}
-                sx={{ width: { xs: "100%", sm: "20vw" }, bgcolor: "#222", input: { color: "#fff", fontSize: 'calc(0.7vw + 10px)'}, borderRadius: "10000px"}}
+                sx={{ width: { xs: "100%", sm: "20vw" }, bgcolor: "#222", input: { color: "#fff", fontSize: 'calc(0.7vw + 10px)' }, borderRadius: "10000px" }}
               />
             </form>
 
@@ -486,7 +476,7 @@ const RenderTopBar = ({
                       width: { xs: "100%", sm: "20vw" },
                       bgcolor: "#222",
                       input: { color: "#fff" },
-                      mt: {sm: "1vh", xs: 0},
+                      mt: { sm: "1vh", xs: 0 },
                       borderRadius: "500px",
                       fontSize: 'calc(0.7vw + 10px)'
                     }}
@@ -497,15 +487,15 @@ const RenderTopBar = ({
                     const { key, ...itemProps } = getItemProps({ index });
                     console.log("i", index);
                     return (
-                      <Chip 
-                        variant="outlined" 
-                        label={option} 
-                        key={key} 
+                      <Chip
+                        variant="outlined"
+                        label={option}
+                        key={key}
                         size="large"
-                        sx={{color: "#bbb", fontSize: 'calc(0.5vw + 7px)'}} 
+                        sx={{ color: "#bbb", fontSize: 'calc(0.5vw + 7px)' }}
                         {...itemProps}
-                        deleteIcon={<ClearIcon style={{ color: '#aaa', fontSize: '2vw' }} 
-                      />}
+                        deleteIcon={<ClearIcon style={{ color: '#aaa', fontSize: '2vw' }}
+                        />}
                       />
                     );
                   })
@@ -524,175 +514,91 @@ const RenderTopBar = ({
 // ================================
 
 const CategoryTable = ({ averages, headingColors = {} }) => {
-  // Flatten averages into rows
-  const tableRows = [];
-  Object.keys(averages).forEach(robotId => {
-    const robotData = averages[robotId];
-    ["auto", "tele"].forEach(phase => {
-      const phaseData = robotData[phase] || {};
-      let currentRow = {robot: robotId, phase: phase.toUpperCase()};
-      Object.keys(phaseData).forEach(group => {
-        currentRow = {
-          ...currentRow,
-          [group]: {...phaseData[group]}
-        };
-      });
-      tableRows.push(currentRow);
-    });
-  });
+  const importantMetrics = {
+    fuel: ["attainedCount", "shotCount"],
+    hang: ["attempts", "cycleTime", "lOneRate"],
+    movement: ["bumps", "movementTime", "movements", "trenches"],
+    contact: ["foulCount", "pinCount", "totalTime"],
+    defense: ["totalTime"],
+  };
 
-  const PhaseTable = ({phase, sx, importantMetrics = {
-    powerCell: [
-      "attainedCount", "totalScoreCount", "highAccuracy", "lowAccuracy", "avgCycleTime",
-    ],
-    movement: [
-      "movementRate"
-    ],
-    controlPanel: [
-      "positionControlRate", "rotationControlRate"
-    ],
-    hang: [
-      "hangSuccessRate", "cycleTime"
-    ],
-    defense: [
-      "totalTime",
-    ],
-    contact: [
-      "totalTime", "foulCount"
-    ]
-  }, indexes = {//set index to one more than because 0 is considered falsy
-    positionControlRate: 1,
-    rotationControlRate: 1
-  }}) => {
-    const filteredRows = tableRows.filter(row => row.phase === phase);
+  const renderTableForPhase = (phase) => {
+    const robots = Object.keys(averages);
+    if (robots.length === 0) {
+      return <Typography sx={{ color: "#888", textAlign: "center", mt: 2 }}>No average data available.</Typography>;
+    }
 
-  return (
-    <Table size="small" sx={{ ...sx }}>
-      <TableHead>
-        <TableRow>
-          <TableCell
-            rowSpan="2"
-            sx={{
-              color: "#fff",
-              width: "5vw",
-              fontWeight: "bold",
-              backgroundColor: "#444",
-              border: "1px solid white"
-            }}
-          >
-            Robot
-          </TableCell>
-          {Object.keys(filteredRows[0]).map(key => {
-            if (key === "robot" || key === "phase" || !Object.keys(importantMetrics).includes(key)) return null;
-            return (
-              <TableCell
-                key={key}
-                colSpan={Object.keys(filteredRows[0][key]).filter(
-                  subKey =>
-                    Object.keys(importantMetrics).includes(key) &&
-                    importantMetrics[key].includes(subKey)
-                ).length}
-                sx={{
-                  textAlign: "center",
-                  fontWeight: "bold",
-                  color: headingColors[key] || "#333",
-                  backgroundColor: "#000",
-                  border: "1px solid " + headingColors[key]
-                }}
-              >
-                {camelCaseToWords(key)}
-              </TableCell>
-            );
-          })}
-        </TableRow>
+    const allMetricKeys = [...new Set(robots.flatMap(robot => Object.keys(averages[robot][phase] || {})))];
 
-        <TableRow>
-          {Object.keys(filteredRows[0]).map(groupKey => {
-            if (groupKey === "robot" || groupKey === "phase") return null;
-            return Object.keys(filteredRows[0][groupKey])
-              .filter(
-                subKey =>
-                  Object.keys(importantMetrics).includes(groupKey) &&
-                  importantMetrics[groupKey].includes(subKey)
-              )
-              .map(categoryKey => (
-                <TableCell
-                  key={`${groupKey}-${categoryKey}`}
-                  sx={{
-                    color: headingColors[groupKey],
+    return (
+      <TableContainer component={Paper} sx={{ bgcolor: "#222", my: 2 }}>
+        <Typography variant="h5" sx={{ color: "#ccc", p: 2 }}>{phase.toUpperCase()}</Typography>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell sx={{ color: "#fff", fontWeight: "bold", backgroundColor: "#444", border: "1px solid white" }}>Robot</TableCell>
+              {allMetricKeys.map(metric => {
+                const subMetrics = importantMetrics[metric] || [];
+                return (
+                  <TableCell key={metric} colSpan={subMetrics.length} sx={{
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    color: headingColors[metric] || "#fff",
+                    backgroundColor: "#000",
+                    border: `1px solid ${headingColors[metric] || "#fff"}`
+                  }}>
+                    {camelCaseToWords(metric)}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+            <TableRow>
+              <TableCell sx={{ color: "#fff", backgroundColor: "#444", border: "1px solid white" }}></TableCell>
+              {allMetricKeys.flatMap(metric => {
+                const subMetrics = importantMetrics[metric] || [];
+                return subMetrics.map(subMetric => (
+                  <TableCell key={`${metric}-${subMetric}`} sx={{
+                    color: headingColors[metric] || "#fff",
                     backgroundColor: "#444",
-                    border: `2px solid ${headingColors[groupKey]}`,
-                    padding: "10px"
-                  }}
-                >
-                  {camelCaseToWords(categoryKey)}
-                </TableCell>
-              ));
-          })}
-        </TableRow>
-      </TableHead>
-
-      <TableBody>
-        {filteredRows.map((row, rowIndex) => (
-          <TableRow key={rowIndex}>
-            <TableCell sx={{ color: "#fff", backgroundColor: "#444" }}>
-              {row.robot}
-            </TableCell>
-            {Object.keys(row).map(groupKey => {
-              if (groupKey === "robot" || groupKey === "phase") return null;
-              return Object.keys(row[groupKey])
-                .filter(
-                  subKey =>
-                    Object.keys(importantMetrics).includes(groupKey) &&
-                    importantMetrics[groupKey].includes(subKey)
-                )
-                .map(categoryKey => (
-                  <TableCell
-                    key={`${row.robot}-${groupKey}-${categoryKey}`}
-                    sx={{
-                      color: headingColors[groupKey],
-                      backgroundColor: "#444",
-                      border: `2px solid ${headingColors[groupKey]}`,
-                      padding: "10px"
-                    }}
-                  >
-                    {formatValue(
-                      row[groupKey][categoryKey] &&
-                        row[groupKey][categoryKey][(indexes[categoryKey] || 2) - 1],
-                      categoryKey,
-                      categoryKey.toLowerCase().includes("count") ? 0 : 1
-                    )}
+                    border: `2px solid ${headingColors[metric] || "#fff"}`
+                  }}>
+                    {camelCaseToWords(subMetric)}
                   </TableCell>
                 ));
-            })}
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              })}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {robots.map(robot => (
+              <TableRow key={robot}>
+                <TableCell sx={{ color: "#fff", backgroundColor: "#444" }}>{robot}</TableCell>
+                {allMetricKeys.flatMap(metric => {
+                  const subMetrics = importantMetrics[metric] || [];
+                  return subMetrics.map(subMetric => (
+                    <TableCell key={`${robot}-${metric}-${subMetric}`} sx={{
+                      color: headingColors[metric] || "#fff",
+                      backgroundColor: "#444",
+                      border: `2px solid ${headingColors[metric] || "#fff"}`
+                    }}>
+                      {formatValue(averages[robot]?.[phase]?.[metric]?.[subMetric], subMetric, 1)}
+                    </TableCell>
+                  ));
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    );
+  };
+
+  return (
+    <Paper sx={{ bgcolor: "#111", margin: "2%", width: "96%", padding: "2vh 2vw", boxShadow: `0px 0px 10px #aaa` }}>
+      {renderTableForPhase("auto")}
+      {renderTableForPhase("tele")}
+    </Paper>
   );
-  }
-
-  return (<Paper sx={{ 
-      bgcolor: "#111", 
-      margin: "2%", 
-      width: "96%", 
-      padding: "2vh 2vw",
-      // boxShadow: `4px -4px 15px 0px ${accentColor}, -4px 4px 15px 0px ${accentColor}`,
-      boxShadow: `0px 0px 10px #aaa`
-      // border: `1px solid ${accentColor}`,
-    }}>
-      <Typography variant="h4" sx={{color: "#ccc"}}>AUTO</Typography>
-      <TableContainer component={Paper} sx={{ bgcolor: "#222", margin: "2%", width: "96%"}}>
-        <PhaseTable phase="AUTO"/>
-      </TableContainer>
-
-      <Typography variant="h4" sx={{color: "#ccc"}}>TELE</Typography>
-      <TableContainer component={Paper} sx={{ bgcolor: "#111", margin: "2%", width: "96%" }}>
-        <PhaseTable phase="TELE"/>
-      </TableContainer>
-  </Paper>);
 };
-
 // ================================
 // Main Component
 // ================================
@@ -713,17 +619,17 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
   const [robotSearchTerm, setRobotSearchTerm] = useState([]);
 
   useEffect(() => {
-    if (window.location.pathname.startsWith("/robots")){
+    if (window.location.pathname.startsWith("/robots")) {
       setMatchKeySearchTerm("");
       let url = new URL(window.location.href)
       url.searchParams.delete("matchKey");
-      if (window.location.href!==url.href)
+      if (window.location.href !== url.href)
         window.location.href = url.href;
-    }else if (window.location.pathname.startsWith("/matches")){
+    } else if (window.location.pathname.startsWith("/matches")) {
       setRobotSearchTerm([]);
       let url = new URL(window.location.href)
       url.searchParams.delete("robot");
-      if (window.location.href!==url.href)
+      if (window.location.href !== url.href)
         window.location.href = url.href;
     }
   }, [paramsProvided])
@@ -762,9 +668,9 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
           // Multiple robots: Fetch each robot individually and await all responses
           const calls = robots.map((robot) => {
             const robotParams = { ...params, robot };
-            return getReports(robotParams);
+            const a = getReports(robotParams);
+            return a;
           });
-          console.log("calls", calls);
           const responses = await Promise.all(calls);
           // Aggregate or combine data as needed, here we combine all data arrays
           const combinedAverages = {}
@@ -772,7 +678,7 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
             combinedAverages[Object.keys(r)[0]] = r[Object.keys(r)[0]];
           });
           const combinedReports = responses.flatMap(r => r.data.reports);
-          setReportData({averages: combinedAverages, reports: combinedReports});
+          setReportData({ averages: combinedAverages, reports: combinedReports });
         } else {
           // No robots or single robot: just fetch once with existing params
           res = await getReports(params);
@@ -848,9 +754,9 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
         ) : error ? (
           <Typography color="error">{error}</Typography>
         ) : tableRows.length ? (<>
-          <CategoryTable averages={reportData.averages} headingColors={headingColors}/>
-          <ViewIndividualReports reports={reportData.reports}/>
-          {window.location.pathname.startsWith("/robots") && <ViewReportGraphs data={reportData} headingColors={headingColors}/>}
+          <CategoryTable averages={reportData.averages} headingColors={headingColors} />
+          <ViewIndividualReports reports={reportData.reports} />
+          {window.location.pathname.startsWith("/robots") && <ViewReportGraphs data={reportData} headingColors={headingColors} />}
         </>) : (
           <Typography sx={{ color: "#888" }}>No data available</Typography>
         )

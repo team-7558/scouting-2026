@@ -1,17 +1,18 @@
 //update in server too
 export const PRACTICE_EVENTS = [];
-export const ATTENDING_EVENTS = ["2017oncmp"]; 
+export const ATTENDING_EVENTS = ["2024oncmp1"];
 
 export const FIELD_VIRTUAL_HEIGHT = 1610;
 export const FIELD_VIRTUAL_WIDTH = 3510;
 export const FIELD_ASPECT_RATIO = FIELD_VIRTUAL_WIDTH / FIELD_VIRTUAL_HEIGHT;
 
 export const AUTO_MAX_TIME = 20 * 1000;
-export const TELE_MAX_TIME = 143 * 1000; 
+export const TELE_MAX_TIME = 143 * 1000;
 
 export const CYCLE_TYPES = {
-  SCORING: "SCORING",
-  SHUTTLING: "SHUTTLING",
+  SHOOTING: "SHOOT",
+  SNOWBALL: "SNOWBALL",
+  INTAKE: "INTAKE",
   DEFENSE: "DEFENSE",
   CONTACT: "CONTACT",
   HANG: "HANG",
@@ -20,10 +21,10 @@ export const CYCLE_TYPES = {
 
 // New: Rate ranges for scoring and shuttling
 export const BPS_RANGES = {
-  SLOW: { label: "Slow (1-2/s)", min: 1, max: 2 },
-  STEADY: { label: "Steady (3-4/s)", min: 3, max: 4 },
-  FAST: { label: "Fast (5-6/s)", min: 5, max: 6 },
-  MAX: { label: "Max (7+/s)", min: 7, max: 8 }, // Capped at 8 for realistic data
+  SLOW: { label: "Slow (1-3/s)", value: 2 },
+  STEADY: { label: "Steady (3-5/s)", value: 4 },
+  FAST: { label: "Fast (5-7/s)", value: 6 },
+  MAX: { label: "Max (7+/s)", value: 8 },
 };
 
 
@@ -46,9 +47,7 @@ export const COLORS = {
   FAIL: "fail",
   ACTIVE: "primary",
   PENDING: "secondary",
-  WARNING: "warning",
-  ERROR: "error",
-  CANCEL: "info",
+  INFO: "info",
 };
 
 export const PHASES = {
@@ -58,12 +57,17 @@ export const PHASES = {
   POST_MATCH: "post_match",
 };
 
-// Updated locations for the REBUILT field
-export const GAME_LOCATIONS = {
-  PRELOAD: "PRELOAD",
-  HUB: "HUB",
-  TOWER: "TOWER",
-  INITIATION_LINE: "INITIATION_LINE",
+export const ENDGAME_ROLES = {
+  CYCLE: "Cycle",
+  DEFENSE: "Defense",
+  FEED: "Feed",
+  STEAL: "Steal",
+};
+
+export const DISABLED_STATUS = {
+  NO: "No",
+  PARTIALLY: "Partially",
+  YES: "Yes",
 };
 
 // Updated hang levels for REBUILT
@@ -71,6 +75,15 @@ export const HANG_LEVELS = {
   LEVEL_1: "LEVEL_1",
   LEVEL_2: "LEVEL_2",
   LEVEL_3: "LEVEL_3",
-  FAIL: "FAIL",
-  NONE: "NONE",
+};
+
+export const GAME_LOCATIONS = {
+  DEPOT: "DEPOT",
+  ALLIANCE_ZONE: "ALLIANCE_ZONE",
+  NEUTRAL_ZONE: "NEUTRAL_ZONE",
+  OPPONENT_ALLIANCE_ZONE: "OPPONENT_ALLIANCE_ZONE",
+  PRELOAD: "PRELOAD",
+  HUB: "HUB",
+  TOWER: "TOWER",
+  INITIATION_LINE: "INITIATION_LINE",
 };

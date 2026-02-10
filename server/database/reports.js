@@ -15,9 +15,9 @@ export const storeReportInternal = async (eventKey, report) => {
         match_key TEXT,
         match_start_time BIGINT,
         submission_time BIGINT,
-        role TEXT,
+        roles TEXT,
         comments TEXT,
-        disabled BOOLEAN,
+        disabled TEXT,
         driver_skill TEXT,
         defense_skill TEXT,
         scout_id INT,
@@ -30,18 +30,26 @@ export const storeReportInternal = async (eventKey, report) => {
 
     const insertQuery = `
       INSERT INTO ${tableName} 
-        (id, event_key, match_key, match_start_time, submission_time, role, comments, disabled, driver_skill, defense_skill, scout_id, scout_name, robot, station)
+        (id, event_key, match_key, match_start_time, submission_time, roles, comments, disabled, driver_skill, defense_skill, scout_id, scout_name, robot, station)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-      ON CONFLICT (id) DO NOTHING
-      RETURNING id;
+      ON CONFLICT (id) DO UPDATE SET
+        roles = EXCLUDED.roles,
+        comments = EXCLUDED.comments,
+        disabled = EXCLUDED.disabled,
+        driver_skill = EXCLUDED.driver_skill,
+        defense_skill = EXCLUDED.defense_skill,
+        scout_id = EXCLUDED.scout_id,
+        scout_name = EXCLUDED.scout_name,
+        submission_time = EXCLUDED.submission_time
+        RETURNING *;
     `;
     const submissionTime = Date.now();
 
     // Unpack the endgame fields with defaults if not present.
     const {
-      role = null,
+      roles = {},
       comments = null,
-      disabled = null,
+      disabled = "No",
       driverSkill = null,
       defenseSkill = null,
     } = report.endgame || {};
@@ -52,7 +60,7 @@ export const storeReportInternal = async (eventKey, report) => {
       report.matchKey,
       report.matchStartTime,
       submissionTime,
-      role,
+      JSON.stringify(roles),
       comments,
       disabled,
       driverSkill,

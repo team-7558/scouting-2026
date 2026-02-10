@@ -37,6 +37,10 @@ router.get("/", async (req, res) => {
       robot
     );
 
+    console.log("reportsAndCyclesFiltered", reports);
+    console.log("reportsAndCyclesFilteredAuto", reports.auto);
+    console.log("reportsAndCyclesFilteredTele", reports.tele);
+
     // Group reports by robot
     const reportsByRobot = {};
     reports.forEach((report) => {
@@ -51,6 +55,7 @@ router.get("/", async (req, res) => {
     let averages = {};
     Object.keys(reportsByRobot).forEach((robotId) => {
       averages[robotId] = calculateAverageMetrics(reportsByRobot[robotId]);
+      console.log("averages", averages[robotId]);
     });
     if (matchKey) {
       // Retrieve the match data using our existing internal function.
@@ -80,7 +85,7 @@ router.get("/", async (req, res) => {
     //   pitScouting = await getPitScoutingByRobotInternal(eventKey, robot);
     // }
 
-    res.json({ averages, reports});
+    res.json({ averages, reports });
   } catch (error) {
     console.error("Error fetching filtered reports with cycles:", error);
     res.status(500).json({ error: "Server error" });

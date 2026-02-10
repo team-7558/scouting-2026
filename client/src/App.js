@@ -16,6 +16,8 @@ import ViewReports from "./pages/Strategy/ViewReports.js";
 import Overview from "./pages/Strategy/Overview.js";
 import ScoutAdmin from "./pages/ScoutLead/ScoutAdmin.js";
 import CategorySort from "./pages/Strategy/CategorySort.js";
+import AutoPathVisualizer from "./pages/Strategy/AutoPaths.js";
+import ScanQR from "./pages/ScanQR.js";
 
 function App() {
   return (
@@ -95,6 +97,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/autoPaths"
+            element={
+              <ProtectedRoute>
+                <AutoPathVisualizer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/scan"
+            element={
+              <ProtectedRoute>
+                <ScanQR />
               </ProtectedRoute>
             }
           />

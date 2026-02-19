@@ -15,9 +15,18 @@ import adminRoutes from "./routes/admin.js";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
 
-// Custom logging middleware
-const logRequest = (req, res, next) => {
-  const { method, url } = req;
+const app = express();
+
+// Parse JSON first so req.body is populated
+app.use(express.json());
+app.use(cors({
+  origin: "https://scouting-2026-cybn.onrender.com",
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
+// Logging middleware AFTER parsing
+app.use((req, res, next) => {
   const start = Date.now();
 
   console.log("----- INCOMING REQUEST -----");
@@ -34,20 +43,15 @@ const logRequest = (req, res, next) => {
   console.log("Query:", req.query);
   console.log("Params:", req.params);
   console.log("Body:", req.body);
-
   console.log("----------------------------");
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    console.log(`${method} ${url} ${res.statusCode} - ${duration}ms`);
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
   });
 
   next();
-};
-
-const app = express();
-app.use(cors());
-app.use(express.json());
+});
 app.use(logRequest);
 app.use((err, req, res, next) => {
   console.error("JSON parse error:", err.message);

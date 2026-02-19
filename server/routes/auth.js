@@ -9,42 +9,48 @@ import {
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
 
-// Extract user information from the JWT token
+// Middleware to protect routes
+export const verifyToken = (req, res, next) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    if (!authHeader) return res.status(401).json({ message: "No token provided" });
+
+    const token = authHeader.split(" ")[1]; // Expect "Bearer <token>"
+    if (!token) return res.status(401).json({ message: "Malformed token" });
+
+    const user = jwt.verify(token, JWT_SECRET);
+    req.user = user; // attach user to request
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Failed to verify token", error: err.message });
+  }
+};
+
+// Utility functions (safe)
 export const extractUserFromRequest = (req) => {
-  console.log(req.headers);
-  const token = req.headers["authorization"];
-
-  if (!token) {
-    throw new Error("No token provided.");
-  }
-
-  try {
-    const user = jwt.verify(token, JWT_SECRET); // Ensure correct token extraction
-    return user;
-  } catch (err) {
-    throw new Error("Failed to verify token: " + err.message);
-  }
+  if (!req.user) throw new Error("User not authenticated");
+  return req.user;
 };
 
-// Extract only the role from the token using extractUserFromRequest to avoid duplicate logic
 export const extractRoleFromRequest = (req) => {
-  try {
-    const user = extractUserFromRequest(req);
-    return user.role;
-  } catch (err) {
-    throw new Error("Failed to extract role: " + err.message);
-  }
+  const user = extractUserFromRequest(req);
+  return user.role;
 };
 
-// Sign-in endpoint
+// ----------------- ROUTES -----------------
+
+// Sign-in endpoint (PUBLIC)
 router.post("/signin", async (req, res) => {
   let { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username and password required" });
+  }
+
   username = username.toLowerCase();
 
   try {
     const user = await authenticateUser(req, username, password);
 
-    // Ensure ID is a number before signing the token
     const token = jwt.sign(
       {
         id: Number(user.id),
@@ -64,30 +70,30 @@ router.post("/signin", async (req, res) => {
   }
 });
 
-// Create User Endpoint
+// Create user endpoint (PUBLIC, optional)
 router.post("/createUser", async (req, res) => {
   const { username, password, role } = req.body;
+  if (!username || !password || !role) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
 
   try {
     const user = await createUser(req, username, password, role);
-    return res.send("Success: " + JSON.stringify(user));
+    return res.json({ success: true, user });
   } catch (err) {
-    console.log(err);
-    return res.status(401).json({ message: err.message });
+    console.error("Error creating user:", err);
+    return res.status(500).json({ message: err.message });
   }
 });
 
-// Update Password Endpoint
-router.post("/updatePassword", async (req, res) => {
+// Update password (PROTECTED)
+router.post("/updatePassword", verifyToken, async (req, res) => {
   try {
     const user = extractUserFromRequest(req);
-    console.log(user);
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "Both old and new passwords are required" });
+      return res.status(400).json({ message: "Both old and new passwords are required" });
     }
 
     const result = await updatePassword(req, user.id, oldPassword, newPassword);

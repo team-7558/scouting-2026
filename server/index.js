@@ -52,7 +52,6 @@ app.use((req, res, next) => {
 
   next();
 });
-app.use(logRequest);
 app.use((err, req, res, next) => {
   console.error("JSON parse error:", err.message);
   res.status(400).json({ error: err.message });

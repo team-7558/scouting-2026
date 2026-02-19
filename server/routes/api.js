@@ -5,6 +5,7 @@ import { getScoutMatch, storeMatches } from "../database/matches.js";
 import { storeReportAndCycles } from "../database/matchReportHelper.js";
 import { getReport } from "../database/reports.js";
 import { storeOrUpdateMatches } from "../database/matches.js";
+import { verifyToken } from "./auth.js";
 
 // no underscores vs default alphabet
 const alphabet =
@@ -36,7 +37,7 @@ router.post("/matches", async (req, res) => {
   }
 });
 
-router.get("/getScoutMatch", async (req, res) => {
+router.get("/getScoutMatch", verifyToken, async (req, res) => {
   const { eventKey, station, matchKey } = req.query;
   if (!eventKey || !station || !matchKey) {
     return res.status(400).json({

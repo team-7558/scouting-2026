@@ -46,13 +46,13 @@ const logRequest = (req, res, next) => {
 };
 
 const app = express();
+app.use(logRequest);
 app.use(express.json());
 app.use((err, req, res, next) => {
   console.error("JSON parse error:", err.message);
   res.status(400).json({ error: err.message });
 });
 app.use(cors());
-app.use(logRequest);
 // console.log(app);
 
 // Use the auth routes

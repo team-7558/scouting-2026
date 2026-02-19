@@ -18,7 +18,9 @@ export const verifyToken = (req, res, next) => {
     const token = authHeader.split(" ")[1]; // Expect "Bearer <token>"
     if (!token) return res.status(401).json({ message: "Malformed token" });
 
+    console.log(token);
     const user = jwt.verify(token, JWT_SECRET);
+    console.log(user);
     req.user = user; // attach user to request
     next();
   } catch (err) {

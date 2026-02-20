@@ -26,6 +26,17 @@ class ApiClient {
       },
       (error) => Promise.reject(error)
     );
+
+    this.instance.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.code === 'ECONNABORTED') {
+          alert('Backend waking up (~30-90s). Try again soon');
+          return Promise.reject(new Error('Backend waking up... please wait or retry'));
+        }
+        return Promise.reject(error);  // Other errors pass through
+      }
+    )
   }
 
   get(url, config) {

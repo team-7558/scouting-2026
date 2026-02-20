@@ -8,6 +8,7 @@ import { calculateAverageMetrics } from "../metrics/reports.js";
 import { getMatchDataInternal } from "../database/matches.js";
 // Import the new pit scouting query function:
 // import { getPitScoutingByRobotInternal } from "../database/pit_scouting.js";
+import { verifyToken } from "./auth.js";
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ const router = express.Router();
  * and averages as a map of robot -> calculateAverageMetrics(reportsForRobot).
  * If a robot is provided, also returns that robot’s pit scouting data.
  */
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   const { eventKey, matchKey, robot } = req.query;
   if (!eventKey) {
     return res.status(400).json({ error: "Missing eventKey query parameter" });
@@ -93,7 +94,7 @@ router.get("/", async (req, res) => {
 });
 
 // New route to submit a match, storing both report and cycles
-router.post("/submit", async (req, res) => {
+router.post("/submit", verifyToken, async (req, res) => {
   const { eventKey, matchKey, station, matchData } = req.body;
 
   // Validate required parameters

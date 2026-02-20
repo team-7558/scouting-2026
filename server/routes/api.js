@@ -18,7 +18,7 @@ router.get("/", (req, res) => {
   res.json({ message: "Hello from server!" });
 });
 
-router.post("/matches", async (req, res) => {
+router.post("/matches", verifyToken, async (req, res) => {
   const { event_code } = req.body;
   if (!event_code || !/^[a-zA-Z0-9_]+$/.test(event_code)) {
     return res.status(400).json({ message: "Invalid or missing event code" });

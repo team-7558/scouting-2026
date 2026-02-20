@@ -76,7 +76,7 @@ router.post("/signin", async (req, res) => {
 });
 
 // Create user endpoint (PUBLIC, optional)
-router.post("/createUser", async (req, res) => {
+router.post("/createUser", verifyToken, async (req, res) => {
   const { username, password, role } = req.body;
   if (!username || !password || !role) {
     return res.status(400).json({ message: "All fields are required" });

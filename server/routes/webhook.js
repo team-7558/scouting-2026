@@ -6,10 +6,11 @@ import {
   storeOrUpdateMatchesInternal,
 } from "../database/matches.js";
 import { ATTENDING_EVENTS, PRACTICE_EVENTS } from "../Constants.js";
+import { verifyToken } from "./auth.js";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", verifyToken, async (req, res) => {
   console.log(req.body);
   const { message_type, message_data } = req.body;
 

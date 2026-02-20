@@ -363,26 +363,8 @@ const RenderTopBar = ({
           <Box sx={{ display: "flex", justifyContent: "space-evenly", height: "100%", flexDirection: { sm: "column", xs: "row" }, alignItems: "center" }}>
             <Button
               variant="outlined"
-              onClick={() => window.location.reload()}
-              size="large"
-              sx={{
-                borderRadius: "0.7vw",
-                border: "2px solid " + accentColor,
-                color: "#ddd",
-                "&:hover": { backgroundColor: "#009933" },
-                height: { xs: "50px", sm: "75px", md: "50px" },
-                margin: { xs: "1vh 5vw", sm: "1vh 1vw" },
-                width: { xs: "30vw", sm: "10vw" },
-                fontSize: 'calc(0.5vw + 7px)'
-              }}
-            >
-              RELOAD
-            </Button>
-
-            <Button
-              variant="outlined"
               onClick={() => {
-                window.location.pathname = "/categorySort"
+                navigate("/categorySort");
               }}
               sx={{
                 borderRadius: "0.7vw",

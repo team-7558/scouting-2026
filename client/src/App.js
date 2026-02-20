@@ -38,7 +38,7 @@ function App() {
             path="/scoutMatch"
             element={
               <ProtectedRoute>
-                <ScoutMatch />
+                <ScoutMatch key={window.search} />
               </ProtectedRoute>
             }
           />

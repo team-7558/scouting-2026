@@ -36,6 +36,7 @@ import { ImageIcon } from "./CustomFieldComponents.js";
 import { SIDEBAR_CONFIG } from "./SidebarConfig.js";
 import { getSignedInUser } from "../../TokenUtils.js";
 import RequiredParamsDialog from "../Common/RequiredParamsDialog.js";
+import { useNavigate } from "react-router-dom";
 
 const { R1, R2, R3 } = DRIVER_STATIONS;
 const { SCORING_TABLE_FAR } = PERSPECTIVE;
@@ -53,6 +54,8 @@ const exists = (val) => {
 
 // Scout Match Component
 const ScoutMatch = () => {
+  const navigate = useNavigate();
+
   const [userToken, setUserToken] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchParamsError, setSearchParamsError] = useState(null);
@@ -365,6 +368,7 @@ const ScoutMatch = () => {
     submitting,
     setSubmitting,
     scaleWidthToActual,
+    navigate,
   };
 
 

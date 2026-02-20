@@ -6,6 +6,7 @@ import {
   HANG_LEVELS,
 } from "./Constants";
 import { saveMatch } from "../../storage/MatchStorageManager";
+import { useNavigate } from "react-router-dom";
 
 const exists = (val) => {
   return val !== null && val !== undefined
@@ -184,7 +185,7 @@ export const SIDEBAR_CONFIG = [
               matchKey: match.scoutData.nextMatchKey,
               station: match.searchParams.get("station"),
             });
-            window.location.href = window.location.href;
+            match.navigate(`/scoutMatch?eventKey=${match.searchParams.get("eventKey")}&matchKey=${match.scoutData.nextMatchKey}&station=${match.searchParams.get("station")}`)
           } else {
             alert("Submission failed — saved locally for resync.");
           }

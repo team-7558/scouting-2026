@@ -17,10 +17,22 @@ const __dirname = path.dirname(__filename); // get the name of the directory
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://scouting-2026-cybn.onrender.com"
+];
+
 // Parse JSON first so req.body is populated
 app.use(express.json());
 app.use(cors({
-  origin: "https://scouting-2026-cybn.onrender.com",
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow non-browser requests
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));

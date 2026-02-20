@@ -6,6 +6,7 @@ class ApiClient {
   constructor(baseURL) {
     this.instance = axios.create({
       baseURL,
+      timeout: 120000,
     });
 
     // Add a request interceptor

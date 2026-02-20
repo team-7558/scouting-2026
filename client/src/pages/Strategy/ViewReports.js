@@ -311,7 +311,7 @@ const RenderTopBar = ({
   robotSearchTerm,
   setMatchKeySearchTerm,
   setRobotSearchTerm,
-  handleSearchKeyDown,
+  handleMatchKeyDown,
   requiredParamKeys,
   searchParams
 }) => {
@@ -395,7 +395,7 @@ const RenderTopBar = ({
               <TextField
                 value={matchKeySearchTerm}
                 onChange={(e) => setMatchKeySearchTerm(e.target.value.toLowerCase())}
-                onKeyDown={handleSearchKeyDown("matchKey")}
+                onKeyDown={handleMatchKeyDown("matchKey")}
                 variant="outlined"
                 size="large"
                 placeholder="Search by match key"
@@ -413,15 +413,6 @@ const RenderTopBar = ({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                const url = new URL(window.location.href);
-                url.pathname = "/robots";
-                setRobotSearchTerm(prevTerm => {
-                  console.log("rst", prevTerm);
-                  url.searchParams.set("robot", prevTerm.join(","));
-                  console.log("here", url.href);
-                  window.location.href = url.href;
-                  return prevTerm;
-                })
               }}
               id="robotsForm"
             >
@@ -434,11 +425,19 @@ const RenderTopBar = ({
                   : [robotSearchTerm]
                 }
                 onChange={(event, newValue) => {
-                  console.log("abc", newValue.filter(v => v));
+                  console.log("test");
                   setRobotSearchTerm(newValue.filter(Boolean));
-                  const form = document.getElementById("robotsForm");
-                  const submitEvent = new Event("submit", { bubbles: true, cancelable: true });
-                  form.dispatchEvent(submitEvent);
+
+                  const robotParam = newValue.join(",");
+
+                  const urlObj = new URL(window.location.href);
+                  const urlParams = urlObj.searchParams;
+
+                  console.log("test", robotParam);
+
+                  navigate(
+                    `/robots?eventKey=${urlParams.get("eventKey")}&robot=${encodeURIComponent(robotParam)}`
+                  );
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -679,15 +678,12 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
     else (console.log("error not params provided"))
   }, [paramsProvided, searchParams, requiredParamKeys]);
 
-  const handleSearchKeyDown = (type) => (e) => {
+  const handleMatchKeyDown = (type) => (e) => {
     if (e.key === "Enter") {
-      const newParams = {};
-      requiredParamKeys.forEach((key) => {
-        if (key !== type) newParams[key] = searchParams.get(key);
-      });
-      newParams[type] = type === "matchKey" ? matchKeySearchTerm : robotSearchTerm;
-      setSearchParams(newParams);
-      navigate(`?${new URLSearchParams(newParams).toString()}`);
+      const url = new URL(window.location.href);
+      const urlParams = url.searchParams;
+
+      navigate(`/matches?eventKey=${urlParams.get("eventKey")}&matchKey=${matchKeySearchTerm}`);
     }
   };
 
@@ -725,7 +721,7 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
         robotSearchTerm={robotSearchTerm}
         setMatchKeySearchTerm={setMatchKeySearchTerm}
         setRobotSearchTerm={setRobotSearchTerm}
-        handleSearchKeyDown={handleSearchKeyDown}
+        handleMatchKeyDown={handleMatchKeyDown}
         requiredParamKeys={requiredParamKeys}
         searchParams={searchParams}
       />

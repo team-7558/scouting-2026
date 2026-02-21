@@ -40,7 +40,6 @@ const scaleCoordinates = (
   const imageScale = imageScaleGlobal;
   const imageOffsetX = imageOffsetXGlobal(isBlue);
 
-  console.log("flip", flip);
   if (!flip) {
     console.log("here");
     const topLeftX = fieldX - width / 2;

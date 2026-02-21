@@ -297,7 +297,7 @@ const ScoutMatch = () => {
       setScoutData(response.data);
       console.log("Scout data:", response.data);
       setSearchParamsError(null);
-      resetMatchState();
+      // resetMatchState();
     } catch (err) {
       fetching = false;
       setSearchParamsError(err.response?.data?.message);
@@ -484,10 +484,8 @@ const ScoutMatch = () => {
           const isDisabled = config.disabled && config.disabled(match, key);
           const isSelected = config.isSelected && config.isSelected(match, key);
           if (isNotShowing) {
-            console.log("key2", key);
             return null;
           }
-          console.log("key", key);
           return config.componentFunction != null ? (
             config.componentFunction(match, key)
           ) : (

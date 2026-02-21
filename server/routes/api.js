@@ -37,7 +37,12 @@ router.post("/matches", verifyToken, async (req, res) => {
   }
 });
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 router.get("/getScoutMatch", verifyToken, async (req, res) => {
+  await sleep(10000);
   const { eventKey, station, matchKey } = req.query;
   if (!eventKey || !station || !matchKey) {
     return res.status(400).json({

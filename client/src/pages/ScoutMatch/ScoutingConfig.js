@@ -45,8 +45,8 @@ export const SCOUTING_CONFIG = {
 
 
   MOVEMENT: {
-    phases: [PHASES.AUTO],
-    positions: { TRENCH_L: [1030, 210], BUMP_L: [1030, 500], BUMP_R: [1030, 1100], TRENCH_R: [1030, 1400] },
+    phases: [PHASES.AUTO, PHASES.TELE],
+    positions: { TRENCH: [1030, 210], BUMP: [1030, 500] },
     dimensions: { width: 250, height: 250 },
     onClick: (match, key) => match.setCycles([...match.cycles, {
       location: key,
@@ -55,10 +55,15 @@ export const SCOUTING_CONFIG = {
       startTime: match.getCurrentTime(),
     }]),
     textFunction: (match, key) => {
-      return {
+      const spot = {
         TRE: "TRENCH",
         BUM: "BUMP"
-      }[key.substring(0, 3)]
+      }[key.substring(0, 3)];
+
+      return `${spot}: ${match.cycles.filter(c =>
+        c.type === CYCLE_TYPES.AUTO_MOVEMENT &&
+        c.location === spot
+      ).length}`
     },
     color: COLORS.UNDO
   },

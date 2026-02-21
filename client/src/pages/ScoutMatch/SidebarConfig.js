@@ -86,7 +86,7 @@ export const SIDEBAR_CONFIG = [
 
     // This is the magic: Show only if the cycle is HANG and no level is set yet.
     show: (match) =>
-      match.state.activeCycle?.type === CYCLE_TYPES.HANG && !match.state.activeCycle.level,
+      match.state.activeCycle?.type === CYCLE_TYPES.HANG && !match.state.activeCycle.location,
   },
 
   // --------------- HANG SUCCESS ------------------------

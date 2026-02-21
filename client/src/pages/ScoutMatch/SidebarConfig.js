@@ -149,7 +149,9 @@ export const SIDEBAR_CONFIG = [
     positions: ["Cancel"],
     flexWeight: 0.5,
     label: () => "Cancel",
-    onClick: (match) => match.setActiveCycle({}),
+    onClick: (match) => {
+      match.setActiveCycle(() => ({}));
+    },
     color: () => COLORS.UNDO,
     show: (match) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
   },

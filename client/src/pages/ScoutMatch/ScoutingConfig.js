@@ -89,7 +89,9 @@ export const SCOUTING_CONFIG = {
         endTime: null,
         rate: null,
       });
-    }
+    },
+    isSelected: (match, key) =>
+      match.activeCycle?.type === CYCLE_TYPES.SHOOTING && match.activeCycle?.location === key,
   },
 
   TOWER: {
@@ -104,7 +106,9 @@ export const SCOUTING_CONFIG = {
         phase: match.phase,
         startTime: match.getCurrentTime(),
       })
-    }
+    },
+    isSelected: (match, key) =>
+      match.activeCycle?.type === CYCLE_TYPES.HANG,
   },
 
   // Add these THREE objects to your SCOUTING_CONFIG in ScoutingConfig.js
@@ -121,14 +125,15 @@ export const SCOUTING_CONFIG = {
     fontSize: 71,
     // When clicked, it starts an INTAKE cycle with the specific location
     onClick: (match, key) => {
-      console.log("here")
       match.setActiveCycle({
         type: CYCLE_TYPES.INTAKE,
         phase: match.phase,
         location: match.phase === PHASES.AUTO ? key : "ALLIANCE_ZONE", // Will be "DEPOT"
         startTime: match.getCurrentTime(),
       });
-    }
+    },
+    isSelected: (match, key) =>
+      match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === (match.phase === PHASES.AUTO ? key : "ALLIANCE_ZONE"),
   },
 
   NEUTRAL_ZONE_INTAKE: {
@@ -149,7 +154,9 @@ export const SCOUTING_CONFIG = {
         location: "NEUTRAL_ZONE", // Will be "DEPOT"
         startTime: match.getCurrentTime(),
       });
-    }
+    },
+    isSelected: (match, key) =>
+      match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === "NEUTRAL_ZONE",
   },
 
   // Configuration for the Snowball (Burst) button
@@ -169,7 +176,9 @@ export const SCOUTING_CONFIG = {
         location: key,
         startTime: match.getCurrentTime(),
       });
-    }
+    },
+    isSelected: (match, key) =>
+      match.activeCycle?.type === CYCLE_TYPES.SNOWBALL && match.activeCycle?.location === key,
   },
 
   HISTORY_CONTROLS: {
@@ -250,20 +259,24 @@ export const SCOUTING_CONFIG = {
         location: GAME_LOCATIONS.OPPONENT_ALLIANCE_ZONE,
         startTime: match.getCurrentTime(),
       });
-    }
+    },
+    isSelected: (match, key) =>
+      match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === GAME_LOCATIONS.OPPONENT_ALLIANCE_ZONE,
   },
 
   DEFENSE_CONTACT: {
     phases: [PHASES.TELE],
     positions: { CONTACT: [2800, 1200] }, // Replaces SNOWBALL position
     dimensions: { width: 800, height: 400 },
-    showFunction: (match, key) => match.isDefending() && match.activeCycle.type !== CYCLE_TYPES.CONTACT,
+    showFunction: (match, key) => match.isDefending(),
     textFunction: (match, key) => "CONTACT",
     color: COLORS.HANG_DEFENSE,
     fontSize: 90,
     onClick: (match, key) => {
       startNewCycle(match, CYCLE_TYPES.CONTACT);
-    }
+    },
+    isSelected: (match, key) =>
+      match.activeCycle?.type === CYCLE_TYPES.CONTACT,
   },
 };
 

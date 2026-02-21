@@ -41,7 +41,6 @@ const scaleCoordinates = (
   const imageOffsetX = imageOffsetXGlobal(isBlue);
 
   if (!flip) {
-    console.log("here");
     const topLeftX = fieldX - width / 2;
     const topLeftY = fieldY - height / 2;
 
@@ -51,8 +50,6 @@ const scaleCoordinates = (
 
     const scaledWidth = (width / FIELD_VIRTUAL_WIDTH) * actualWidth;
     const scaledHeight = (height / FIELD_VIRTUAL_HEIGHT) * actualHeight;
-
-    console.log("stuff", fieldX, scaledX, fieldY, scaledY, scaledWidth, scaledHeight);
 
     return { scaledX, scaledY, scaledWidth, scaledHeight };
   }
@@ -215,8 +212,6 @@ const FieldCanvas = forwardRef(
       const ctx = canvas.getContext("2d");
       const image = new Image();
       image.src = fullField;
-
-      console.log("getting offset", isBlue, match.isDefending());
 
       const defenseOffset = getDefenseOffset(isBlue, match.isDefending());
 

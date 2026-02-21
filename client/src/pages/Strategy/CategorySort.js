@@ -19,7 +19,9 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  Autocomplete,
 } from "@mui/material";
+import ClearIcon from '@mui/icons-material/Clear';
 import { useTheme } from "@mui/material/styles";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import SearchIcon from "@mui/icons-material/Search";
@@ -250,13 +252,14 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
   const [paramsProvided, setParamsProvided] = useState(false);
 
   const [matchKeySearchTerm, setMatchKeySearchTerm] = useState("");
-  const [robotSearchTerm, setRobotSearchTerm] = useState("");
+  const [robotSearchTerm, setRobotSearchTerm] = useState([]);
   const [phaseFilter, setPhaseFilter] = useState("all");
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     setMatchKeySearchTerm(searchParams.get("matchKey") || "");
-    setRobotSearchTerm(searchParams.get("robot") || "");
+    const robotsFromUrl = searchParams.get("robot")?.split(',') || [];
+    setRobotSearchTerm(robotsFromUrl.filter(Boolean));
   }, [searchParams]);
 
   useEffect(() => {
@@ -341,7 +344,14 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
               <TextField
                 value={matchKeySearchTerm}
                 onChange={(e) => setMatchKeySearchTerm(e.target.value.toLowerCase())}
-                onKeyDown={handleSearchKeyDown("matchKey")}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const url = new URL(window.location.href);
+                    const urlParams = url.searchParams;
+
+                    navigate(`/matches?eventKey=${urlParams.get("eventKey")}&matchKey=${matchKeySearchTerm}`);
+                  }
+                }}
                 variant="outlined"
                 size="small"
                 placeholder="Search by match key"
@@ -349,25 +359,77 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
                 sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
               />
             </form>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const url = new URL(window.location.href);
-              url.pathname = "/robots";
-              url.searchParams.set("robot", robotSearchTerm);
-              window.history.replaceState({}, "", url.toString());
-              window.location.href = window.location.href;
-            }}>
-              <TextField
-                value={robotSearchTerm}
-                onChange={(e) => {
-                  setRobotSearchTerm(e.target.value);
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+              }}
+              id="robotsForm"
+            >
+              <Autocomplete
+                multiple
+                freeSolo
+                options={[]}
+                value={Array.isArray(robotSearchTerm)
+                  ? robotSearchTerm
+                  : [robotSearchTerm]
+                }
+                onChange={(event, newValue) => {
+                  console.log("test");
+                  setRobotSearchTerm(newValue.filter(Boolean));
+
+                  const robotParam = newValue.join(",");
+
+                  const urlObj = new URL(window.location.href);
+                  const urlParams = urlObj.searchParams;
+
+                  console.log("test", robotParam);
+
+                  navigate(
+                    `/robots?eventKey=${urlParams.get("eventKey")}&robot=${encodeURIComponent(robotParam)}`
+                  );
                 }}
-                onKeyDown={handleSearchKeyDown("robot")}
-                variant="outlined"
-                size="small"
-                placeholder="Search by robot"
-                InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon /></InputAdornment> }}
-                sx={{ width: { xs: "100%", sm: 250 }, bgcolor: "#222", input: { color: "#fff" } }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    size="large"
+                    placeholder="Search by robots"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <SearchIcon sx={{ color: accentColor }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      width: { xs: "100%", sm: "20vw" },
+                      bgcolor: "#222",
+                      input: { color: "#fff" },
+                      mt: { sm: "1vh", xs: 0 },
+                      borderRadius: "500px",
+                      fontSize: 'calc(0.7vw + 10px)'
+                    }}
+                  />
+                )}
+                renderTags={(value, getItemProps) =>
+                  value.map((option, index) => {
+                    const { key, ...itemProps } = getItemProps({ index });
+                    console.log("i", index);
+                    return (
+                      <Chip
+                        variant="outlined"
+                        label={option}
+                        key={key}
+                        size="large"
+                        sx={{ color: "#bbb", fontSize: 'calc(0.5vw + 7px)' }}
+                        {...itemProps}
+                        deleteIcon={<ClearIcon style={{ color: '#aaa', fontSize: '2vw' }}
+                        />}
+                      />
+                    );
+                  })
+                }
               />
             </form>
           </Box>

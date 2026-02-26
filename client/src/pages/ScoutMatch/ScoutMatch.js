@@ -126,7 +126,7 @@ const ScoutMatch = () => {
   // ===================================================================================
   const useHistoryState = (initialState) => {
     const [historyState, setHistoryState1] = useState(() => ({
-      history: [initialState],
+      history: [{ state: initialState, message: "Initial State" }],
       index: 0,
     }));
 
@@ -135,12 +135,14 @@ const ScoutMatch = () => {
       console.trace("Setting new state");
     }
 
-    const state = historyState.history[historyState.index];
+    const state = historyState.history[historyState.index].state;
+    const lastUndoMessage = historyState.history[historyState.index > 0 ? historyState.index : 0]?.message;
+    const redoMessage = historyState.history[historyState.index+1]?.message;
 
     // ========== SET STATE ==========
-    const setState = useCallback((newStateOrFn) => {
+    const setState = useCallback((newStateOrFn, undoMessage) => {
       setHistoryState(prev => {
-        const currentState = prev.history[prev.index];
+        const currentState = prev.history[prev.index].state;
 
         const newState =
           typeof newStateOrFn === "function"
@@ -152,15 +154,29 @@ const ScoutMatch = () => {
           return prev;
         }
 
-        const newHistory = prev.history.slice(0, prev.index + 1);
+        if (undoMessage) {
+            const newHistory = prev.history.slice(0, prev.index + 1);
 
-        console.log("newState:", newState);
-        console.log("newHistory:", newHistory, prev.index);
+            console.log("newState:", newState);
+            console.log("newHistory:", newHistory, prev.index);
 
-        return {
-          history: [...newHistory, newState],
-          index: newHistory.length
-        };
+            return {
+              history: [...newHistory, { state: newState, message: undoMessage }],
+              index: newHistory.length
+            };
+        } else {
+            // Overwrite the current state without creating a new history entry
+            const newHistory = [...prev.history];
+            newHistory[prev.index] = { ...newHistory[prev.index], state: newState };
+
+            console.log("newState:", newState);
+            console.log("newHistory:", newHistory, prev.index);
+
+            return {
+                ...prev,
+                history: newHistory
+            };
+        }
       });
     }, []);
 
@@ -190,7 +206,7 @@ const ScoutMatch = () => {
     // ========== RESET ==========
     const reset = useCallback(() => {
       setHistoryState({
-        history: [initialState],
+        history: [{ state: initialState, message: "Initial State" }],
         index: 0
       });
     }, [initialState]);
@@ -200,7 +216,7 @@ const ScoutMatch = () => {
     const canRedo = () =>
       historyState.index < historyState.history.length - 1;
 
-    return { state, setState, undo, redo, canUndo, canRedo, reset };
+    return { state, setState, undo, redo, canUndo, canRedo, reset, lastUndoMessage, redoMessage };
   };
 
   // ===================================================================================
@@ -219,13 +235,13 @@ const ScoutMatch = () => {
     endgame: { disabled: "No", driverSkill: "N/A", defenseSkill: "N/A", roles: [], comments: "" },
   };
 
-  const { state, setState, undo, redo, canUndo, canRedo, reset } = useHistoryState(initialMatchData);
+  const { state, setState, undo, redo, canUndo, canRedo, reset, lastUndoMessage, redoMessage } = useHistoryState(initialMatchData);
 
   // ===================================================================================
   // 3. === CRITICAL CHANGE === "Smart" Setters for the new state structure
   // ===================================================================================
 
-  const createSetter = (key) => (value) => {
+  const createSetter = (key) => (value, undoMessage) => {
     setState(prev => {
       const currentSlice = prev[key];
 
@@ -247,7 +263,7 @@ const ScoutMatch = () => {
         ...prev,
         [key]: newValue
       };
-    });
+    }, undoMessage);
   };
 
   // Create Individual Setters to Preserve Context API
@@ -377,6 +393,8 @@ const ScoutMatch = () => {
     setSubmitting,
     scaleWidthToActual,
     navigate,
+    lastUndoMessage,
+    redoMessage
   };
 
 

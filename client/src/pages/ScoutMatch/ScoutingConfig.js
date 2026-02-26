@@ -23,7 +23,7 @@ const startNewCycle = (match, cycleType) => {
     type: cycleType,
     startTime: match.getCurrentTime(),
     phase: match.phase,
-  });
+  }, `Start ${cycleType} cycle`);
 };
 
 const finishUnfinished = (match) => {
@@ -53,7 +53,7 @@ export const SCOUTING_CONFIG = {
       type: CYCLE_TYPES.AUTO_MOVEMENT,
       phase: PHASES.AUTO,
       startTime: match.getCurrentTime(),
-    }]),
+    }], `Move through ${key}`),
     textFunction: (match, key) => {
       const spot = {
         TRE: "TRENCH",
@@ -88,7 +88,7 @@ export const SCOUTING_CONFIG = {
         startTime: match.getCurrentTime(),
         endTime: null,
         rate: null,
-      });
+      }, `Start Shooting (${key}) Cycle`);
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.SHOOTING && match.activeCycle?.location === key,
@@ -105,7 +105,7 @@ export const SCOUTING_CONFIG = {
         type: CYCLE_TYPES.HANG,
         phase: match.phase,
         startTime: match.getCurrentTime(),
-      })
+      }, `Start Climb Cycle`);
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.HANG,
@@ -130,7 +130,7 @@ export const SCOUTING_CONFIG = {
         phase: match.phase,
         location: match.phase === PHASES.AUTO ? key : "ALLIANCE_ZONE", // Will be "DEPOT"
         startTime: match.getCurrentTime(),
-      });
+      }, `Start Intake (${match.phase === PHASES.AUTO ? key : "ALLIANCE ZONE"}) Cycle`);
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === (match.phase === PHASES.AUTO ? key : "ALLIANCE_ZONE"),
@@ -153,7 +153,7 @@ export const SCOUTING_CONFIG = {
         phase: match.phase,
         location: "NEUTRAL_ZONE", // Will be "DEPOT"
         startTime: match.getCurrentTime(),
-      });
+      }, `Start Intake (NEUTRAL ZONE) Cycle`);
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === "NEUTRAL_ZONE",
@@ -175,7 +175,7 @@ export const SCOUTING_CONFIG = {
         phase: match.phase,
         location: key,
         startTime: match.getCurrentTime(),
-      });
+      }, `Start Snowball (${key}) Cycle`);
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.SNOWBALL && match.activeCycle?.location === key,
@@ -189,7 +189,15 @@ export const SCOUTING_CONFIG = {
       REDO: [1900, 1250],
     },
     dimensions: { width: 450, height: 450 },
-    textFunction: (match, key) => key,
+    textFunction: (match, key) => {
+      if (key === 'UNDO' && match.canUndo()) {
+          return `Undo: ${match.lastUndoMessage}`; // <-- Displays the message
+      }
+      else if (key === 'REDO' && match.canRedo()) {
+        return (`Redo: ${match.redoMessage}`)
+      }
+      return key;
+  },
 
     onClick: (match, key) => {
       if (key === "UNDO") {
@@ -199,8 +207,9 @@ export const SCOUTING_CONFIG = {
       }
     },
     color: COLORS.UNDO,
-    isDisabled: (match, key) => {
-      return key === "UNDO" ? !match.canUndo() : !match.canRedo();
+    showFunction: (match, key) => {
+      return key === "UNDO" ? match.canUndo() : match.canRedo();
+      // return false;
     },
   },
 
@@ -218,7 +227,10 @@ export const SCOUTING_CONFIG = {
 
     // The onClick is now extremely simple.
     onClick: (match) => {
-      match.setPhase(match.phase === PHASES.AUTO ? PHASES.TELE : PHASES.POST_MATCH);
+      match.setPhase(
+        match.phase === PHASES.AUTO ? PHASES.TELE : PHASES.POST_MATCH,
+        match.phase === PHASES.AUTO ? "To TeleOp" : "To Endgame"
+      );
     },
     color: COLORS.SUCCESS,
   },
@@ -228,17 +240,19 @@ export const SCOUTING_CONFIG = {
     // Positioned same as PHASE_CHANGER
     positions: { DEFENSE: [1650, 475] },
     dimensions: { width: 950, height: 250 },
-    textFunction: (match, key) => match.isDefending() ? "End Defend/Steal" : "Start Defense",
+    textFunction: (match, key) => match.isDefending() ? "End Defend/Steal" : "Start Defense/Steal",
     color: COLORS.HANG_DEFENSE,
     onClick: (match, key) => {
       if (match.isDefending()) {
-        match.setDefenseCycle(prev => { return { ...prev.defenseCycle, endTime: match.getCurrentTime() } }); // End defense
+        match.setDefenseCycle(
+          prev => { return { ...prev.defenseCycle, endTime: match.getCurrentTime() } },
+        `End Defense/Steal`); // End defense
       } else {
         match.setDefenseCycle({
           type: CYCLE_TYPES.DEFENSE,
           phase: match.phase,
           startTime: match.getCurrentTime(),
-        });
+        }, `Start Defense/Steal`);
       }
     },
   },
@@ -258,7 +272,7 @@ export const SCOUTING_CONFIG = {
         phase: match.phase,
         location: GAME_LOCATIONS.OPPONENT_ALLIANCE_ZONE,
         startTime: match.getCurrentTime(),
-      });
+      }, `Start Intake (Steal) Cycle`);
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === GAME_LOCATIONS.OPPONENT_ALLIANCE_ZONE,

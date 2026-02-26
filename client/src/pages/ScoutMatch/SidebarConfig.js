@@ -23,13 +23,13 @@ export const SIDEBAR_CONFIG = [
     label: (match) => match.startingPosition < 0 ? "Select Starting Position" : "Start Match",
     onClick: (match) => {
       match.setMatchStartTime(Date.now());
-      match.setPhase(PHASES.AUTO);
+      match.setPhase(PHASES.AUTO, `Start Match`);
       match.setCycles([{
         type: CYCLE_TYPES.AUTO_MOVEMENT,
         startTime: 0,
         location: match.startingPosition,
         phase: PHASES.AUTO,
-      }])
+      }]);
     },
     show: () => true,
     isDisabled: (match) => match.startingPosition < 0,
@@ -41,14 +41,14 @@ export const SIDEBAR_CONFIG = [
     id: "stopCycleIntakeSnowball",
     positions: ["stop"],
     flexWeight: 2,
-    label: (match) => `Stop ${match.activeCycle.type.toLowerCase()}ing`,
+    label: (match) => `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`,
     show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
       ([CYCLE_TYPES.INTAKE, CYCLE_TYPES.SHOOTING, CYCLE_TYPES.SNOWBALL].includes(match.activeCycle.type)),
     onClick: (match, key) => {
       match.setActiveCycle({
         ...match.activeCycle,
         endTime: match.getCurrentTime(),
-      })
+      }, `Stop ${match.activeCycle.type.toLowerCase()}ing`);
     }
   },
 
@@ -65,7 +65,7 @@ export const SIDEBAR_CONFIG = [
       match.setActiveCycle({
         ...match.activeCycle,
         rate: BPS_RANGES[key].value,
-      })
+      }, `Set ${match.activeCycle.type.toLowerCase()} Rate`);
     }
   },
 
@@ -80,7 +80,7 @@ export const SIDEBAR_CONFIG = [
 
     // When a level is clicked, we update the activeCycle with the selected level.
     onClick: (match, key) => {
-      match.setActiveCycle(prev => ({ ...prev, location: key }));
+      match.setActiveCycle(prev => ({ ...prev, location: key }), `Set hang level to ${key}`);
     },
     color: () => COLORS.PRIMARY, // Use a neutral color for a multi-step process
 
@@ -104,7 +104,7 @@ export const SIDEBAR_CONFIG = [
         ...match.activeCycle,
         success: key === "SUCCESS",
         endTime: match.getCurrentTime(),
-      });
+      }, `Set Hang To ${key}`);
     },
 
     // Use green for success and red for failure.
@@ -123,7 +123,10 @@ export const SIDEBAR_CONFIG = [
     flexWeight: 1,
     label: (match, key) => `${key.charAt(0).toUpperCase() + key.slice(1)}s: ${match.activeCycle[`${key}Count`] || 0}`,
     onClick: (match, key) => {
-      match.setActiveCycle(prev => ({ ...prev, [`${key}Count`]: (prev[`${key}Count`] || 0) + 1 }));
+      match.setActiveCycle(
+        prev => ({ ...prev, [`${key}Count`]: (prev[`${key}Count`] || 0) + 1 }),
+        `Increment ${key} Counter`
+      );
     },
     color: (match, key) => key === 'pin' ? COLORS.SUCCESS : COLORS.FAIL,
     show: (match) => match.activeCycle?.type === CYCLE_TYPES.CONTACT && exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
@@ -136,7 +139,10 @@ export const SIDEBAR_CONFIG = [
     flexWeight: 2,
     label: () => "End Contact Cycle",
     onClick: (match) => {
-      match.setActiveCycle(prev => ({ ...prev, endTime: match.getCurrentTime() }));
+      match.setActiveCycle(
+        prev => ({ ...prev, endTime: match.getCurrentTime() }),
+        `End Contact Cycle`
+      );
     },
     color: () => COLORS.ACTIVE,
     show: (match) => match.activeCycle?.type === CYCLE_TYPES.CONTACT && exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
@@ -150,7 +156,7 @@ export const SIDEBAR_CONFIG = [
     flexWeight: 0.5,
     label: () => "Cancel",
     onClick: (match) => {
-      match.setActiveCycle(() => ({}));
+      match.setActiveCycle(() => ({}), `Cancel ${match.activeCycle.type} Cycle`);
     },
     color: () => COLORS.UNDO,
     show: (match) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),

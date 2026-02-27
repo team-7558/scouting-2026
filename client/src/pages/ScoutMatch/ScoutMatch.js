@@ -831,6 +831,7 @@ const ScoutMatch = () => {
             onSubmit={handleMissingParamsSubmit}
             requiredParamKeys={["eventKey", "matchKey", "station"]}
             offlineRequiredParamKeys={["eventKey", "matchKey", "station", "robot"]}
+            offlineOption={true}
           />
           <Box
             ref={scaledBoxRef}

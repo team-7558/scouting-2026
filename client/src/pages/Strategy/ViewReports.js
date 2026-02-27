@@ -365,7 +365,7 @@ const RenderTopBar = ({
                 borderRadius: "0.7vw",
                 border: `2px solid ${accentColor}`,
                 color: "#ddd",
-                "&:hover": { backgroundColor: "#009933" },
+                "&:hover": { backgroundColor: accentColor },
                 height: { xs: "50px", sm: "75px", md: "50px" },
                 margin: { xs: "1vh 5vw", sm: "1vh 1vw" },
                 width: { xs: "30vw", sm: "10vw" },

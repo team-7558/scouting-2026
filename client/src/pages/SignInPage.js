@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { postSignIn } from "../requests/AuthRequests.js";
 import {
   Container,
@@ -9,28 +9,114 @@ import {
   Box,
   Alert,
   Paper,
+  createTheme,
+  ThemeProvider,
+  CssBaseline,
+  Divider,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
 
+// Import your logo
+import altf4Logo from "../assets/scouting-2025/altf4_logo_black.png"; // Adjust path if needed
+
+// --- THEME DEFINITION (Consistent with HomePage) ---
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#d32f2f', // Core Red
+    },
+    background: {
+      default: '#121212', // Deep Black
+      paper: '#1e1e1e',   // Slightly Lighter Surfaces
+    },
+  },
+  typography: {
+    fontFamily: "'Roboto', sans-serif",
+  },
+});
+
+// --- STYLED COMPONENTS ---
+const FullPageContainer = styled(Box)({
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: darkTheme.palette.background.default,
+});
+
+const SignInPaper = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  textAlign: 'center',
+  backgroundColor: theme.palette.background.paper,
+  color: '#fff',
+  border: '1px solid #424242',
+}));
+
+const StyledTextField = styled(TextField)({
+    "& label": {
+        color: "#bdbdbd",
+    },
+    "& label.Mui-focused": {
+        color: "#d32f2f", // Red focus color
+    },
+    "& .MuiOutlinedInput-root": {
+        color: "#fff",
+        "& fieldset": {
+            borderColor: "#757575",
+        },
+        "&:hover fieldset": {
+            borderColor: "#e0e0e0",
+        },
+        "&.Mui-focused fieldset": {
+            borderColor: "#d32f2f", // Red focus color
+        },
+    },
+});
+
+const SubmitButton = styled(Button)(({ theme }) => ({
+    padding: '10px 0',
+    marginTop: theme.spacing(2),
+    transition: 'background-color 0.3s ease',
+    "&:hover": {
+        backgroundColor: theme.palette.primary.dark,
+    }
+}));
+
+const LogoImage = styled('img')({
+    width: '80px',
+    marginBottom: '16px',
+    mixBlendMode: 'multiply',
+});
+
+const StyledDivider = styled(Divider)(({ theme }) => ({
+    color: '#bdbdbd',
+    margin: theme.spacing(3, 0),
+    '&::before, &::after': {
+        borderColor: '#757575',
+    },
+}));
+
+
+// --- SIGN IN PAGE COMPONENT ---
 const SignInPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const params = new URLSearchParams(window.location.search);
-  const redirectUrl = decodeURIComponent(params.get("redirect"));
-  console.log(redirectUrl);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
       const response = await postSignIn(username, password);
-      // JSON.parse(atob(response.data.token.split(".")[1]));
-      console.log(response.data.token);
-      localStorage.setItem("token", "test");
-      console.log(localStorage.getItem("token"));
       localStorage.setItem("token", response.data.token);
-      if (redirectUrl != "null") {
+      
+      const params = new URLSearchParams(window.location.search);
+      const redirectUrl = decodeURIComponent(params.get("redirect"));
+      
+      if (redirectUrl && redirectUrl !== "null") {
         navigate(redirectUrl);
       } else {
         navigate("/");
@@ -45,55 +131,64 @@ const SignInPage = () => {
   };
 
   return (
-    <Container maxWidth="xs">
-      <Paper
-        elevation={3}
-        sx={{ padding: 3, marginTop: 8, textAlign: "center" }}
-      >
-        <Typography variant="h4" gutterBottom>
-          Sign In
-        </Typography>
-        <form onSubmit={handleSubmit}>
-          <Box mb={2}>
-            <TextField
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <FullPageContainer>
+        <Container maxWidth="xs">
+          <SignInPaper elevation={10}>
+            <LogoImage src={altf4Logo} alt="Team Logo" />
+            <Typography variant="h4" component="h1" gutterBottom>
+              Sign In
+            </Typography>
+            <form onSubmit={handleSubmit}>
+              <Box mb={2}>
+                <StyledTextField
+                  fullWidth
+                  label="Username"
+                  variant="outlined"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </Box>
+              <Box mb={2}>
+                <StyledTextField
+                  fullWidth
+                  type="password"
+                  label="Password"
+                  variant="outlined"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Box>
+              {error && (
+                <Box mb={2}>
+                  <Alert severity="error">{error}</Alert>
+                </Box>
+              )}
+              <SubmitButton type="submit" variant="contained" color="primary" fullWidth>
+                Sign In
+              </SubmitButton>
+            </form>
+
+            <StyledDivider>OR</StyledDivider>
+
+            <Button 
+              variant="outlined" 
+              color="primary" 
+              onClick={() => navigate("/scoutMatch")}
               fullWidth
-              label="Username"
-              variant="outlined"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-          </Box>
-          <Box mb={2}>
-            <TextField
-              fullWidth
-              type="password"
-              label="Password"
-              variant="outlined"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Box>
-          {error && (
-            <Box mb={2}>
-              <Alert severity="error">{error}</Alert>
-            </Box>
-          )}
-          <Button type="submit" variant="contained" color="primary" fullWidth>
-            Sign In
-          </Button>
-        </form>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={() => navigate("/scoutMatch")}
-          sx={{
-            mt: 1,
-          }}
-        >SCOUT MATCH</Button>
-      </Paper>
-    </Container>
+              sx={{
+                border: `0.2vw solid ${darkTheme.palette.primary.main}`
+              }}
+            >
+              Scout Match (Offline)
+            </Button>
+          </SignInPaper>
+        </Container>
+      </FullPageContainer>
+    </ThemeProvider>
   );
 };
 

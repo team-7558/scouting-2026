@@ -35,7 +35,7 @@ export const SUPPORTED_PARAMS = {
     label: "Robot",
     type: "text",
     helperText:
-      "Please confirm the robot numberis exactly right"
+      "Please confirm the robot number is exactly right"
   },
   station: {
     label: "Station",
@@ -52,6 +52,7 @@ const RequiredParamsDialog = ({
   searchParamsError,
   // Array of parameter keys that are required in this dialog.
   // e.g. ["eventKey", "matchKey", "robot"]
+  offlineOption = false,
   offlineRequiredParamKeys = [],
   requiredParamKeys = ["eventKey"],
 }) => {
@@ -102,7 +103,7 @@ const RequiredParamsDialog = ({
     <Dialog open={open}>
       <DialogTitle>Enter Required Information</DialogTitle>
       <Box sx={{width: "90%", justifyContent: "center", display: "flex", alignSelf: "center"}}>
-        <ButtonGroup variant="contained" sx={{width: "100%", display: "flex"}}>
+        {offlineOption && <ButtonGroup variant="contained" sx={{width: "100%", display: "flex"}}>
           <Button 
             sx={{color: "#222", bgcolor: networkMode ? "#999" : "#777", width: "100%"}}
             onClick={() => setNetworkMode(true)}
@@ -111,7 +112,7 @@ const RequiredParamsDialog = ({
             sx={{color: "#222", bgcolor: !networkMode ? "#999" : "#777", width: "100%"}}
             onClick={() => setNetworkMode(false)}
           >OFFLINE</Button>
-        </ButtonGroup>
+        </ButtonGroup>}
       </Box>
       <DialogContent>
         {searchParamsError && (

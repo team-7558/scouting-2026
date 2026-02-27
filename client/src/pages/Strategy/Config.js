@@ -1,4 +1,4 @@
-export const accentColor = "#1fdb25";
+export const accentColor = "#ff0000";
 
 export const blueTeamColor = "#3ad5fc";
 export const redTeamColor = "#fa1919";

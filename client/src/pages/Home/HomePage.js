@@ -1,96 +1,201 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import Button from "@mui/material/Button";
-import UpdatePassword from "./UpdatePassword";
-import { styled } from "@mui/material/styles";
+// src/components/HomePage.js
 
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  AppBar, Toolbar, Typography, Container, Box, Button, Grid, Card,
+  CardActionArea, CardContent, IconButton, Menu, MenuItem, Accordion,
+  AccordionSummary, AccordionDetails, createTheme, ThemeProvider, CssBaseline
+} from "@mui/material";
+import { styled } from "@mui/material/styles";
+import AccountCircle from "@mui/icons-material/AccountCircle";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import EventIcon from "@mui/icons-material/Event";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import LeaderboardIcon from '@mui/icons-material/Leaderboard';
+
+// Import your components and assets
+import UpdatePassword from "./UpdatePassword"; // Adjust path if needed
+import altf4Logo from "../../assets/scouting-2025/altf4_logo_white.png"; // Adjust path if needed
+
+// --- THEME DEFINITION ---
+const darkTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#d32f2f', // Core Red
+    },
+    background: {
+      default: '#121212', // Deep Black
+      paper: '#1e1e1e',   // Slightly Lighter Surfaces
+    },
+  },
+  typography: {
+    fontFamily: "'Roboto', sans-serif",
+    h2: {
+      fontWeight: 700,
+    },
+    h5: {
+      fontWeight: 600,
+    },
+  },
+});
+
+// --- STYLED COMPONENTS ---
 const HomeContainer = styled("div")({
-  // backgroundColor: "#121212", // dark background
-  minHeight: "80vh",
+  minHeight: "100vh",
+  paddingTop: "80px", // Increased padding for AppBar
+  paddingBottom: "40px",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
+  backgroundColor: darkTheme.palette.background.default,
+});
+
+const ScoutMatchButton = styled(Button)(({ theme }) => ({
+  padding: "20px 60px",
+  fontSize: "1.8rem",
+  fontWeight: "bold",
+  backgroundColor: theme.palette.primary.main,
   color: "#fff",
-  fontFamily: "'Roboto', sans-serif",
-});
-
-const Title = styled("h1")({
-  fontSize: "3rem",
-  marginBottom: "40px",
-  color: "#00bcd4", // bright accent for header
-  textShadow: "2px 2px 5px rgba(0,0,0,0.5)",
-});
-
-const ButtonGrid = styled("div")({
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "center",
-  gap: "20px",
-});
-
-const MainButton = styled(Button)({
-  padding: "20px 40px",
-  fontSize: "1.5rem",
-  backgroundColor: "#ff5722",
-  color: "#fff",
-  transition: "all 0.3s ease",
+  margin: "30px 0 50px 0",
+  transition: "transform 0.2s, box-shadow 0.3s",
   "&:hover": {
-    backgroundColor: "#ff784e",
+    backgroundColor: theme.palette.primary.dark,
     transform: "scale(1.05)",
-    boxShadow: "0 8px 20px rgba(255,87,34,0.6)",
+    boxShadow: `0 8px 25px ${theme.palette.primary.dark}`,
   },
-});
+}));
 
-const SecondaryButton = styled(Button)({
-  padding: "15px 30px",
-  fontSize: "1.2rem",
-  backgroundColor: "#03a9f4",
+const NavCard = styled(Card)(({ theme }) => ({
+  textAlign: "center",
+  backgroundColor: theme.palette.background.paper,
   color: "#fff",
-  transition: "all 0.3s ease",
+  transition: "transform 0.2s",
   "&:hover": {
-    backgroundColor: "#29b6f6",
-    transform: "scale(1.05)",
-    boxShadow: "0 6px 15px rgba(3,169,244,0.5)",
+    backgroundColor: '#333333',
+    transform: "translateY(-5px)",
   },
-});
+}));
 
-const TertiaryButton = styled(Button)({
-  padding: "10px 20px",
-  fontSize: "1rem",
-  backgroundColor: "#757575",
+const AdminAccordion = styled(Accordion)(({ theme }) => ({
+  backgroundColor: '#424242', // Lighter grey for admin dashboard
   color: "#fff",
-  transition: "all 0.3s ease",
-  "&:hover": {
-    backgroundColor: "#9e9e9e",
-    transform: "scale(1.05)",
-    boxShadow: "0 4px 10px rgba(117,117,117,0.5)",
-  },
+  width: '100%',
+  marginTop: '40px'
+}));
+
+const LogoImage = styled('img')({
+    height: '45px',
+    marginRight: '16px',
+    // mixBlendMode: 'multiply', // This CSS property helps "chroma key" the white background
+    // filter: "saturate(20)"
 });
 
+
+// --- HOME PAGE COMPONENT ---
 const HomePage = () => {
   const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [updatePasswordOpen, setUpdatePasswordOpen] = useState(false);
+
+  const handleMenu = (event) => setAnchorEl(event.currentTarget);
+  const handleCloseMenu = () => setAnchorEl(null);
+
+  const handleOpenUpdatePassword = () => {
+    setUpdatePasswordOpen(true);
+    handleCloseMenu();
+  };
+  const handleCloseUpdatePassword = () => setUpdatePasswordOpen(false);
 
   return (
-    <HomeContainer>
-      <Title>Home Page</Title>
-      <ButtonGrid>
-        {/* Strategy Actions */}
-        <SecondaryButton onClick={() => navigate("/categorysort")}>Overview</SecondaryButton>
-        <SecondaryButton onClick={() => navigate("/matches")}>Matches</SecondaryButton>
-        <SecondaryButton onClick={() => navigate("/robots")}>Robots</SecondaryButton>
+    <ThemeProvider theme={darkTheme}>
+      <CssBaseline />
+      <AppBar position="fixed">
+        <Toolbar>
+          <LogoImage src={altf4Logo} alt="Team Logo" />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            ALT-F4 Scouting
+          </Typography>
+          <div>
+            <IconButton size="large" onClick={handleMenu} color="inherit">
+              <AccountCircle />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleCloseMenu}
+            >
+              <MenuItem onClick={handleOpenUpdatePassword}>Update Password</MenuItem>
+              <MenuItem onClick={() => {
+                localStorage.setItem("token", "");
+                navigate("/signIn");
+                }}>Log Out</MenuItem>
+            </Menu>
+          </div>
+        </Toolbar>
+      </AppBar>
 
-        {/* Main Action */}
-        <MainButton onClick={() => navigate("/scoutMatch")}>Scout Match</MainButton>
+      <HomeContainer>
+        <Container maxWidth="md">
+          <Box sx={{ textAlign: "center", my: 4 }}>
+            <Typography variant="h2" component="h1" gutterBottom color="white">
+              Scouting App
+            </Typography>
+            <ScoutMatchButton onClick={() => navigate("/scoutMatch")}>
+              Scout Match
+            </ScoutMatchButton>
+          </Box>
 
-        {/* Less Important Actions */}
-        <TertiaryButton onClick={() => navigate("/signIn")}>Log Out</TertiaryButton>
-        <TertiaryButton onClick={() => navigate("/admin")}>Admin</TertiaryButton>
-        <TertiaryButton onClick={() => navigate("/scan")}>Scan QR</TertiaryButton>
+          <Grid container spacing={4}>
+            {/* Navigation Cards */}
+            {[
+              { label: 'Overview', icon: <AssessmentIcon sx={{ fontSize: 60 }} />, path: '/categorysort' },
+              { label: 'Matches', icon: <EventIcon sx={{ fontSize: 60 }} />, path: '/matches' },
+              { label: 'Robots', icon: <SmartToyIcon sx={{ fontSize: 60 }} />, path: '/robots' },
+            ].map((item) => (
+              <Grid item xs={12} sm={4} key={item.label}>
+                <NavCard onClick={() => navigate(item.path)}>
+                  <CardActionArea sx={{ p: 3 }}>
+                    {item.icon}
+                    <CardContent>
+                      <Typography gutterBottom variant="h5" component="div">
+                        {item.label}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </NavCard>
+              </Grid>
+            ))}
+          </Grid>
 
-        <UpdatePassword />
-      </ButtonGrid>
-    </HomeContainer>
+          <AdminAccordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon sx={{color: "#fff"}}/>}>
+              <Typography sx={{fontWeight: 'bold'}}>Admin Dashboard</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4}>
+                  <Button variant="contained" fullWidth startIcon={<AdminPanelSettingsIcon />} onClick={() => navigate("/admin")}>Admin</Button>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Button variant="contained" fullWidth startIcon={<QrCodeScannerIcon />} onClick={() => navigate("/scan")}>Scan QR</Button>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Button variant="contained" fullWidth startIcon={<LeaderboardIcon />} onClick={() => navigate("/scoutAdmin")}>Scout Rankings</Button>
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </AdminAccordion>
+        </Container>
+      </HomeContainer>
+
+      {/* Render the UpdatePassword Modal */}
+      <UpdatePassword open={updatePasswordOpen} onClose={handleCloseUpdatePassword} />
+    </ThemeProvider>
   );
 };
 

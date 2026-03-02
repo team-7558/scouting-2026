@@ -21,10 +21,10 @@ export const CYCLE_TYPES = {
 
 // New: Rate ranges for scoring and shuttling
 export const BPS_RANGES = {
-  SLOW: { label: "Slow (1-3/s)", value: 2 },
-  STEADY: { label: "Steady (3-5/s)", value: 4 },
-  FAST: { label: "Fast (5-7/s)", value: 6 },
-  MAX: { label: "Max (7+/s)", value: 8 },
+  SLOW: { label: "Slow (0-2/s)", value: 1 },
+  STEADY: { label: "Steady (2-4/s)", value: 3 },
+  FAST: { label: "Fast (4-8/s)", value: 6 },
+  MAX: { label: "Max (8+/s)", value: 9 },
 };
 
 

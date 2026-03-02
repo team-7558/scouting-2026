@@ -35,20 +35,37 @@ export const SIDEBAR_CONFIG = [
     isDisabled: (match) => match.startingPosition < 0,
   },
 
-  // ------------ CYCLE/INTAKE/SNOWBALLING Stop --------------
+  // ------------ CYCLE/SNOWBALLING Stop --------------
   {
     phases: [PHASES.AUTO, PHASES.TELE],
-    id: "stopCycleIntakeSnowball",
+    id: "stopCycleSnowball",
     positions: ["stop"],
     flexWeight: 2,
     label: (match) => `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`,
     show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
-      ([CYCLE_TYPES.INTAKE, CYCLE_TYPES.SHOOTING, CYCLE_TYPES.SNOWBALL].includes(match.activeCycle.type)),
+      ([CYCLE_TYPES.SHOOTING, CYCLE_TYPES.SNOWBALL].includes(match.activeCycle.type)),
     onClick: (match, key) => {
       match.setActiveCycle({
         ...match.activeCycle,
         endTime: match.getCurrentTime(),
       }, `Stop ${match.activeCycle.type.toLowerCase()}ing`);
+    }
+  },
+
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    id: "stopIntake",
+    positions: ["stop"],
+    flexWeight: 2,
+    label: (match) => `Stop Intaking`,
+    show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
+      ([CYCLE_TYPES.INTAKE].includes(match.activeCycle.type)),
+    onClick: (match, key) => {
+      match.setActiveCycle({
+        ...match.activeCycle,
+        endTime: match.getCurrentTime(),
+        rate: 1
+      }, `Stop Intaking`);
     }
   },
 

@@ -29,9 +29,8 @@ export const SUPPORTED_PARAMS = {
   },
   matchKey: {
     label: "Match Key",
-    type: "text",
-    helperText:
-      "Format: [COMP_LEVEL]m[MATCH_NUMBER]. COMP_LEVEL is one of (qm, ef, qf, sf, f).",
+    type: "select-text",
+    options: ["qm"]
   },
   robot: {
     label: "Robot",
@@ -118,7 +117,7 @@ const RequiredParamsDialog = ({
           >OFFLINE</Button>
         </ButtonGroup>}
       </Box>
-      <DialogContent>
+      <DialogContent sx={{width: "90%", justifyContent: "center", alignSelf: "center"}}>
         {searchParamsError && (
           <Typography variant="body2" color="error">
             {searchParamsError}
@@ -144,6 +143,63 @@ const RequiredParamsDialog = ({
                       </MenuItem>
                     ))}
                 </Select>
+              </FormControl>
+            );
+          }
+          if (param.type === "select-text") {
+            // 1. Parse the combined value (e.g., "qm8") into its parts.
+            // We use useMemo to avoid recalculating on every render.
+            const { prefix, number } = (() => {
+              const value = values[key] || "";
+              const match = value.match(/^([a-zA-Z]*)(\d*)$/);
+              if (match) {
+                // match[1] is the letters part, match[2] is the number part
+                return { prefix: match[1] || param.options[0], number: match[2] || "" };
+              }
+              return { prefix: param.options[0], number: "" };
+            })()
+
+            // 2. Create a handler for when the dropdown (prefix) changes.
+            const handlePrefixChange = (e) => {
+              const newPrefix = e.target.value;
+              // Combine the new prefix with the existing number.
+              handleChange(key, `${newPrefix}${number}`);
+            };
+
+            // 3. Create a handler for when the text field (number) changes.
+            const handleNumberChange = (e) => {
+              const newNumber = e.target.value;
+              handleChange(key, `${prefix}${newNumber}`);
+            };
+            
+            return (
+              <FormControl fullWidth margin="normal" key={key}>
+                <InputLabel shrink id={`${key}-label`}>{param.label}</InputLabel>
+                <Box sx={{display: "flex", gap: 1, alignItems: "center", pt: 3}}>
+                  <Select
+                    labelId={`${key}-label`}
+                    // The Select's value is now just the prefix part.
+                    value={prefix}
+                    // Use the custom handler.
+                    onChange={handlePrefixChange}
+                    sx={{width: "40%"}}
+                  >
+                    {param.options &&
+                      param.options.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                  <TextField
+                    // The TextField's value is now just the number part.
+                    value={number}
+                    // Use the custom handler.
+                    onChange={handleNumberChange}
+                    helperText={param.helperText || ""}
+                    sx={{width: "60%"}}
+                  />
+                </Box>
               </FormControl>
             );
           }

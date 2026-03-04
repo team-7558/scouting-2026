@@ -74,15 +74,19 @@ const ScoutMatch = () => {
     ) {
       setSearchParamsError("Missing search params");
     } else if (
-      !scoutData ||
+      !scoutData || !scoutData.scout || !scoutData.teamNumber ||
       scoutData.matchKey !== searchParams.get("matchKey") ||
       scoutData.station !== searchParams.get("station")
     ) {
-      fetchScoutMatchData();
+      if (navigator.onLine)
+        fetchScoutMatchData();
+      else {
+        setSearchParamsError("Missing search params");
+      }
     }
   }, [searchParams]);
 
-  const handleMissingParamsSubmit = ({ eventKey, matchKey, station, robot }, usedNetwork) => {
+  const handleMissingParamsSubmit = ({ eventKey, matchKey, station, robot, scout }, usedNetwork) => {
     setSearchParams({
       eventKey: eventKey.toLowerCase(),
       matchKey: matchKey.toLowerCase(),
@@ -90,12 +94,13 @@ const ScoutMatch = () => {
       perspective: PERSPECTIVE.SCORING_TABLE_NEAR
     });
     if (!usedNetwork){
-      console.log("here", eventKey, matchKey, station);
       setScoutData({
         matchKey,
         station,
-        teamNumber: robot,
+        teamNumber: robot
       });
+
+      localStorage.setItem("username", scout);
     }
     setSearchParamsError(null);
   };
@@ -415,7 +420,9 @@ const ScoutMatch = () => {
     navigate,
     lastUndoMessage,
     redoMessage,
-    showAlert
+    showAlert,
+
+    reset
   };
 
 
@@ -763,7 +770,7 @@ const ScoutMatch = () => {
   const renderScoutDataLabel = () => {
     return (
       <Box sx={{ backgroundColor: getTheme().palette.primary.main, color: getTheme().palette.primary.contrastText, fontSize: scaleWidthToActual(50) + "px", display: "flex", justifyContent: "center" }}>
-        {scoutData ? (<div>Scout: {userToken?.username} Team: {scoutData.teamNumber} Match: {getmatchKey()}</div>) : (<div>No scout data</div>)}
+        {scoutData ? (<div>Scout: {userToken?.username || "Not Found"} Team: {scoutData.teamNumber} Match: {getmatchKey()}</div>) : (<div>No scout data</div>)}
       </Box>
     );
   };
@@ -852,8 +859,9 @@ const ScoutMatch = () => {
             searchParams={searchParams}
             searchParamsError={searchParamsError}
             onSubmit={handleMissingParamsSubmit}
+            scoutData={scoutData}
             requiredParamKeys={["eventKey", "matchKey", "station"]}
-            offlineRequiredParamKeys={["eventKey", "matchKey", "station", "robot"]}
+            offlineRequiredParamKeys={["eventKey", "matchKey", "station", "robot", "scout"]}
             offlineOption={true}
           />
           <Box

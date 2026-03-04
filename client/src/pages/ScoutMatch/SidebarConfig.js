@@ -245,5 +245,34 @@ export const SIDEBAR_CONFIG = [
 
     color: () => COLORS.INFO,
     show: () => true
+  },
+  {
+    phases: [PHASES.POST_MATCH],
+    id: "nextMatch",
+    positions: ["nextMatch"],
+    flexWeight: 1.5,
+
+    label: () => "Next Match",
+
+    onClick: (match) => {
+      const currentMatch = match.searchParams.get("matchKey") || "qm1";
+      const pattern = /\d+|\D+/g
+      const matches = currentMatch.match(pattern);
+      const nextMatch = matches[0] + ((Number(matches[1]) || 0) + 1);
+      console.log(currentMatch, matches, nextMatch);
+      match.setSearchParams(prev => {
+        prev.set("matchKey", nextMatch);
+        return prev;
+      });
+
+      match.reset();
+      match.setScoutData({
+        ...match.scoutData,
+        teamNumber: null,
+      })
+    },
+
+    color: () => COLORS.INFO,
+    show: () => true
   }
 ];

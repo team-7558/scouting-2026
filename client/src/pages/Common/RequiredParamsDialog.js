@@ -43,6 +43,10 @@ export const SUPPORTED_PARAMS = {
     type: "select",
     options: ["r1", "r2", "r3", "b1", "b2", "b3"],
   },
+  scout: {
+    label: "Scout Name",
+    type: "text"
+  }
   // You can add more fixed parameters here in the future.
 };
 
@@ -51,6 +55,7 @@ const RequiredParamsDialog = ({
   onSubmit,
   searchParams, // e.g. a URLSearchParams instance
   searchParamsError,
+  scoutData,
   // Array of parameter keys that are required in this dialog.
   // e.g. ["eventKey", "matchKey", "robot"]
   offlineOption = false,
@@ -69,7 +74,7 @@ const RequiredParamsDialog = ({
       initial[key] = "";
     })
     requiredParamKeys.forEach((key) => {
-      initial[key] = searchParams.get(key) || "";
+      initial[key] = searchParams.get(key) || scoutData?.[key] || "";
     });
     return initial;
   };

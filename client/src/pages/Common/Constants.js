@@ -1,5 +1,6 @@
 export const COMPRESS_DATA_MAP = {
     AUTO_MOVEMENT: "am",
+    reportId: "rid",
 }
 
 export let DECOMPRESS_DATA_MAP = {}

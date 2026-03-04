@@ -8,6 +8,8 @@ Daisy
 Athrun
 
 TODO:
+ - add "next match" button
+ - Fix start pos slider being out of place for blue
  - Compress QR codes
  - Fix defense offset
  - Darken field image

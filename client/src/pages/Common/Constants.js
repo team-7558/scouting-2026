@@ -27,7 +27,7 @@ export const COMPRESS_DATA_MAP = {
     OPPONENT_ALLIANCE_ZONE: "oaz",
     CONTACT: "con",
     AUTO_MOVEMENT: "am",
-
+    reportId: "rid",
 
     //one-time
     eventKey: "ek",

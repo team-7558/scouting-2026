@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import { Box, Button, Paper, Typography } from "@mui/material";
 import { Html5Qrcode } from "html5-qrcode";
-import { Box, Typography, Button, Paper } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { submitMatch } from "../requests/ApiRequests";
 import AppAlert from "./Common/AppAlert.js";
@@ -65,27 +65,27 @@ const ScanQR = () => {
         return () => stopScanner();
     }, []);
 
-const tryUnpack = (str) => {
-    try {
-        // 1. Try Binary Unpacking first
-        const packer = new BinaryDTO(MATCH_SCHEMA);
-        const data = packer.unpack(str);
-        console.log("Successfully Unpacked Binary:", data);
-        setParsedData(data);
-        showAlert(`Match ${data.reportId} for Team ${data.robot} loaded!`);
-    } catch (e) {
-        // 2. Fallback: Check if it's a regular JSON string
+    const tryUnpack = (str) => {
         try {
-            const data = JSON.parse(str);
-            console.log("Successfully Parsed JSON Fallback:", data);
+            // 1. Try Binary Unpacking first
+            const packer = new BinaryDTO(MATCH_SCHEMA);
+            const data = packer.unpack(str);
+            console.log("Successfully Unpacked Binary:", data);
             setParsedData(data);
-            showAlert("Loaded via JSON Fallback.");
-        } catch (jsonErr) {
-            console.error("Unpack Error:", e);
-            showAlert("Format Error: This QR code is not recognized.");
+            showAlert(`Match ${data.matchKey} for Team ${data.robot} loaded!`);
+        } catch (e) {
+            // 2. Fallback: Check if it's a regular JSON string
+            try {
+                const data = JSON.parse(str);
+                console.log("Successfully Parsed JSON Fallback:", data);
+                setParsedData(data);
+                showAlert("Loaded via JSON Fallback.");
+            } catch (jsonErr) {
+                console.error("Unpack Error:", e);
+                showAlert("Format Error: This QR code is not recognized.");
+            }
         }
-    }
-};
+    };
 
     const handleSubmit = async () => {
         if (!parsedData) return;

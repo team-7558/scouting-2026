@@ -1,23 +1,23 @@
-import * as React from "react";
-import { lightTheme, darkTheme } from "./AppTheme.js";
 import { ThemeProvider } from "@mui/material/styles";
+import * as React from "react";
 import "./App.css";
+import { lightTheme } from "./components/shared/AppTheme.js";
 
-import { Routes, Route } from "react-router-dom";
 import CssBaseline from "@mui/material/CssBaseline";
+import { Route, Routes } from "react-router-dom";
 
-import HomePage from "./pages/Home/HomePage.js";
-import SignInPage from "./pages/SignInPage.js";
-import ScoutMatch from "./pages/ScoutMatch/ScoutMatch.js";
-import AdminPage from "./pages/Admin/Admin.js";
-import { ProtectedRoute } from "./TokenUtils.js";
-import MatchStrategy from "./pages/Strategy/MatchStrategy.js";
-import ViewReports from "./pages/Strategy/ViewReports.js";
-import Overview from "./pages/Strategy/Overview.js";
-import ScoutRankings from "./pages/Admin/ScoutRankings.js";
-import CategorySort from "./pages/Strategy/CategorySort.js";
-import AutoPathVisualizer from "./pages/Strategy/AutoPaths.js";
-import ScanQR from "./pages/ScanQR.js";
+import AdminPage from "./components/Admin/Admin.js";
+import ScoutRankings from "./components/Admin/ScoutRankings.js";
+import HomePage from "./components/Home/HomePage.js";
+import SignInPage from "./components/Home/SignInPage.js";
+import ScanQR from "./components/ScoutMatch/ScanQR.js";
+import ScoutMatch from "./components/ScoutMatch/ScoutMatch.js";
+import AutoPathVisualizer from "./components/Strategy/AutoPaths.js";
+import CategorySort from "./components/Strategy/CategorySort.js";
+import MatchStrategy from "./components/Strategy/MatchStrategy.js";
+import Overview from "./components/Strategy/Overview.js";
+import ViewReports from "./components/Strategy/ViewReports.js";
+import { ProtectedRoute } from "./services/auth/tokenService.js";
 
 function App() {
   return (

@@ -19,5 +19,8 @@
       "typescript": "4.9.5",
       "postcss": "8.4.38"
     }
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
   }
 }

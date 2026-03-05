@@ -1,6 +1,9 @@
-import { default as CheckIcon, default as CoralIcon } from "../../assets/field/2026/checkIcon.png"; // Placeholder fix
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import CheckIcon from "../../assets/field/2026/checkIcon.png";
 import CrossIcon from "../../assets/field/2026/crossIcon.webp";
-import AlgaeIcon from "../../assets/field/2026/logo_white.png"; // Placeholder fix
+import AlgaeIcon from "../../assets/field/2026/logo_white.png";
+const CoralIcon = CheckIcon; // Placeholder fix
+
 import {
   FIELD_ASPECT_RATIO,
   FIELD_VIRTUAL_HEIGHT,

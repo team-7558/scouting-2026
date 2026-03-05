@@ -6,7 +6,9 @@ import { createContext } from "react";
 // Components
 import AppAlert from "../shared/AppAlert";
 import { FieldCanvas, FieldLocalComponent } from "../shared/FieldCanvas";
+import FullScreenDialog from "../shared/FullScreenDialog";
 import RequiredParamsDialog from "../shared/RequiredParamsDialog";
+import Sidebar from "../shared/Sidebar";
 
 // Logic & Service
 import { COLORS, PHASES } from "../../logic/config/gameConstants";
@@ -35,7 +37,6 @@ const ScoutMatch = () => {
     isDefending,
     scoutPerspective,
     isScoutingRed,
-    getTheme
   } = match;
 
   const renderFieldCanvas = () => {
@@ -135,7 +136,13 @@ const ScoutMatch = () => {
     <MatchContext.Provider value={match}>
       <ThemeProvider theme={isScoutingRed ? RedTheme : BlueTheme}>
         <Box sx={{ position: "relative", width: "100vw", height: "100vh", bgcolor: "black" }}>
-          <FullscreenDialog />
+          <FullScreenDialog />
+          <Sidebar
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            scaleWidthToActual={scaleWidthToActual}
+            scaleHeightToActual={scaleHeightToActual}
+          />
           <RequiredParamsDialog
             open={searchParamsError != null}
             searchParams={match.searchParams}

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CYCLE_TYPES, FIELD_VIRTUAL_HEIGHT, FIELD_VIRTUAL_WIDTH, PERSPECTIVE, PHASES } from "../../logic/config/gameConstants";
 import { calculateScaledDimensions, scaleValue, SIDEBAR_VIRTUAL_WIDTH } from "../../logic/utils/coordinateUtils";
+import { calculateTimeLeft, formatMatchTime } from "../../logic/utils/timeUtils";
 import { getScoutMatch } from "../../services/api/matchService";
 import { getSignedInUser } from "../../services/auth/tokenService";
 import { useMatchHistory } from "../hooks/useMatchHistory";
@@ -18,6 +19,9 @@ export const useScoutMatch = () => {
     const [submitting, setSubmitting] = useState(false);
     const [alertOpen, setAlertOpen] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [displayTime, setDisplayTime] = useState("2:30");
+    const fieldCanvasRef = useRef(null);
 
     const initialMatchData = {
         phase: PHASES.PRE_MATCH,
@@ -42,7 +46,11 @@ export const useScoutMatch = () => {
 
     // Derived State
     const { phase, cycles, startingPosition, activeCycle, defenseCycle, endgame } = state;
-    const isDefending = state.defenseCycle && state.defenseCycle.startTime && !state.defenseCycle.endTime;
+    const isDefending = () => state.defenseCycle && state.defenseCycle.startTime && !state.defenseCycle.endTime;
+
+    const scoutPerspective = searchParams.get("perspective") || PERSPECTIVE.SCORING_TABLE_NEAR;
+    const isScoutingRed = searchParams.get("station")?.startsWith("r");
+    const isScoringTableFar = scoutPerspective === PERSPECTIVE.SCORING_TABLE_FAR;
 
     // Scaling Logic
     const [scaledBoxRect, setScaledBoxRect] = useState(calculateScaledDimensions(window.innerWidth, window.innerHeight, ASPECT_RATIO));
@@ -59,6 +67,35 @@ export const useScoutMatch = () => {
     const scaleHeightToActual = useCallback((virtualValue) => {
         return scaleValue(virtualValue, FIELD_VIRTUAL_HEIGHT, scaledBoxRect.height);
     }, [scaledBoxRect]);
+
+    // Helpers
+    const setPhase = (newPhase, message) => setState(prev => ({ ...prev, phase: newPhase }), message);
+    const setCycles = (newCycles, message) => setState(prev => ({ ...prev, cycles: newCycles }), message);
+    const setActiveCycle = (newActiveCycle, message) => setState(prev => {
+        const currentActive = prev.activeCycle || {};
+        const update = typeof newActiveCycle === 'function' ? newActiveCycle(currentActive) : newActiveCycle;
+        return { ...prev, activeCycle: update };
+    }, message);
+    const setDefenseCycle = (newDefenseCycle, message) => setState(prev => {
+        const currentDefense = prev.defenseCycle || {};
+        const update = typeof newDefenseCycle === 'function' ? newDefenseCycle(currentDefense) : newDefenseCycle;
+        return { ...prev, defenseCycle: update };
+    }, message);
+    const setStartingPosition = (newPos) => setState(prev => ({ ...prev, startingPosition: newPos }), `Set starting position to ${newPos}`);
+    const getCurrentTime = () => matchStartTime ? Date.now() - matchStartTime : 0;
+
+    // Timer Logic
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const timeRemaining = calculateTimeLeft(phase, matchStartTime, { AUTO_MAX_TIME, TELE_MAX_TIME });
+            if (timeRemaining !== null) {
+                setDisplayTime(formatMatchTime(timeRemaining));
+            } else {
+                setDisplayTime(phase === PHASES.PRE_MATCH ? "0:15" : "2:15");
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [matchStartTime, phase]);
 
     // Handlers
     const showAlert = (message) => {
@@ -160,6 +197,18 @@ export const useScoutMatch = () => {
         userToken,
         searchParams,
         setSearchParams,
-        navigate
+        navigate,
+        sidebarOpen, setSidebarOpen,
+        displayTime,
+        fieldCanvasRef,
+        scoutPerspective,
+        isScoutingRed,
+        isScoringTableFar,
+        setPhase,
+        setCycles,
+        setActiveCycle,
+        setDefenseCycle,
+        setStartingPosition,
+        getCurrentTime,
     };
 };

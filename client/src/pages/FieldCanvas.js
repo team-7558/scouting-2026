@@ -26,6 +26,11 @@ const getDefenseOffset = (isBlue, isDefending) => {
   return isBlue ? 0.38 : -0.38;
 }
 
+const getDefenseButtonOffset = (isBlue, isDefending) => {
+  if (!isDefending) return 0;
+  return isBlue ? -0.14 : 0.14;
+}
+
 // ===================================================================================
 // HOW IT WORKS, PART 1: The Coordinate Scaling Functions
 // These two functions are the "single source of truth" for all coordinate math.
@@ -162,10 +167,12 @@ const FieldLocalComponent = ({
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  const { scaledX, scaledY, scaledWidth, scaledHeight } = scaleCoordinates(
+  let { scaledX, scaledY, scaledWidth, scaledHeight } = scaleCoordinates(
     fieldX, fieldY, fieldWidth, fieldHeight,
     parentSize.width, parentSize.height, perspective, isBlue, isDefending, flip
   );
+
+  scaledX += getDefenseButtonOffset(isBlue, isDefending) * fieldWidth;
 
   return (
     <Box ref={localRef} sx={{ position: "absolute", left: scaledX, top: scaledY, width: scaledWidth, height: scaledHeight, ...sx }}>
@@ -222,6 +229,9 @@ const FieldCanvas = forwardRef(
           canvas.width * imageScaleGlobal,
           canvas.height
         );
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(canvas.width * totalImageOffsetX, 0, canvas.width * imageScaleGlobal, canvas.height);
 
         ctx.restore();
 

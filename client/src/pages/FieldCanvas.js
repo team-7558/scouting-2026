@@ -230,6 +230,9 @@ const FieldCanvas = forwardRef(
           canvas.height
         );
 
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(canvas.width * totalImageOffsetX, 0, canvas.width * imageScaleGlobal, canvas.height);
+
         ctx.restore();
 
         if (strokes && strokes.length > 0) {

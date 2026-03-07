@@ -169,7 +169,6 @@ export const SCOUTING_CONFIG = {
     textFunction: (match, key) => "FEED/BYPASS",
     color: COLORS.SHOOT, // Using a primary/active color
     showFunction: (match, key) => 
-      match.cycles.filter(c => c.type===CYCLE_TYPES.AUTO_MOVEMENT).length % 2 === (key==="ALLIANCE_ZONE" ? 1 : 0) && 
       key === "ALLIANCE_ZONE" ? !match.isDefending() : match.isDefending(),
     // showFunction: (match, key) => ,
     fontSize: 90,
@@ -363,8 +362,8 @@ export const ENDGAME_CONFIG = [
     width: 1200,
     height: 200,
 
-    options: ["Low", "Med", "High", "Perfect"],
-    values: ["Low", "Med", "High", "Perfect"],
+    options: ["Low", "Med", "High", ],
+    values: ["Low", "Med", "High", ],
 
     labelParams: {
       height: 150

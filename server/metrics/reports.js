@@ -215,7 +215,7 @@ export const calculateAverageMetrics = (reports) => {
     if (r.totals && typeof r.totals.disabled === "number" && r.totals.disabled !== 0) {
       console.log("disabled", r.totals.disabled);
       disabledSum += { No: 0, Yes: 1, Partially: 0.5 }[r.totals.disabled];
-      accuracySum += { Low: 40, Med: 60, High: 80, Perfect: 100 }[r.totals.accuracy]
+      accuracySum += { Low: 40, Med: 70, High: 100, Perfect: 100 }[r.totals.accuracy]
     }
     console.log("report", r);
   });

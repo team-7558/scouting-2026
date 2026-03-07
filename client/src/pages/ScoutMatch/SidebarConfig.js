@@ -41,7 +41,9 @@ export const SIDEBAR_CONFIG = [
     id: "stopCycleSnowball",
     positions: ["stop"],
     flexWeight: 2,
-    label: (match) => `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`,
+    label: (match) => match.activeCycle.type === CYCLE_TYPES.SNOWBALL ? 
+      `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`
+      : `Stop Feeding/Bypassing`,
     show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
       ([CYCLE_TYPES.SHOOTING, CYCLE_TYPES.SNOWBALL].includes(match.activeCycle.type)),
     onClick: (match, key) => {
@@ -72,7 +74,7 @@ export const SIDEBAR_CONFIG = [
 
   // ------------- HANG LEVEL --------------------------
   {
-    phases: [PHASES.AUTO, PHASES.TELE], // Hanging is a TeleOp action
+    phases: [PHASES.TELE], // Hanging is a TeleOp action
     id: "hangLevelSelection",
     // Use the HANG_LEVELS constants you just added
     positions: Object.keys(HANG_LEVELS),
@@ -113,7 +115,9 @@ export const SIDEBAR_CONFIG = [
 
     // This is the magic: Show only if the cycle is HANG and a level IS set.
     show: (match) =>
-      match.activeCycle?.type === CYCLE_TYPES.HANG && !!match.activeCycle.location && !exists(match.activeCycle.endTime)
+      match.activeCycle?.type === CYCLE_TYPES.HANG && 
+        ((!!match.activeCycle.location && !exists(match.activeCycle.endTime)) ||
+        (match.phase===PHASES.AUTO && !exists(match.activeCycle.endTime)))
   },
 
   // ---------- DEFENSE & CONTACT (Contextual) ----------

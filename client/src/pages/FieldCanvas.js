@@ -26,8 +26,8 @@ const getDefenseOffset = (isBlue, isDefending) => {
   return isBlue ? 0.38 : -0.38;
 }
 
-const getDefenseButtonOffset = (isBlue, isDefending) => {
-  if (!isDefending) return 0;
+const getDefenseButtonOffset = (isBlue, isDefending, matchPhase) => {
+  if (!isDefending || matchPhase===PHASES.POST_MATCH) return 0;
   return isBlue ? -0.14 : 0.14;
 }
 
@@ -100,7 +100,7 @@ const scaleCoordinates = (
 };
 
 const scaleToFieldCoordinates = (
-  x, y, actualWidth, actualHeight, perspective, isBlue, isDefending = false
+  x, y, actualWidth, actualHeight, perspective, isBlue, isDefending = false, phase
 ) => {
   const imageScale = imageScaleGlobal;
   const expectedWidth = actualHeight * FIELD_ASPECT_RATIO;
@@ -149,7 +149,7 @@ const scaleToFieldCoordinates = (
 
 // FieldLocalComponent remains unchanged, as its logic is correctly abstracted.
 const FieldLocalComponent = ({
-  fieldX, fieldY, fieldWidth, fieldHeight, perspective, sx, children, isDefending = false, flip = true
+  fieldX, fieldY, fieldWidth, fieldHeight, perspective, sx, children, isDefending = false, flip = true, phase
 }) => {
   const localRef = useRef(null);
   const [parentSize, setParentSize] = useState({ width: 300, height: 300 });
@@ -172,7 +172,7 @@ const FieldLocalComponent = ({
     parentSize.width, parentSize.height, perspective, isBlue, isDefending, flip
   );
 
-  scaledX += getDefenseButtonOffset(isBlue, isDefending) * fieldWidth;
+  scaledX += getDefenseButtonOffset(isBlue, isDefending, phase) * fieldWidth;
 
   return (
     <Box ref={localRef} sx={{ position: "absolute", left: scaledX, top: scaledY, width: scaledWidth, height: scaledHeight, ...sx }}>

@@ -497,6 +497,7 @@ const ScoutMatch = () => {
               isDefending={match.isDefending()}
               sx={{ pointerEvents: noPointerEvents ? "none" : "auto", }}
               flip={!dontFlip}
+              phase={match.phase}
             >
               {componentFunction(match)}
             </FieldLocalComponent>

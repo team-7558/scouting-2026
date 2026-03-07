@@ -352,27 +352,27 @@ export const ENDGAME_CONFIG = [
   // --------------------
   // ACCURACY
   // --------------------
-  {
-    id: "accuracy",
-    type: "TOGGLE",
-    label: "Accuracy",
+  // {
+  //   id: "accuracy",
+  //   type: "TOGGLE",
+  //   label: "Accuracy",
 
-    fieldX: 650,
-    fieldY: 950,
-    width: 1200,
-    height: 200,
+  //   fieldX: 650,
+  //   fieldY: 950,
+  //   width: 1200,
+  //   height: 200,
 
-    options: ["Low", "Med", "High", ],
-    values: ["Low", "Med", "High", ],
+  //   options: ["Low", "Med", "High", ],
+  //   values: ["Low", "Med", "High", ],
 
-    labelParams: {
-      height: 150
-    },
+  //   labelParams: {
+  //     height: 150
+  //   },
 
-    rowParams: {
-      gap: 5
-    }
-  },
+  //   rowParams: {
+  //     gap: 5
+  //   }
+  // },
 
   // // --------------------
   // // DISABLED STATUS

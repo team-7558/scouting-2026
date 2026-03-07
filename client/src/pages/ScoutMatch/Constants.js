@@ -1,6 +1,6 @@
 //update in server too
 export const PRACTICE_EVENTS = [];
-export const ATTENDING_EVENTS = ["2024oncmp1", "2026week0"];
+export const ATTENDING_EVENTS = ["2026week0", "2026tuis"];
 
 export const FIELD_VIRTUAL_HEIGHT = 1610;
 export const FIELD_VIRTUAL_WIDTH = 3510;

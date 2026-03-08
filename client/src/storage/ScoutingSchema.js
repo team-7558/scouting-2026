@@ -1,13 +1,13 @@
 import { ATTENDING_EVENTS, CYCLE_TYPES, ENDGAME_ROLES, GAME_LOCATIONS, HANG_LEVELS, PHASES, PRACTICE_EVENTS } from "../pages/ScoutMatch/Constants";
 
 export const DTO_MAPS = {
-  eventKey: ["NONE", ...Object.keys(ATTENDING_EVENTS), ...Object.keys(PRACTICE_EVENTS)],
+  eventKey: ["NONE", ...ATTENDING_EVENTS, ...PRACTICE_EVENTS],
   station: ["NONE", "r1", "r2", "r3", "b1", "b2", "b3"],
   // perspectives: ["NONE", "near", "far"],
   accuracy: ["NONE", "Low", "Med", "High", "Perfect"],
-  hangLevels: ["NONE", ...Object.keys(HANG_LEVELS)], // ["NONE", "LEVEL_1", "LEVEL_2", "LEVEL_3"]
+  hangLevels: ["NONE", ...Object.keys(HANG_LEVELS)], // ["NONE", "LEVEL_1", "LEVEL_2", "LEVEL_3"] <- remove later
   cycleTypes: ["NONE", ...Object.keys(CYCLE_TYPES)],
-  locations: ["NONE", ...Object.keys(GAME_LOCATIONS)],
+  locations: ["NONE", ...Object.keys(GAME_LOCATIONS), ...Object.keys(HANG_LEVELS)],
   phases: ["NONE", ...Object.keys(PHASES)],
   roles: ["NONE", ...Object.keys(ENDGAME_ROLES)],
   rates: [0, 1, 3, 6, 9], // Mapping BPS_RANGES values to simple indices

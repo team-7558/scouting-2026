@@ -217,7 +217,6 @@ export const SIDEBAR_CONFIG = [
     onClick: (match) => {
       // 1. Use the helper function to clean the spaghetti
       const matchToPack = prepareMatchForDTO(match);
-      console.log("match", matchToPack);
 
       // 2. Pack it using the Master Schema
       const packer = new BinaryDTO(MATCH_SCHEMA);
@@ -234,7 +233,8 @@ export const SIDEBAR_CONFIG = [
         null,
         compressedPayload
       );
-      console.log(`Match: ${match}`);
+      console.log("Match: ", match);
+      console.log("Packaged Match: ", matchToPack);
       console.log(`Binary Payload: ${qrPayload}`);
       console.log(`Compressed Payload: ${compressedPayload}`);
     },

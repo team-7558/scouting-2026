@@ -108,18 +108,23 @@ export class BinaryDTO {
 
   _fromBase45(str) {
     const output = [];
-    for (let i = 0; i < str.length; i += 3) {
+    // Use a while loop to handle the variable increment (3 or 2)
+    let i = 0;
+    while (i < str.length) {
       const remaining = str.length - i;
       let x = BASE45_CHARSET.indexOf(str[i]) +
         BASE45_CHARSET.indexOf(str[i + 1]) * 45;
 
       if (remaining >= 3) {
+        // Standard group: 3 chars -> 2 bytes
         x += BASE45_CHARSET.indexOf(str[i + 2]) * 2025;
         output.push((x >> 8) & 0xff);
         output.push(x & 0xff);
+        i += 3;
       } else {
-        // Short group (last byte)
+        // Short group: 2 chars -> 1 byte
         output.push(x & 0xff);
+        i += 2;
       }
     }
     return new Uint8Array(output);

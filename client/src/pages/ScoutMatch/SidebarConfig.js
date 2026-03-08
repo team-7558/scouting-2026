@@ -221,7 +221,6 @@ export const SIDEBAR_CONFIG = [
       // 2. Pack it using the Master Schema
       const packer = new BinaryDTO(MATCH_SCHEMA);
       const qrPayload = packer.pack(matchToPack);
-      console.log("qrPayload", qrPayload);
       const compressedPayload = LZString.compressToEncodedURIComponent(qrPayload);
 
       // 3. Save it

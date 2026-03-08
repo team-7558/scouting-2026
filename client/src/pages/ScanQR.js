@@ -90,8 +90,8 @@ const ScanQR = () => {
             // 5. Re-inflate the Seconds to Milliseconds for the database
             data.cycles = (data.cycles || []).map(cycle => ({
                 ...cycle,
-                startTime: cycle.startTime * 1000,
-                endTime: (cycle.startTime + cycle.duration) * 1000,
+                startTime: cycle.startTime * 100,
+                endTime: (cycle.startTime + cycle.duration) * 100,
             }));
 
             // 6. Cleanup internal-only keys used for binary efficiency
@@ -102,15 +102,15 @@ const ScanQR = () => {
 
             showAlert("Getting match data (report ID and Robot");
             const res = await getScoutMatch({
-                eventKey: data.eventKey, 
-                matchKey: data.matchKey, 
+                eventKey: data.eventKey,
+                matchKey: data.matchKey,
                 station: data.station
             });
             showAlert("Got match data");
             const reportId = res.data.reportId;
             const robot = res.data.teamNumber;
 
-            setParsedData({...data, reportId, robot});
+            setParsedData({ ...data, reportId, robot });
             showAlert(`Match ${data.matchKey} for Team ${data.robot} loaded!`);
 
         } catch (e) {

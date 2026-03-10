@@ -8,7 +8,7 @@ export const DTO_MAPS = {
   accuracy: ["NONE", "Low", "Med", "High", "Perfect"],
   hangLevels: ["NONE", ...Object.keys(HANG_LEVELS)], // ["NONE", "LEVEL_1", "LEVEL_2", "LEVEL_3"] <- remove later
   cycleTypes: ["NONE", ...Object.keys(CYCLE_TYPES)],
-  locations: ["NONE", ...Object.keys(GAME_LOCATIONS), "CLOSE", "FAR", "BUMP", "TRENCH", ...Object.keys(HANG_LEVELS)],
+  locations: ["NONE", ...Object.keys(GAME_LOCATIONS), "CLOSE", "FAR", "BUMP", "TRENCH", ...Object.keys(HANG_LEVELS), 1, 2, 3, 4, 5, 6, 7],
   phases: ["NONE", ...Object.keys(PHASES)],
   roles: ["NONE", ...Object.keys(ENDGAME_ROLES)],
   rates: [0, 1, 3, 6, 9], // Mapping BPS_RANGES values to simple indices
@@ -103,7 +103,7 @@ export const prepareMatchForDTO = (matchState) => {
       const duration = Math.max(0, endDeci - startDeci); // Now in 0.1s increments
       return {
         type: c.type || "NONE",
-        phase: c.phase?.toLowerCase() || "tele",
+        phase: c.phase?.toUpperCase() || "tele",
         startTime: startDeci,
         duration: duration,
         location: c.location || "NONE",

@@ -11,7 +11,6 @@ export const getSignedInUser = () => {
   let decodedToken = jwtDecode(token);
   // console.log("Decoded Token", decodedToken);
   let currentDate = new Date();
-  console.log(decodedToken);
   return decodedToken;
 };
 

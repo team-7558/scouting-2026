@@ -148,7 +148,6 @@ export const SCOUTING_CONFIG = {
     fontSize: 70,
     // When clicked, it starts an INTAKE cycle with the specific location
     onClick: (match, key) => {
-      console.log("here")
       match.setActiveCycle({
         type: CYCLE_TYPES.INTAKE,
         phase: match.phase,

@@ -33,7 +33,6 @@ const ScanQR = () => {
         const html5QrCode = qrInstance.current;
 
         const stopScanner = (spot) => {
-            console.log(spot);
             // Ensure stop is only called if the scanner is active
             if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop()
@@ -132,7 +131,6 @@ const ScanQR = () => {
 
     const tryParse = async (str) => {
         try {
-            console.log("str", str);
             let json = JSON.parse(str);
             decompressData(json);
             showAlert("Getting match data (report ID and Robot");
@@ -144,8 +142,6 @@ const ScanQR = () => {
             showAlert("Got match data");
             const reportId = res.data.reportId;
             const robot = res.data.teamNumber;
-            console.log("rId, robot", reportId, robot, res)
-            console.log("parsed Data", {...json, reportId, robot});
             setParsedData({...json.matchData, reportId, robot});
         } catch (e) {
             console.error(e);

@@ -32,6 +32,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from '@mui/icons-material/Clear';
 import RequiredParamsDialog from "../Common/RequiredParamsDialog";
 import { getReports } from "../../requests/ApiRequests";
+import { addTeamsToEvent } from "../../requests/AdminRequests";
 import { styled } from '@mui/material/styles';
 import HomeIcon from "@mui/icons-material/Home";
 
@@ -657,6 +658,12 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
   // Fetch report data
   useEffect(() => {
     const fetchReports = async () => {
+      console.log(await addTeamsToEvent({eventKey: "2026tuis", teams: [
+        {
+          teamName: "Inverse Paradox",
+          teamNumber: 1325
+        }
+      ]}))
       setLoading(true);
       setError("");
       try {

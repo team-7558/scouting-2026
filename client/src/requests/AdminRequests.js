@@ -16,3 +16,11 @@ export const postImportPitScouting = async ({ eventKey, databaseId }) => {
     { headers: getAuthHeaders() }
   );
 };
+
+export const addTeamsToEvent = async ({eventKey, teams}) => {
+  return api.post(
+    `/addTeamsToEvent/`, 
+    {eventKey, teams },
+    {headers: getAuthHeaders()},
+  )
+}

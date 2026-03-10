@@ -36,7 +36,7 @@ router.post("/importNotionPitScouting", async (req, res) => {
 });
 
 router.post("/addTeamsToEvent", verifyToken, async (req, res) => {
-  console.log("req", req);
+  // console.log("req", req);
   const { eventKey, teams } = req.body;
   if (!eventKey || !teams) {
     return res.status(400).json({ message: "Missing eventKey or teams" });

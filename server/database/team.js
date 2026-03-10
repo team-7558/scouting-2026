@@ -10,7 +10,7 @@ const storeTeamsInternal = async (event_code, teams) => {
     // Create the table if it does not exist
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS ${tableName} (
-        team_number INT,
+        team_number INT UNIQUE,
         team_name TEXT
         );
       `;
@@ -23,7 +23,9 @@ const storeTeamsInternal = async (event_code, teams) => {
       const insertQuery = `
         INSERT INTO ${tableName} 
         (team_number, team_name)
-        VALUES ($1, $2);
+        VALUES ($1, $2)
+        ON CONFLICT (team_number) 
+        DO UPDATE SET team_name = EXCLUDED.team_name;
         `;
       let response = await client.query(insertQuery, [
         teamNumber, teamName

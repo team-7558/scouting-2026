@@ -70,7 +70,7 @@ export const visibleMetrics = {
     auto: {
         fuel: ["shootingTime", "snowballingTime", "intakingTime", "avgShotSpeed", "avgSnowballSpeed", "accuracy", "shotCount"],
         hang: ["attempts", "cycleTime", "avgHangPoints", "lOneRate"],
-        movement: ["bumps", "movements", "trenches"],
+        movement: ["bumps", "trenches"],
     },
     tele: {
         fuel: ["shootingTime", "snowballingTime", "intakingTime", "avgShotSpeed", "avgSnowballSpeed", "accuracy", "shotCount"],

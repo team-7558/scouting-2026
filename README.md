@@ -8,6 +8,7 @@ Daisy
 Athrun
 
 TODO:
+ - Add Confirm button after "to endgame"
  - Compress QR codes
 
  - Add name search for teams

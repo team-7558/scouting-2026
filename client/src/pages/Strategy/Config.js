@@ -33,8 +33,13 @@ export const calculatedMetrics = {
         },
 
         shotCount: (submetric) => {
+            const avgSnowballSpeed = calculatedMetrics.fuel.avgSnowballSpeed(submetric);
+            const avgShotSpeed = calculatedMetrics.fuel.avgShotSpeed(submetric);
+
             console.trace("calculated metric: shot count. Given: ", submetric);
-            const result = (getValue(submetric.shotRateSum) / getValue(submetric.numShotCycles)) * (getValue(submetric.shootingTime) / 1000);
+
+            const result = ((getValue(submetric.shootingTime) / 1000) * avgShotSpeed) + 
+                ((getValue(submetric.snowballingTime) / 1000) * avgSnowballSpeed);
             console.log("shot count", submetric.numShotCycles, result);
             
             return Number.isFinite(result) ? result.toFixed(1) : "-"

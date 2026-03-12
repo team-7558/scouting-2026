@@ -1,6 +1,6 @@
-import { pgClient, protectOperation } from "./PgClient.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import { pgClient, protectOperation } from "./PgClient.js";
 dotenv.config();
 
 export const USER_ROLES = Object.freeze({
@@ -86,7 +86,7 @@ const authenticateUserInternal = async (username, plainPassword) => {
 
       console.log("Match login", isMatch);
       if (isMatch) {
-      // if (true) {
+        // if (true) {
         console.log(
           `User authenticated: ID ${user.user_id}, Username: ${user.username}, Role: ${user.role}`
         );
@@ -103,6 +103,24 @@ const authenticateUserInternal = async (username, plainPassword) => {
     }
   } catch (err) {
     throw err;
+  } finally {
+    await client.release();
+  }
+};
+
+const getUsernameByIdInternal = async (userId) => {
+  const client = await pgClient();
+  try {
+    const query = "SELECT username FROM users WHERE user_id = $1";
+    const res = await client.query(query, [userId]);
+
+    if (res.rows.length > 0) {
+      return res.rows[0].username;
+    }
+    return null;
+  } catch (err) {
+    console.error("Error fetching username:", err);
+    return null;
   } finally {
     await client.release();
   }
@@ -151,6 +169,7 @@ const updatePasswordInternal = async (userId, oldPassword, newPassword) => {
 export const createUser = protectOperation(createUserInternal, [
   USER_ROLES.ADMIN,
 ]);
+export const getUsernameById = protectOperation(getUsernameByIdInternal);
 export const authenticateUser = protectOperation(authenticateUserInternal);
 export const updatePassword = protectOperation(updatePasswordInternal, [
   USER_ROLES.USER,

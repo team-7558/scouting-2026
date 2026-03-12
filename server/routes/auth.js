@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import {
   authenticateUser,
   createUser,
+  getUsernameById,
   updatePassword,
 } from "../database/auth.js";
 
@@ -111,4 +112,5 @@ router.post("/updatePassword", verifyToken, async (req, res) => {
   }
 });
 
+export { getUsernameById };
 export default router;

@@ -1,11 +1,8 @@
-import { fetchMatches } from "../services/tba.js";
 import express from "express";
 import { customAlphabet } from "nanoid";
-import { getScoutMatch, storeMatches } from "../database/matches.js";
-import { storeReportAndCycles } from "../database/matchReportHelper.js";
-import { getReport } from "../database/reports.js";
-import { storeOrUpdateMatches } from "../database/matches.js";
-import { verifyToken } from "./auth.js";
+import { getScoutMatch, storeOrUpdateMatches } from "../database/matches.js";
+import { fetchMatches } from "../services/tba.js";
+import { getUsernameById, verifyToken } from "./auth.js";
 
 // no underscores vs default alphabet
 const alphabet =
@@ -38,7 +35,9 @@ router.post("/matches", verifyToken, async (req, res) => {
 });
 
 router.get("/getScoutMatch", verifyToken, async (req, res) => {
-  const { eventKey, station, matchKey } = req.query;
+  // 1. Pull scoutId from the query parameters
+  const { eventKey, station, matchKey, scoutId } = req.query;
+
   if (!eventKey || !station || !matchKey) {
     return res.status(400).json({
       message: "Missing required parameters: eventKey, station, matchKey",
@@ -51,7 +50,15 @@ router.get("/getScoutMatch", verifyToken, async (req, res) => {
       return res.status(404).json({ message: "Match not found" });
     }
 
-    // Strip "frc" prefix from the team string (if present)
+    // --- 2. NEW: LOOKUP SCOUT NAME ---
+    let username = null;
+    if (scoutId) {
+      // We pass 'req' because getUsernameById is wrapped in protectOperation
+      username = await getUsernameById(req, scoutId);
+    }
+    // ---------------------------------
+
+    // Strip "frc" prefix
     let teamNumber = matchData.team;
     if (teamNumber && teamNumber.startsWith("frc")) {
       teamNumber = teamNumber.substring(3);
@@ -62,15 +69,13 @@ router.get("/getScoutMatch", verifyToken, async (req, res) => {
       opponents = { b1: matchData.b1, b2: matchData.b2, b3: matchData.b3 };
     }
 
-    // TOOD handle einstein
     let nextMatchKey = matchData.comp_level + (matchData.match_number + 1);
     if (matchData.comp_level == "sf") {
-      // round robin only increases set number
       nextMatchKey = "sf" + (matchData.set_number + 1) + "m1";
     } else if (matchData.comp_level == "f") {
-      // finals only has one set
       nextMatchKey = "f1m" + (matchData.match_number + 1);
     }
+
     res.json({
       teamNumber,
       match_number: matchData.match_number,
@@ -81,6 +86,8 @@ router.get("/getScoutMatch", verifyToken, async (req, res) => {
       opponents,
       nextMatchKey,
       reportId: nanoid(),
+      // --- 3. ADD USERNAME TO RESPONSE ---
+      username: username || `Scout #${scoutId}`
     });
   } catch (error) {
     console.error("Error querying scoutMatch:", error);

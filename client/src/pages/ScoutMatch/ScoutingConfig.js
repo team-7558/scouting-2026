@@ -134,7 +134,7 @@ export const SCOUTING_CONFIG = {
       }, `Start Intake (${"ALLIANCE ZONE"}) Cycle`);
     },
     isSelected: (match, key) =>
-      match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === (match.phase === PHASES.AUTO ? key : "ALLIANCE_ZONE"),
+      match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === "ALLIANCE_ZONE",
   },
 
   NEUTRAL_ZONE_INTAKE: {

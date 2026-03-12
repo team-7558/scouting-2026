@@ -41,9 +41,7 @@ export const SIDEBAR_CONFIG = [
     id: "stopCycleBypass",
     positions: ["stop"],
     flexWeight: 2,
-    label: (match) => match.activeCycle.type === CYCLE_TYPES.BYPASS ? 
-      `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`
-      : `Stop Bypassing`,
+    label: (match) => `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`,
     show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
       ([CYCLE_TYPES.SHOOTING, CYCLE_TYPES.BYPASS].includes(match.activeCycle.type)),
     onClick: (match, key) => {

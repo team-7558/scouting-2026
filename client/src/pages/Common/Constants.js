@@ -13,7 +13,7 @@ export const COMPRESS_DATA_MAP = {
     success: "s",
     TRENCH: "tr",
     BUMP: "bu",
-    SNOWBALL: "sb",
+    BYPASS: "sb",
     ALLIANCE_ZONE: "az",
     INTAKE: "in",
     HANG: "ha",
@@ -49,7 +49,7 @@ export const COMPRESS_DATA_MAP = {
     Cycle: "cy",
     comments: "com",
     shotRate: "sr",
-    snowballRate: "sbr",
+    bypassRate: "sbr",
     accuracy: "ac",
 
 };

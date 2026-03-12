@@ -27,10 +27,10 @@ export const calculateReportTotals = (report) => {
     fuel: {
       shotRateSum: 0,
       numShotCycles: 0,
-      snowballRateSum: 0,
-      numSnowballCycles: 0,
+      bypassRateSum: 0,
+      numBypassCycles: 0,
       shootingTime: 0,
-      snowballingTime: 0,
+      bypassingTime: 0,
       intakingTime: 0,
     },
     movement: {
@@ -120,7 +120,7 @@ export const calculateReportTotals = (report) => {
       }
 
       case "SHOOT":
-      case "SNOWBALL":
+      case "BYPASS":
       case "INTAKE": {
         // Calculate count using rate * duration if available
         const rate = cycle.rate || 0;
@@ -142,11 +142,11 @@ export const calculateReportTotals = (report) => {
           phaseResults.fuel.shotRateSum += rate;
           phaseResults.fuel.shootingTime += cycleTime;
         }
-        // Snowball -> Feed
-        else if (cycleType === "SNOWBALL") {
-          phaseResults.fuel.numSnowballCycles += 1;
-          phaseResults.fuel.snowballRateSum += rate;
-          phaseResults.fuel.snowballingTime += cycleTime;
+        // Bypass -> Feed
+        else if (cycleType === "BYPASS") {
+          phaseResults.fuel.numBypassCycles += 1;
+          phaseResults.fuel.bypassRateSum += rate;
+          phaseResults.fuel.bypassingTime += cycleTime;
         }
         break;
       }

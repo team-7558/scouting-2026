@@ -160,13 +160,13 @@ export const SCOUTING_CONFIG = {
       match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === "NEUTRAL_ZONE",
   },
 
-  // Configuration for the Snowball (Burst) button
-  SNOWBALL: {
+  // Configuration for the Bypass (Burst) button
+  BYPASS: {
     phases: [PHASES.AUTO, PHASES.TELE],
     // Replace with your desired coordinates
     positions: { ALLIANCE_ZONE: [500, 235], NEUTRAL_ZONE: [1650, 800] },
     dimensions: { width: 800, height: 300 },
-    textFunction: (match, key) => "FEED/BYPASS",
+    textFunction: (match, key) => "BYPASS",
     color: COLORS.SHOOT, // Using a primary/active color
     showFunction: (match, key) => 
       key === "ALLIANCE_ZONE" ? !match.isDefending() : match.isDefending(),
@@ -174,14 +174,14 @@ export const SCOUTING_CONFIG = {
     fontSize: 90,
     onClick: (match, key) => {
       match.setActiveCycle({
-        type: CYCLE_TYPES.SNOWBALL,
+        type: CYCLE_TYPES.BYPASS,
         phase: match.phase,
         location: key,
         startTime: match.getCurrentTime(),
-      }, `Start Feed/Bypass (${key}) Cycle`);
+      }, `Start Bypass (${key}) Cycle`);
     },
     isSelected: (match, key) =>
-      match.activeCycle?.type === CYCLE_TYPES.SNOWBALL && match.activeCycle?.location === key,
+      match.activeCycle?.type === CYCLE_TYPES.BYPASS && match.activeCycle?.location === key,
   },
 
   HISTORY_CONTROLS: {
@@ -284,7 +284,7 @@ export const SCOUTING_CONFIG = {
 
   DEFENSE_CONTACT: {
     phases: [PHASES.TELE],
-    positions: { CONTACT: [2800, 1200] }, // Replaces SNOWBALL position
+    positions: { CONTACT: [2800, 1200] }, // Replaces BYPASS position
     dimensions: { width: 800, height: 400 },
     showFunction: (match, key) => match.isDefending(),
     textFunction: (match, key) => "CONTACT",
@@ -447,7 +447,7 @@ export const ENDGAME_CONFIG = [
   },
 
   {
-    id: "snowballRate",
+    id: "bypassRate",
     type: "TOGGLE",
     label: "Bypass Rate",
 

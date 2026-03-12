@@ -253,7 +253,7 @@ const ScoutMatch = () => {
       roles: [], 
       comments: "",
       shotRate: 0,
-      snowballRate: 0,
+      bypassRate: 0,
       accuracy: 90,
     },
   };
@@ -434,7 +434,7 @@ const ScoutMatch = () => {
     switch (activeCycle.type) {
       case CYCLE_TYPES.SHOOTING:
       case CYCLE_TYPES.INTAKE:
-      case CYCLE_TYPES.SNOWBALL:
+      case CYCLE_TYPES.BYPASS:
         if (exists(activeCycle.rate)) {
           setState(prevState => ({
             ...prevState,
@@ -726,7 +726,7 @@ const ScoutMatch = () => {
                     value={match.endgame.comments || ""}
                     onChange={(e) => match.setEndgame({ comments: e.target.value })}
                     style={{ width: "100%", height: "100%", fontSize: scaleWidthToActual(40) + "px", padding: "10px" }}
-                    placeholder="Can shoot while moving? Go through trench/bump well? Spills balls? Avoids defense?"
+                    placeholder="Can feed/how well? Can shoot while moving? Go through trench/bump well? Spills balls? Avoids defense?"
                   />
                 </Box>
               </Box>

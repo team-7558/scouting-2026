@@ -18,10 +18,10 @@ export const GROUP_COLORS = {
 //metrics that are specially calculated
 export const calculatedMetrics = {
     fuel: {
-        //average snowballing and shooting speed
-        avgSnowballSpeed: (submetric) => {
-            console.trace("calculated metric: avg snowball speed. Given: ", submetric)
-            const result = getValue(submetric.snowballRateSum) / getValue(submetric.numSnowballCycles);
+        //average bypassing and shooting speed
+        avgBypassSpeed: (submetric) => {
+            console.trace("calculated metric: avg bypass speed. Given: ", submetric)
+            const result = getValue(submetric.bypassRateSum) / getValue(submetric.numBypassCycles);
 
             return Number.isFinite(result) ? result.toFixed(1) : "-";
         },
@@ -33,13 +33,13 @@ export const calculatedMetrics = {
         },
 
         shotCount: (submetric) => {
-            const avgSnowballSpeed = calculatedMetrics.fuel.avgSnowballSpeed(submetric);
+            const avgBypassSpeed = calculatedMetrics.fuel.avgBypassSpeed(submetric);
             const avgShotSpeed = calculatedMetrics.fuel.avgShotSpeed(submetric);
 
             console.trace("calculated metric: shot count. Given: ", submetric);
 
             const result = ((getValue(submetric.shootingTime) / 1000) * avgShotSpeed) + 
-                ((getValue(submetric.snowballingTime) / 1000) * avgSnowballSpeed);
+                ((getValue(submetric.bypassingTime) / 1000) * avgBypassSpeed);
             console.log("shot count", submetric.numShotCycles, result);
             
             return Number.isFinite(result) ? result.toFixed(1) : "-"
@@ -50,14 +50,14 @@ export const calculatedMetrics = {
 //what metrics are shown in summaries
 export const importantMetrics = {
     auto: {
-        fuel: ["shootingTime", "snowballingTime", "avgShotSpeed", "avgSnowballSpeed", "shotCount"],
+        fuel: ["shootingTime", "bypassingTime", "avgShotSpeed", "avgBypassSpeed", "shotCount"],
         hang: ["attempts", "cycleTime", "lOneRate"],
         movement: ["bumps", "movements", "trenches"],
         contact: ["foulCount", "pinCount", "totalTime"],
         defense: ["totalTime"],
     },
     tele: {
-        fuel: ["shootingTime", "snowballingTime", "avgShotSpeed", "avgSnowballSpeed",  "shotCount"],
+        fuel: ["shootingTime", "bypassingTime", "avgShotSpeed", "avgBypassSpeed",  "shotCount"],
         hang: ["attempts", "cycleTime", "lOneRate", "lTwoRate", "lThreeRate"],
         movement: ["bumps", "trenches"],
         contact: ["foulCount", "pinCount", "totalTime"],
@@ -68,12 +68,12 @@ export const importantMetrics = {
 //what metrics are visible (for individual reports)
 export const visibleMetrics = {
     auto: {
-        fuel: ["shootingTime", "snowballingTime", "intakingTime", "avgShotSpeed", "avgSnowballSpeed", "accuracy", "shotCount"],
+        fuel: ["shootingTime", "bypassingTime", "intakingTime", "avgShotSpeed", "avgBypassSpeed", "accuracy", "shotCount"],
         hang: ["attempts", "cycleTime", "avgHangPoints", "lOneRate"],
         movement: ["bumps", "trenches"],
     },
     tele: {
-        fuel: ["shootingTime", "snowballingTime", "intakingTime", "avgShotSpeed", "avgSnowballSpeed", "accuracy", "shotCount"],
+        fuel: ["shootingTime", "bypassingTime", "intakingTime", "avgShotSpeed", "avgBypassSpeed", "accuracy", "shotCount"],
         hang: ["attempts", "cycleTime", "lOneRate", "lTwoRate", "lThreeRate"],
         contact: ["foulCount", "pinCount", "totalTime"],
         movement: ["bumps", "trenches"],

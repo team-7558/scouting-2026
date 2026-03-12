@@ -35,17 +35,17 @@ export const SIDEBAR_CONFIG = [
     isDisabled: (match) => match.startingPosition < 0,
   },
 
-  // ------------ CYCLE/SNOWBALLING Stop --------------
+  // ------------ CYCLE/BYPASSING Stop --------------
   {
     phases: [PHASES.AUTO, PHASES.TELE],
-    id: "stopCycleSnowball",
+    id: "stopCycleBypass",
     positions: ["stop"],
     flexWeight: 2,
-    label: (match) => match.activeCycle.type === CYCLE_TYPES.SNOWBALL ? 
+    label: (match) => match.activeCycle.type === CYCLE_TYPES.BYPASS ? 
       `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`
-      : `Stop Feeding/Bypassing`,
+      : `Stop Bypassing`,
     show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
-      ([CYCLE_TYPES.SHOOTING, CYCLE_TYPES.SNOWBALL].includes(match.activeCycle.type)),
+      ([CYCLE_TYPES.SHOOTING, CYCLE_TYPES.BYPASS].includes(match.activeCycle.type)),
     onClick: (match, key) => {
       match.setActiveCycle({
         ...match.activeCycle,
@@ -183,8 +183,8 @@ export const SIDEBAR_CONFIG = [
           robot: match.scoutData.teamNumber,
           scoutId: match.userToken.id,
           scoutName: match.userToken.username,
-          cycles: match.cycles.map(c => [CYCLE_TYPES.SNOWBALL, CYCLE_TYPES.SHOOTING].includes(c.type) ? 
-            {...c, rate: match.endgame[c.type===CYCLE_TYPES.SNOWBALL ? "snowballRate" : "shotRate"]}
+          cycles: match.cycles.map(c => [CYCLE_TYPES.BYPASS, CYCLE_TYPES.SHOOTING].includes(c.type) ? 
+            {...c, rate: match.endgame[c.type===CYCLE_TYPES.BYPASS ? "bypassRate" : "shotRate"]}
             : c
           ),
           endgame: match.endgame,
@@ -228,8 +228,8 @@ export const SIDEBAR_CONFIG = [
         robot: match.scoutData.teamNumber,
         scoutId: match.userToken.id,
         scoutName: match.userToken.username,
-        cycles: match.cycles.map(c => [CYCLE_TYPES.SNOWBALL, CYCLE_TYPES.SHOOTING].includes(c.type) ? 
-          {...c, rate: match.endgame[c.type===CYCLE_TYPES.SNOWBALL ? "snowballRate" : "shotRate"]}
+        cycles: match.cycles.map(c => [CYCLE_TYPES.BYPASS, CYCLE_TYPES.SHOOTING].includes(c.type) ? 
+          {...c, rate: match.endgame[c.type===CYCLE_TYPES.BYPASS ? "bypassRate" : "shotRate"]}
           : c
         ),
         endgame: match.endgame,

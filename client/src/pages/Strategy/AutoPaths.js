@@ -47,7 +47,7 @@ const accentColor = "#1fdb25";
 const CYCLE_COLORS = {
     AUTO_MOVEMENT: '#1fdb25', // Green
     SHOOT: '#fa1919',         // Red
-    SNOWBALL: '#fa1919',      // Red
+    BYPASS: '#fa1919',      // Red
     INTAKE: '#3ad5fc',        // Blue
     DEFAULT: '#cccccc',       // Grey for any other type
 };

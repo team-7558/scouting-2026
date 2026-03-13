@@ -53,13 +53,22 @@ const formatValue = (value, key) => {
 };
 
 const getRawValue = (item, key) => {
+  if (!item) return null; // Guard against undefined items
   const value = item[key];
+  if (value === null || value === undefined) return null;
   return Array.isArray(value) ? value[0] : value;
 };
 
+
 const descendingComparator = (a, b, orderBy) => {
+  // Use getRawValue which now safely handles potentially missing keys
   const aVal = getRawValue(a, orderBy);
   const bVal = getRawValue(b, orderBy);
+
+  // Treat null or non-numeric values as lower than numbers
+  if (bVal === null || typeof bVal !== 'number') return -1;
+  if (aVal === null || typeof aVal !== 'number') return 1;
+
   if (bVal < aVal) return -1;
   if (bVal > aVal) return 1;
   return 0;
@@ -83,11 +92,37 @@ const camelCaseToWords = (str) => {
   return result.charAt(0).toUpperCase() + result.slice(1);
 }
 
-// ----------------- CategoryTable -----------------
+// ----------------- CategoryTable (Corrected for Sorting) -----------------
 const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
   const theme = useTheme();
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("robot");
+
+  const processedRows = useMemo(() => {
+    // Create a new array of rows that includes the calculated values as properties.
+    return rows.map(row => {
+      const newRow = { ...row };
+
+      metricKeys.forEach(key => {
+        let rawValue;
+        if (calculatedMetrics[group]?.[key]) {
+          // This metric is calculated on the fly.
+          const calculatedResult = calculatedMetrics[group][key](row);
+          // Convert the result (which might be a string like "-") to a number for sorting.
+          // parseFloat will correctly handle numbers-as-strings ("25.1") and return NaN for "-".
+          rawValue = parseFloat(calculatedResult);
+        } else {
+          // This metric exists on the row object; just get its raw value.
+          rawValue = getRawValue(row, key);
+        }
+
+        // Add the purely numerical value to our new row object.
+        // If rawValue is NaN or null, default to a low number like -1 so sorting remains stable.
+        newRow[key] = (typeof rawValue === 'number' && !isNaN(rawValue)) ? rawValue : -1;
+      });
+      return newRow;
+    });
+  }, [rows, group, metricKeys]); // This memoization is key for performance
 
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === "asc";
@@ -130,7 +165,8 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {stableSort(rows, getComparator(order, orderBy)).map((row, index) => (
+          {/* VITAL CHANGE: Use the new `processedRows` for sorting and mapping */}
+          {stableSort(processedRows, getComparator(order, orderBy)).map((row, index) => (
             <TableRow
               key={`${row.robot}-${row.phase}-${index}`}
               sx={{
@@ -145,6 +181,7 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
               <TableCell sx={{ color: "#fff", fontSize: "30px", }}>{row.phase}</TableCell>
               {metricKeys.map((key) => (
                 <TableCell key={key} sx={{ color: "#fff", fontSize: "40px", }}>
+                  {/* The display logic remains the same, as it will re-calculate for presentation */}
                   {calculatedMetrics[group]?.[key] ? calculatedMetrics[group]?.[key](row) : formatValue(row[key], key)}
                 </TableCell>
               ))}
@@ -156,28 +193,30 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
   );
 };
 
+
 // ----------------- AveragesTable -----------------
 const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
   const [openGroups, setOpenGroups] = useState({});
 
-  console.log("Averages in averagesTable", averages);
-
-  const categoryRows = {};
-  Object.keys(averages).forEach((robotId) => {
-    const robotAverages = averages[robotId] || {};
-    Object.keys(robotAverages).forEach((phase) => {
-      if (phaseFilter !== "all" && phase.toLowerCase() !== phaseFilter) return;
-      const phaseData = robotAverages[phase] || {};
-      Object.keys(phaseData).forEach((group) => {
-        if (!categoryRows[group]) categoryRows[group] = [];
-        categoryRows[group].push({
-          robot: robotId,
-          phase: phase.toUpperCase(),
-          ...phaseData[group],
+  const categoryRows = useMemo(() => {
+    const newCategoryRows = {};
+    Object.keys(averages).forEach((robotId) => {
+      const robotAverages = averages[robotId] || {};
+      Object.keys(robotAverages).forEach((phase) => {
+        if (phaseFilter !== "all" && phase.toLowerCase() !== phaseFilter) return;
+        const phaseData = robotAverages[phase] || {};
+        Object.keys(phaseData).forEach((group) => {
+          if (!newCategoryRows[group]) newCategoryRows[group] = [];
+          newCategoryRows[group].push({
+            robot: robotId,
+            phase: phase.toUpperCase(),
+            ...phaseData[group],
+          });
         });
       });
     });
-  });
+    return newCategoryRows;
+  }, [averages, phaseFilter]);
 
   useEffect(() => {
     const defaults = {};
@@ -185,7 +224,7 @@ const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
       defaults[group] = false;
     });
     setOpenGroups(defaults);
-  }, [averages]);
+  }, [averages, phaseFilter]); // Rerun when categoryRows keys might change
 
   const toggleGroup = (group) => setOpenGroups((prev) => ({ ...prev, [group]: !prev[group] }));
 
@@ -193,7 +232,9 @@ const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
     <>
       {Object.keys(categoryRows).map((group) => {
         const rows = categoryRows[group];
-        const metricKeys = importantMetrics[phaseFilter]?.[group] || importantMetrics.tele?.[group] || [];
+        // Handle phase filter change correctly for metricKeys
+        const currentPhaseForMetrics = phaseFilter === 'all' ? 'tele' : phaseFilter;
+        const metricKeys = importantMetrics[currentPhaseForMetrics]?.[group] || [];
 
         return (
           <Box key={group} sx={{ mb: 4 }}>
@@ -230,6 +271,7 @@ const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
     </>
   );
 };
+
 
 // ----------------- CategorySort -----------------
 const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
@@ -296,18 +338,6 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
     if (newPhase !== null) setPhaseFilter(newPhase);
   };
 
-  const handleSearchKeyDown = (type) => (e) => {
-    if (e.key === "Enter") {
-      const newParams = {};
-      requiredParamKeys.forEach((key) => {
-        if (key !== type) newParams[key] = searchParams.get(key);
-      });
-      newParams[type] = type === "matchKey" ? matchKeySearchTerm : robotSearchTerm;
-      setSearchParams(newParams);
-      navigate(`?${new URLSearchParams(newParams).toString()}`);
-    }
-  };
-
   const handleDialogSubmit = (values) => {
     const currentParams = {};
     for (const key of searchParams.keys()) currentParams[key] = searchParams.get(key);
@@ -315,7 +345,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
   };
 
   return (
-    <div style={{ width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto" }}>
+    <div style={{ width: "100%", height: "100%", padding: "0", paddingBottom: "3vh", overflow: "auto", backgroundColor: "#000" }}>
       <Paper sx={{ p: 2, mb: 3, bgcolor: "#111" }}>
         <HomeIcon
           sx={{ aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", margin: "0px", fontSize: "30px", color: "white" }}
@@ -411,6 +441,7 @@ const CategorySort = ({ requiredParamKeys = ["eventKey"], headingColors = {
                 )}
                 renderTags={(value, getItemProps) =>
                   value.map((option, index) => {
+                    if (!option) return null;
                     const { key, ...itemProps } = getItemProps({ index });
                     return (
                       <Chip

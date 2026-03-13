@@ -18,31 +18,41 @@ export const GROUP_COLORS = {
 //metrics that are specially calculated
 export const calculatedMetrics = {
     fuel: {
-        //average bypassing and shooting speed
-        avgBypassSpeed: (submetric) => {
-            console.trace("calculated metric: avg bypass speed. Given: ", submetric)
-            const result = getValue(submetric.bypassRateSum) / getValue(submetric.numBypassCycles);
+        // 1. Create new "private" calculation functions
+        _calculateAvgSpeed: (rateSum, numCycles) => {
+            const result = getValue(rateSum) / getValue(numCycles);
+            return Number.isFinite(result) ? result : 0; // Return 0 on failure
+        },
 
-            return Number.isFinite(result) ? result.toFixed(1) : "-";
+        // 2. Update existing functions to use the calculator and then format the output
+        avgBypassSpeed: (submetric) => {
+            const result = calculatedMetrics.fuel._calculateAvgSpeed(submetric.bypassRateSum, submetric.numBypassCycles);
+            // If the raw result is 0 because of a failed calculation (e.g., 0/0), display "-"
+            // You might want to check the inputs as well to be more robust
+            if (result === 0 && getValue(submetric.numBypassCycles) === 0) return "-";
+            return result.toFixed(1);
         },
         avgShotSpeed: (submetric) => {
-            console.trace("calculated metric: avg shot speed. Given: ", submetric)
-            const result = getValue(submetric.shotRateSum) / getValue(submetric.numShotCycles);
-
-            return Number.isFinite(result) ? result.toFixed(1) : "-";
+            const result = calculatedMetrics.fuel._calculateAvgSpeed(submetric.shotRateSum, submetric.numShotCycles);
+            if (result === 0 && getValue(submetric.numShotCycles) === 0) return "-";
+            return result.toFixed(1);
         },
 
+        // 3. Update shotCount to use the new calculator functions directly
         shotCount: (submetric) => {
-            const avgBypassSpeed = calculatedMetrics.fuel.avgBypassSpeed(submetric);
-            const avgShotSpeed = calculatedMetrics.fuel.avgShotSpeed(submetric);
+            // These now return pure numbers (e.g., 0 or 12.3)
+            const avgBypassSpeed = calculatedMetrics.fuel._calculateAvgSpeed(submetric.bypassRateSum, submetric.numBypassCycles);
+            const avgShotSpeed = calculatedMetrics.fuel._calculateAvgSpeed(submetric.shotRateSum, submetric.numShotCycles);
 
             console.trace("calculated metric: shot count. Given: ", submetric);
 
+            // The calculation is now safe and will not result in NaN
             const result = ((getValue(submetric.shootingTime) / 1000) * avgShotSpeed) + 
-                ((getValue(submetric.bypassingTime) / 1000) * avgBypassSpeed);
+                           ((getValue(submetric.bypassingTime) / 1000) * avgBypassSpeed);
+            
             console.log("shot count", submetric.numShotCycles, result);
             
-            return Number.isFinite(result) ? result.toFixed(1) : "-"
+            return Number.isFinite(result) && result!=0 ? result.toFixed(1) : "-"
         }
     }
 };

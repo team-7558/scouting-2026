@@ -170,11 +170,15 @@ const ScoutRankings = () => {
                     <Collapse in={openRow === name} timeout="auto" unmountOnExit>
                         <CollapseBox>
                             <Typography variant="h6" gutterBottom>Comments</Typography>
-                            {scoutComments[name].map((obj, index) => (
-                                <Box key={index} sx={{mb: 2}}>
-                                    <Typography variant="subtitle1"><b>{`Team ${obj.team} - Match ${obj.match}`}</b></Typography>
-                                    <Typography variant="body2" sx={{pl: 1}}>{obj.comment || "No comment."}</Typography>
-                                </Box>
+                            {scoutComments[name].sort((a, b) => {
+                              const aNum = parseInt(a.match.match(/\d+/)?.[0] ?? 0, 10);
+                              const bNum = parseInt(b.match.match(/\d+/)?.[0] ?? 0, 10);
+                              return aNum - bNum;
+                            }).map((obj, index) => (
+                              <Box key={index} sx={{mb: 2}}>
+                                  <Typography variant="subtitle1"><b>{`Team ${obj.team} - Match ${obj.match}`}</b></Typography>
+                                  <Typography variant="body2" sx={{pl: 1}}>{obj.comment || "No comment."}</Typography>
+                              </Box>
                             ))}
                         </CollapseBox>
                     </Collapse>

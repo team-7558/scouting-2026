@@ -12,14 +12,14 @@ const exists = (val) => {
 }
 
 // Helper to ensure no two timed cycles (scoring, defense, etc.) run at once.
-const startNewCycle = (match, cycleType) => {
+const startNewCycle = (match, cycleType, currentTime) => {
   // End any currently unfinished cycle before starting a new one.
   finishUnfinished(match);
 
   // Start the new cycle.
   match.setActiveCycle({
     type: cycleType,
-    startTime: match.getCurrentTime(),
+    startTime: currentTime,
     phase: match.phase,
   }, `Start ${cycleType} cycle`);
 };
@@ -38,18 +38,20 @@ export const SCOUTING_CONFIG = {
     phases: [PHASES.PRE_MATCH],
     positions: { PRELOAD: [880, 650] },
     dimensions: { width: 0, height: 1410 },
-    componentFunction: (match, key) => StartingPositionSlider(match),
+    componentFunction: (match, key) => {
+      return <StartingPositionSlider match={match} />
+    },
   },
 
   MOVEMENT: {
     phases: [PHASES.AUTO, PHASES.TELE],
     positions: { TRENCH: [1030, 210], BUMP: [1030, 500] },
     dimensions: { width: 250, height: 250 },
-    onClick: (match, key) => match.setCycles([...match.cycles, {
+    onClick: (match, key, currentTime) => match.setCycles([...match.cycles, {
       location: key,
       type: CYCLE_TYPES.AUTO_MOVEMENT,
       phase: match.phase,
-      startTime: match.getCurrentTime(),
+      startTime: match.currentTime,
     }], `Move through ${key}`),
     textFunction: (match, key) => {
       const spot = {
@@ -78,12 +80,12 @@ export const SCOUTING_CONFIG = {
       }
     },
     showFunction: (match, key) => match.cycles.filter(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT).length % 2 === 1,
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle({
         type: CYCLE_TYPES.SHOOTING,
         phase: match.phase,
         location: key,
-        startTime: match.getCurrentTime(),
+        startTime: currentTime,
         endTime: null,
         rate: null,
       }, `Start Shooting (${key}) Cycle`);
@@ -99,11 +101,11 @@ export const SCOUTING_CONFIG = {
     showFunction: (match, key) => match.cycles.filter(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT).length % 2 === 1,
     textFunction: (match, key) => "HANG",
     color: COLORS.HANG_DEFENSE,
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle({
         type: CYCLE_TYPES.HANG,
         phase: match.phase,
-        startTime: match.getCurrentTime(),
+        startTime: currentTime,
       }, `Start Climb Cycle`);
     },
     isSelected: (match, key) =>
@@ -123,12 +125,12 @@ export const SCOUTING_CONFIG = {
     color: COLORS.INTAKE, // Using the color from Constants.js
     fontSize: 71,
     // When clicked, it starts an INTAKE cycle with the specific location
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle({
         type: CYCLE_TYPES.INTAKE,
         phase: match.phase,
         location: "ALLIANCE_ZONE", // Will be "DEPOT"
-        startTime: match.getCurrentTime(),
+        startTime: currentTime,
       }, `Start Intake (${"ALLIANCE ZONE"}) Cycle`);
     },
     isSelected: (match, key) =>
@@ -145,13 +147,12 @@ export const SCOUTING_CONFIG = {
     color: COLORS.INTAKE, // Using the color from Constants.js
     fontSize: 70,
     // When clicked, it starts an INTAKE cycle with the specific location
-    onClick: (match, key) => {
-      console.log("here")
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle({
         type: CYCLE_TYPES.INTAKE,
         phase: match.phase,
         location: "NEUTRAL_ZONE", // Will be "DEPOT"
-        startTime: match.getCurrentTime(),
+        startTime: currentTime,
       }, `Start Intake (NEUTRAL ZONE) Cycle`);
     },
     isSelected: (match, key) =>
@@ -170,12 +171,12 @@ export const SCOUTING_CONFIG = {
       key === "ALLIANCE_ZONE" ? !match.isDefending() : match.isDefending(),
     // showFunction: (match, key) => ,
     fontSize: 90,
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle({
         type: CYCLE_TYPES.BYPASS,
         phase: match.phase,
         location: key,
-        startTime: match.getCurrentTime(),
+        startTime: currentTime,
       }, `Start Bypass (${key}) Cycle`);
     },
     isSelected: (match, key) =>
@@ -233,9 +234,8 @@ export const SCOUTING_CONFIG = {
         match.phase === PHASES.AUTO ? "To TeleOp" : "To Endgame"
       );
     },
-    sx: (match) => {return {
-      backgroundColor: match.currentTime===AUTO_MAX_TIME ? "#ff0000" : match.phase===PHASES.AUTO ? "#aa0000" : "#0000aa",
-      border: match.currentTime===AUTO_MAX_TIME ? "100px solid black" : "10px solid black"
+    sx: (match, currentTime) => {console.log(currentTime, AUTO_MAX_TIME); return {
+      backgroundColor: match.phase === PHASES.TELE ? "#8888dd" : (match.currentTime===AUTO_MAX_TIME ? "#ff0000" : "#aa0000"),
     }}
   },
 
@@ -247,16 +247,16 @@ export const SCOUTING_CONFIG = {
     textFunction: (match, key) => match.isDefending() ? "End Defend/Steal" : "Start Defense/Steal",
     color: COLORS.HANG_DEFENSE,
     showFunction: (match, key) => match.cycles.filter(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT).length % 2 === 0,
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       if (match.isDefending()) {
         match.setDefenseCycle(
-          prev => { return { ...prev.defenseCycle, endTime: match.getCurrentTime() } },
+          prev => { return { ...prev.defenseCycle, endTime: currentTime } },
           `End Defense/Steal`); // End defense
       } else {
         match.setDefenseCycle({
           type: CYCLE_TYPES.DEFENSE,
           phase: match.phase,
-          startTime: match.getCurrentTime(),
+          startTime: currentTime,
         }, `Start Defense/Steal`);
       }
     },
@@ -271,12 +271,12 @@ export const SCOUTING_CONFIG = {
     textFunction: (match, key) => "STEAL",
     color: COLORS.INTAKE,
     fontSize: 70,
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle({
         type: CYCLE_TYPES.INTAKE,
         phase: match.phase,
         location: GAME_LOCATIONS.OPPONENT_ALLIANCE_ZONE,
-        startTime: match.getCurrentTime(),
+        startTime: currentTime
       }, `Start Intake (Steal) Cycle`);
     },
     isSelected: (match, key) =>
@@ -291,8 +291,8 @@ export const SCOUTING_CONFIG = {
     textFunction: (match, key) => "CONTACT",
     color: COLORS.HANG_DEFENSE,
     fontSize: 90,
-    onClick: (match, key) => {
-      startNewCycle(match, CYCLE_TYPES.CONTACT);
+    onClick: (match, key, currentTime) => {
+      startNewCycle(match, CYCLE_TYPES.CONTACT, currentTime);
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.CONTACT,

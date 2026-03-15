@@ -58,6 +58,7 @@ const Sidebar = ({
     <Drawer open={sidebarOpen} onClose={() => setSidebarOpen(false)}>
       {[
         <HomeIcon 
+          key="homeIcon"
           sx={{aspectRatio: "1/1", marginBottom: "-10%", zIndex: 5, cursor: "pointer", mt: "1vh", ml: "1vh", fontSize: "30px"}} 
           onClick={() => {
             navigate("/");

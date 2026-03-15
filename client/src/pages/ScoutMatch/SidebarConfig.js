@@ -44,10 +44,11 @@ export const SIDEBAR_CONFIG = [
     label: (match) => `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`,
     show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
       ([CYCLE_TYPES.SHOOTING, CYCLE_TYPES.BYPASS].includes(match.activeCycle.type)),
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
+      console.log("currentTime", currentTime);
       match.setActiveCycle({
         ...match.activeCycle,
-        endTime: match.getCurrentTime(),
+        endTime: currentTime,
         rate: 1,
       }, `Stop ${match.activeCycle.type.toLowerCase()}ing`);
     }
@@ -61,10 +62,10 @@ export const SIDEBAR_CONFIG = [
     label: (match) => `Stop Intaking`,
     show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
       ([CYCLE_TYPES.INTAKE].includes(match.activeCycle.type)),
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle({
         ...match.activeCycle,
-        endTime: match.getCurrentTime(),
+        endTime: currentTime,
         rate: 1
       }, `Stop Intaking`);
     }
@@ -99,12 +100,12 @@ export const SIDEBAR_CONFIG = [
     label: (match, key) => key,
 
     // This is the final step. We finalize the cycle and save it.
-    onClick: (match, key) => {
+    onClick: (match, key, currentTime) => {
       // Clear the activeCycle to return the sidebar to its normal state.
       match.setActiveCycle({
         ...match.activeCycle,
         success: key === "SUCCESS",
-        endTime: match.getCurrentTime(),
+        endTime: currentTime,
       }, `Set Hang To ${key}`);
     },
 
@@ -141,9 +142,9 @@ export const SIDEBAR_CONFIG = [
     positions: ["endContact"],
     flexWeight: 2,
     label: () => "End Contact Cycle",
-    onClick: (match) => {
+    onClick: (match, key, currentTime) => {
       match.setActiveCycle(
-        prev => ({ ...prev, endTime: match.getCurrentTime() }),
+        prev => ({ ...prev, endTime: currentTime }),
         `End Contact Cycle`
       );
     },

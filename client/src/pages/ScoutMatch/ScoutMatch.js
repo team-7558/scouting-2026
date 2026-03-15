@@ -53,6 +53,45 @@ const exists = (val) => {
   return val !== null && val !== undefined;
 };
 
+// 1. Create the context
+const TimerContext = createContext(0);
+
+// 2. Create the Provider component
+// It will take phase and matchStartTime as props so it can calculate the time
+const TimerProvider = ({ children, phase, matchStartTime }) => {
+  const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    const getCurrentTime = () => {
+      if (phase === PHASES.POST_MATCH) {
+        return TELE_MAX_TIME;
+      }
+      return Math.min(
+        phase === PHASES.AUTO ? AUTO_MAX_TIME : TELE_MAX_TIME,
+        matchStartTime == null ? 0 : Date.now() - matchStartTime
+      );
+    };
+
+    // This interval now only affects the state within this provider
+    const interval = setInterval(() => {
+      setCurrentTime(getCurrentTime());
+    }, 500); // Update every half-second for smoother display
+
+    return () => clearInterval(interval);
+  }, [phase, matchStartTime]);
+
+  return (
+    <TimerContext.Provider value={currentTime}>
+      {children}
+    </TimerContext.Provider>
+  );
+};
+
+// 3. Create a custom hook for easy consumption
+const useTimer = () => {
+  return useContext(TimerContext);
+};
+
 // Scout Match Component
 const ScoutMatch = () => {
   const navigate = useNavigate();
@@ -113,21 +152,10 @@ const ScoutMatch = () => {
   const [scoutData, setScoutData] = useState(null);
   const [matchStartTime, setMatchStartTime] = useState(null);
 
-  const getCurrentTime = () => {
-    if (state.phase === PHASES.POST_MATCH) {
-      return TELE_MAX_TIME;
-    }
-    return Math.min(
-      state.phase === PHASES.AUTO ? AUTO_MAX_TIME : TELE_MAX_TIME,
-      matchStartTime == null ? 0 : Date.now() - matchStartTime
-    );
-  };
-
   const [displayTime, setDisplayTime] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
-  const [currentTime, setCurrentTime] = useState("");
 
   const showAlert = (message) => {
       setAlertMessage(message);
@@ -261,7 +289,6 @@ const ScoutMatch = () => {
 
   const { state, setState, undo, redo, canUndo, canRedo, reset, lastUndoMessage, redoMessage } = useHistoryState(initialMatchData);
 
-  let _ = setInterval(() => setCurrentTime(getCurrentTime), 1000);
   // ===================================================================================
   // 3. === CRITICAL CHANGE === "Smart" Setters for the new state structure
   // ===================================================================================
@@ -361,22 +388,6 @@ const ScoutMatch = () => {
     return `${String(minutes).padStart(1, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
-  const getDisplayTime = () => {
-    let time = null;
-    if (phase === PHASES.AUTO) {
-      time = AUTO_MAX_TIME - getCurrentTime();
-    } else if (phase === PHASES.TELE) {
-      time = TELE_MAX_TIME - getCurrentTime();
-    }
-    return time != null ? format(time) : "- - -";
-  };
-
-  useEffect(() => {
-    setDisplayTime(getDisplayTime());
-    const interval = setInterval(() => { setDisplayTime(getDisplayTime); }, 500);
-    return () => clearInterval(interval);
-  }, [matchStartTime, phase]);
-
   const isScoutingRed = () => [R1, R2, R3].includes(driverStation);
   const isScoringTableFar = () => scoutPerspective === SCORING_TABLE_FAR;
   const flipX = () => isScoutingRed();
@@ -410,7 +421,6 @@ const ScoutMatch = () => {
     isDefending,
     searchParams,
     setSearchParams,
-    getCurrentTime, currentTime,
     isScoutingRed: isScoutingRed(),
     isScoringTableFar: isScoringTableFar(),
     scoutData,
@@ -419,6 +429,7 @@ const ScoutMatch = () => {
     submitting,
     setSubmitting,
     scaleWidthToActual,
+    scaleHeightToActual,
     navigate,
     lastUndoMessage,
     redoMessage,
@@ -529,57 +540,82 @@ const ScoutMatch = () => {
     );
   };
 
+  // 1. Create a dedicated component for the config-based buttons
+  const ScoutingConfigButton = ({ config, positionKey, match }) => {
+    const currentTime = useTimer(); 
+    
+    const isNotShowing = config.showFunction && !config.showFunction(match, positionKey);
+    if (isNotShowing) return null;
+
+    const isDisabled = config.disabled && config.disabled(match, positionKey);
+    const isSelected = config.isSelected && config.isSelected(match, positionKey);
+    
+    const sx = (config.sx && config.sx(match, currentTime)) || {};
+
+    return config.componentFunction != null ? (
+      config.componentFunction(match, positionKey)
+    ) : (
+      <FieldButton
+        sx={{
+          pointerEvents: "auto",
+          borderRadius: config.isCircle ? "50%" : "2%",
+          opacity: isSelected ? 1 : 0.68,
+          border: isSelected ? "10px solid black" : "5px solid black",
+          ...sx
+        }}
+        fontSize={config.fontSize || 60}
+        drawBorder={isSelected}
+        disabled={isDisabled}
+        color={config.color || COLORS.ACTIVE}
+        onClick={() => config.onClick && config.onClick(match, positionKey, currentTime)}
+      >
+        {config.textFunction && config.textFunction(match, positionKey)}
+      </FieldButton>
+    );
+  };
+
+  // 2. Update your creation helper to use that component
   const createScoutingConfigChild = (config, key) => {
     const [x, y] = config.positions[key];
-    return config.phases.includes(phase)
-      ? createFieldLocalMatchComponent(
-        key, x, y,
-        config.dimensions.width, config.dimensions.height,
-        (match) => {
-          const isNotShowing = (config.showFunction && !config.showFunction(match, key));
-          const isDisabled = config.disabled && config.disabled(match, key);
-          const isSelected = config.isSelected && config.isSelected(match, key);
-          if (isNotShowing) {
-            return null;
-          }
-          return config.componentFunction != null ? (
-            config.componentFunction(match, key)
-          ) : (
-            <FieldButton
-              sx={{
-                pointerEvents: "auto",
-                borderRadius: config.isCircle ? "50%" : "2%",
-                opacity: isSelected ? 1 : 0.68,
-                border: isSelected ? "10px solid black" : "5px solid black",
-                ...config.sx && config.sx(match)
-              }}
-              fontSize={config.fontSize || 60}
-              drawBorder={isSelected}
-              disabled={isDisabled}
-              color={config.color || COLORS.ACTIVE}
-              onClick={config.onClick ? () => config.onClick(CONTEXT_WRAPPER, key) : () => null}
-            >
-              {config.textFunction && config.textFunction(match, key)}
-            </FieldButton>
-          );
-        },
-        config.dontFlip || false
-      )
-      : null;
+    if (!config.phases.includes(phase)) return null;
+
+    return (
+      <FieldLocalComponent
+        key={key}
+        fieldX={x} fieldY={y} 
+        fieldWidth={config.dimensions.width} 
+        fieldHeight={config.dimensions.height}
+        perspective={scoutPerspective}
+        flip={!config.dontFlip}
+        phase={phase}
+      >
+        {/* 3. Pass the context and config into the wrapper */}
+        <MatchContext.Consumer>
+          {(match) => (
+            <ScoutingConfigButton 
+              config={config} 
+              positionKey={key} 
+              match={match} 
+            />
+          )}
+        </MatchContext.Consumer>
+      </FieldLocalComponent>
+    );
   };
 
   const SidebarButton = ({
-    id, flexWeight = 1, label, onClick, color, disabled = false, sx = {}, show = true,
+    match, id, flexWeight = 1, label, onClick, color, disabled = false, sx = {}, show = true,
   }) => {
+    const currentTime = useTimer();
     const [animating, setAnimating] = useState(false);
     const onClickKeyframes = { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.2)' }, '100%': { transform: 'scale(1)' }, };
     if (!show) return null;
     return (
       <Button
-        variant="contained" color={color} disabled={disabled}
+        variant="contained" color={color && color(match, id) || COLORS.ACTIVE} disabled={disabled}
         onClick={() => {
           setAnimating(true);
-          setTimeout(() => { setAnimating(false); onClick(); }, 100);
+          setTimeout(() => { setAnimating(false); onClick(match, id, currentTime); }, 100);
         }}
         sx={{
           width: "90%", height: "95%",
@@ -590,7 +626,7 @@ const ScoutMatch = () => {
           animation: animating ? 'onClick 0.1s ease' : 'none',
           ...sx,
         }}
-      >{label}</Button>
+      >{label && label(match, id) || label || ""}</Button>
     );
   }
 
@@ -602,10 +638,6 @@ const ScoutMatch = () => {
       return createScoutingConfigChild(config, position);
     })
   });
-
-  // === NOTE ===
-  // The `GROUND_PICKUPIcon` rendering logic that was here has been removed because
-  // the `powerCellCycles` state it depended on no longer exists in the new model.
 
   // The entire POST_MATCHChildren array is preserved from your original file.
   const renderEndgame = () => {
@@ -757,7 +789,8 @@ const ScoutMatch = () => {
       // Note: GROUND_PICKUPIcon rendering is removed here
     ];
     return (
-      <Box sx={{ transform: `translateX(${getFieldCanvasOffset()}px)` }}>
+      // <Box sx={{ transform: `translateX(${getFieldCanvasOffset()}px)` }}>
+      <Box>
         {scaledBoxRect.width > 0 && (
           <FieldCanvas
             ref={fieldCanvasRef} theme={getTheme()} height={scaledBoxRect.height}
@@ -777,6 +810,30 @@ const ScoutMatch = () => {
   };
 
   const renderSideBarHeader = () => {
+    const DisplayTimer = ({fontSize}) => {
+      const currentTime = useTimer(); // Use the hook!
+      const { phase } = useContext(MatchContext); // Still get phase from the main context
+
+      const format = (milliseconds) => {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(1, "0")}:${String(seconds).padStart(2, "0")}`;
+      };
+
+      const getDisplayTime = () => {
+        let time = null;
+        if (phase === PHASES.AUTO) {
+          time = AUTO_MAX_TIME - currentTime;
+        } else if (phase === PHASES.TELE) {
+          time = TELE_MAX_TIME - currentTime;
+        }
+        return time != null ? format(Math.max(0, time)) : "- - -";
+      };
+
+      return <span style={{ color: "white", fontSize }}>{getDisplayTime()}</span>;
+    };
+
     const iconSize = scaleWidthToActual(150);
     const fontSize = scaleWidthToActual(60);
 
@@ -785,10 +842,11 @@ const ScoutMatch = () => {
         <Box sx={{ display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between" }}>
           <Button onClick={() => setSidebarOpen(true)} sx={{ width: iconSize, height: iconSize, minWidth: 0, padding: 0 }}><MenuIcon sx={{ height: "100%", width: "100%", fontSize: fontSize }} /></Button>
 
-          {/* Note: The power cell icons that were here have been removed as getNumPowerCellsInBot() is obsolete. */}
           <Box sx={{ flex: 1 }} />
 
-          <Box sx={{ width: iconSize, height: iconSize, display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ color: "white", fontSize: fontSize }}>{displayTime}</span></Box>
+          <Box sx={{ width: iconSize, height: iconSize, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <DisplayTimer fontSize={fontSize}/>
+          </Box>
         </Box>
         {renderScoutDataLabel()}
       </Box>
@@ -805,10 +863,11 @@ const ScoutMatch = () => {
         return (
           <Box key={`${item.id}-${key}`} sx={{ flex: item.flexWeight || 1 }}>
             <SidebarButton
+              match={match}
               id={key}
-              label={typeof item.label === "function" ? item.label(match, key) : item.label}
-              onClick={() => item.onClick && item.onClick(match, key)}
-              color={typeof item.color === "function" ? item.color(match, key) : item.color}
+              label={item.label}
+              onClick={item.onClick}
+              color={item.color}
               sx={item.sx}
               flexWeight={item.flexWeight || 1}
               disabled={item.isDisabled && item.isDisabled(match, key)}
@@ -852,56 +911,59 @@ const ScoutMatch = () => {
 
   return (
     <MatchContext.Provider value={CONTEXT_WRAPPER}>
-      <ThemeProvider theme={getTheme()}>
-        <Box sx={{ position: "relative", width: "100vw", height: "100vh", bgcolor: "black" }}>
-          {/* <FullscreenDialog /> */}
-          <RequiredParamsDialog
-            open={searchParamsError != null}
-            searchParams={searchParams}
-            searchParamsError={searchParamsError}
-            onSubmit={handleMissingParamsSubmit}
-            scoutData={scoutData}
-            requiredParamKeys={["eventKey", "matchKey", "station"]}
-            offlineRequiredParamKeys={["eventKey", "matchKey", "station", "robot", "scout"]}
-            offlineOption={true}
-          />
-          <Box
-            ref={scaledBoxRef}
-            sx={{
-              position: "absolute", top: "50%", left: "50%",
-              width: scaledBoxRect.width, height: scaledBoxRect.height,
-              transform: "translate(-50%, -50%)",
-              background: getTheme().palette.background.default,
-            }}
-          >
+      <TimerProvider phase={phase} matchStartTime={matchStartTime}>
+        <ThemeProvider theme={getTheme()}>
+          <Box sx={{ position: "relative", width: "100vw", height: "100vh", bgcolor: "black" }}>
+            {/* <FullscreenDialog /> */}
+            <RequiredParamsDialog
+              open={searchParamsError != null}
+              searchParams={searchParams}
+              searchParamsError={searchParamsError}
+              onSubmit={handleMissingParamsSubmit}
+              scoutData={scoutData}
+              requiredParamKeys={["eventKey", "matchKey", "station"]}
+              offlineRequiredParamKeys={["eventKey", "matchKey", "station", "robot", "scout"]}
+              offlineOption={true}
+            />
             <Box
+              ref={scaledBoxRef}
               sx={{
-                // background: phase === PHASES.AUTO ? getTheme().palette.autoBackground.main : "",
-                position: "absolute", left: scaleWidthToActual(sidebarVirtualWidth),
-                width: scaledBoxRect.width - scaleWidthToActual(sidebarVirtualWidth),
-                height: scaledBoxRect.height, overflow: "hidden",
+                position: "absolute", top: "50%", left: "50%",
+                width: scaledBoxRect.width, height: scaledBoxRect.height,
+                transform: "translate(-50%, -50%)",
+                background: getTheme().palette.background.default,
               }}
             >
-              {renderFieldCanvas()}
+              <Box
+                sx={{
+                  // background: phase === PHASES.AUTO ? getTheme().palette.autoBackground.main : "",
+                  position: "absolute", left: scaleWidthToActual(sidebarVirtualWidth),
+                  width: scaledBoxRect.width - scaleWidthToActual(sidebarVirtualWidth),
+                  height: scaledBoxRect.height, overflow: "hidden",
+                  pointerEvents: "auto",
+                }}
+              >
+                {renderFieldCanvas()}
+              </Box>
+              <Box
+                sx={{
+                  position: "absolute", left: 0,
+                  width: scaleWidthToActual(sidebarVirtualWidth),
+                  height: scaledBoxRect.height, overflow: "hidden",
+                  background: "background.paper"
+                }}
+              >
+                {renderSideBar()}
+              </Box>
             </Box>
-            <Box
-              sx={{
-                position: "absolute", left: 0,
-                width: scaleWidthToActual(sidebarVirtualWidth),
-                height: scaledBoxRect.height, overflow: "hidden",
-                background: "background.paper"
-              }}
-            >
-              {renderSideBar()}
-            </Box>
+            <AppAlert
+                open={alertOpen}
+                message={alertMessage}
+                onClose={() => setAlertOpen(false)}
+            />
           </Box>
-          <AppAlert
-              open={alertOpen}
-              message={alertMessage}
-              onClose={() => setAlertOpen(false)}
-          />
-        </Box>
-      </ThemeProvider>
+        </ThemeProvider>
+      </TimerProvider>
     </MatchContext.Provider>
   );
 };

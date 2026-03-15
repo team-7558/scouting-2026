@@ -1,5 +1,6 @@
 import { Slider } from "@mui/material";
 import { COLORS } from "./Constants";
+import React from "react";
 
 export const ImageIcon = (imageSrc) => (
   <span
@@ -22,11 +23,14 @@ export const ImageIcon = (imageSrc) => (
   </span>
 );
 
-export const StartingPositionSlider = (match) => {
+export const StartingPositionSlider = React.memo(({match}) => {
   const flipSlider = match.isScoutingRed;
+
+  // console.log("match", match, match.scaleHeightToActual);
 
   return (
     <Slider
+      key="starting-position-slider"
       orientation="vertical"
       value={flipSlider ? 10 - match.startingPosition : match.startingPosition}
       onChange={(event, value) => match.setStartingPosition(flipSlider ? 10 - value : value)}
@@ -36,10 +40,10 @@ export const StartingPositionSlider = (match) => {
       valueLabelDisplay="on"
       valueLabelFormat={(value) => <div>{match.scoutData?.teamNumber}</div>}
       sx={{
-        marginTop: `${match.fieldCanvasRef.current?.scaleHeightToActual(
+        marginTop: `${match.scaleHeightToActual(
           150
         )}px`,
-        marginBottom: `${match.fieldCanvasRef.current?.scaleHeightToActual(
+        marginBottom: `${match.scaleHeightToActual(
           150
         )}px`,
         padding: 0,
@@ -60,4 +64,12 @@ export const StartingPositionSlider = (match) => {
       }}
     />
   );
-};
+}, (prevProps, nextProps) => {
+  // ONLY re-render if startingPosition or teamNumber actually changes.
+  // This ignores the 500ms timer updates happening in the parent
+  return (
+    prevProps.match.startingPosition === nextProps.match.startingPosition &&
+    prevProps.match.scoutData?.teamNumber === nextProps.match.scoutData?.teamNumber &&
+    prevProps.match.isScoutingRed === nextProps.match.isScoutingRed
+  );
+});

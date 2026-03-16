@@ -1,8 +1,7 @@
 import { USER_ROLES } from "./auth.js";
-import { getMatchDataInternal } from "./matches.js";
 import { pgClient, protectOperation } from "./PgClient.js";
 
-const storeTeamsInternal = async (event_code, teams) => {
+export const storeTeamsInternal = async (event_code, teams) => {
     // Define the dynamic table name; note we sanitize event_code in the route so this is safe.
   const tableName = `teams_${event_code}`;
   const client = await pgClient();
@@ -11,24 +10,26 @@ const storeTeamsInternal = async (event_code, teams) => {
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS ${tableName} (
         team_number INT,
-        team_name TEXT
+        team_name TEXT,
+        avg_shot_rate INT
         );
       `;
     await client.query(createTableQuery);
 
     // Loop through each match and insert the data into the table.
     for (const team of teams) {
-      const { teamNumber, teamName } = team;
+      const teamNumber = team.team_number;
+      const teamName = team.nickname;
 
       const insertQuery = `
         INSERT INTO ${tableName} 
-        (team_number, team_name)
-        VALUES ($1, $2);
+        (team_number, team_name, avg_shot_rate)
+        VALUES ($1, $2, $3);
         `;
       let response = await client.query(insertQuery, [
-        teamNumber, teamName
+        teamNumber, teamName, null
       ]);
-      console.log(response);
+      console.log(teamNumber, teamName, response);
     }
   } finally {
     await client.release();

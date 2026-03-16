@@ -1,8 +1,9 @@
 import express from "express";
 import { customAlphabet } from "nanoid";
 import { getScoutMatch, storeOrUpdateMatches } from "../database/matches.js";
-import { fetchMatches } from "../services/tba.js";
+import { fetchMatches, fetchTeams } from "../services/tba.js";
 import { getUsernameById, verifyToken } from "./auth.js";
+import { storeTeams } from "../database/team.js";
 
 // no underscores vs default alphabet
 const alphabet =
@@ -24,6 +25,9 @@ router.post("/matches", verifyToken, async (req, res) => {
   try {
     const matches = await fetchMatches(event_code);
     await storeOrUpdateMatches(req, event_code, matches);
+    
+    const teams = await fetchTeams(event_code);
+    await storeTeams(req, event_code, teams);
     res.json({
       message: "Matches stored/updated successfully",
       count: matches.length,

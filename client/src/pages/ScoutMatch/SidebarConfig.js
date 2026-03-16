@@ -49,7 +49,6 @@ export const SIDEBAR_CONFIG = [
       match.setActiveCycle({
         ...match.activeCycle,
         endTime: currentTime,
-        rate: 1,
       }, `Stop ${match.activeCycle.type.toLowerCase()}ing`);
     }
   },
@@ -66,7 +65,6 @@ export const SIDEBAR_CONFIG = [
       match.setActiveCycle({
         ...match.activeCycle,
         endTime: currentTime,
-        rate: 1
       }, `Stop Intaking`);
     }
   },
@@ -182,10 +180,7 @@ export const SIDEBAR_CONFIG = [
           robot: match.scoutData.teamNumber,
           scoutId: match.userToken.id,
           scoutName: match.userToken.username,
-          cycles: match.cycles.map(c => [CYCLE_TYPES.SNOWBALL, CYCLE_TYPES.SHOOTING].includes(c.type) ?
-            { ...c, rate: match.endgame[c.type === CYCLE_TYPES.SNOWBALL ? "snowballRate" : "shotRate"] }
-            : c
-          ),
+          cycles: match.cycles,
           endgame: match.endgame,
         },
         match.searchParams,

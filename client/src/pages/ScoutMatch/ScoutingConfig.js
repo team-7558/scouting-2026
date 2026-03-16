@@ -87,7 +87,6 @@ export const SCOUTING_CONFIG = {
         location: key,
         startTime: currentTime,
         endTime: null,
-        rate: null,
       }, `Start Shooting (${key}) Cycle`);
     },
     isSelected: (match, key) =>
@@ -436,50 +435,6 @@ export const ENDGAME_CONFIG = [
 
     rowParams: {
       gap: 2
-    }
-  },
-
-  {
-    id: "shotRate",
-    type: "TOGGLE",
-    label: "Shot Rate",
-
-    fieldX: 1500,
-    fieldY: 950,
-    width: 1200,
-    height: 200,
-
-    options: ["0-2/s", "2-4/s", "4-8/s", "8+"],
-    values: [1, 3, 6, 9],
-
-    labelParams: {
-      height: 150
-    },
-
-    rowParams: {
-      gap: 5
-    }
-  },
-
-  {
-    id: "bypassRate",
-    type: "TOGGLE",
-    label: "Bypass Rate",
-
-    fieldX: 1500,
-    fieldY: 1350,
-    width: 1200,
-    height: 200,
-
-    options: ["0-2/s", "2-4/s", "4-8/s", "8+"],
-    values: [1, 3, 6, 9],
-
-    labelParams: {
-      height: 150
-    },
-
-    rowParams: {
-      gap: 5
     }
   },
 

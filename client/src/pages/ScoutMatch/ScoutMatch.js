@@ -377,10 +377,7 @@ const ScoutMatch = () => {
       driverSkill: "N/A", 
       defenseSkill: "N/A", 
       roles: [], 
-      comments: "",
-      shotRate: 0,
-      bypassRate: 0,
-      accuracy: 90,
+      comments: ""
     },
   };
 
@@ -542,7 +539,7 @@ const ScoutMatch = () => {
       case CYCLE_TYPES.SHOOTING:
       case CYCLE_TYPES.INTAKE:
       case CYCLE_TYPES.BYPASS:
-        if (exists(activeCycle.rate)) {
+        if (exists(activeCycle.endTime)) {
           setState(prevState => ({
             ...prevState,
             cycles: [...prevState.cycles, activeCycle],

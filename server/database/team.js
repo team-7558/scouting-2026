@@ -56,6 +56,21 @@ const getTeamsInternal = async ({eventKey, teams}) => {
   }
 }
 
+const setShootingRateInternal = async (eventKey, team, bps) => {
+  const tableName = `teams_${eventKey}`;
+  const client = await pgClient();
+
+  const query = `
+  UPDATE ${tableName}
+  SET avg_shot_rate = $1
+  WHERE team_number = $2
+  `
+
+  await client.query(query, [bps, team]);
+}
+
+export const setShootingRate = protectOperation(setShootingRateInternal, [USER_ROLES.ADMIN]);
+
 export const getTeams = protectOperation(getTeamsInternal, [USER_ROLES.USER]);
 
 export const storeTeams = protectOperation(storeTeamsInternal, [USER_ROLES.Admin]);

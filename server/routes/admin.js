@@ -1,7 +1,7 @@
 // routes/admin.js
 import express from "express";
 import notion from "../services/notionClient.js"; // adjust the path as needed
-import { storeTeams } from "../database/team.js";
+import { setShootingRate, storeTeams } from "../database/team.js";
 import { verifyToken } from "./auth.js";
 // import { storePitScouting } from "../database/pit_scouting.js";
 
@@ -32,6 +32,17 @@ router.post("/importNotionPitScouting", async (req, res) => {
   } catch (error) {
     console.error("Error importing pit scouting data:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+router.post("/teamShotRate", verifyToken, async (req, res) => {
+  const { eventKey, team, bps } = req.body;
+  try {
+    await setShootingRate(req, eventKey, team, bps);
+    return res.status(200).json({ message: "Updated Successfully" });
+  } catch (error) {
+    console.error("Error setting teams rate", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

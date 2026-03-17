@@ -16,3 +16,12 @@ export const postImportPitScouting = async ({ eventKey, databaseId }) => {
     { headers: getAuthHeaders() }
   );
 };
+
+// Set team rate request
+export const setTeamShootingRate = async (eventKey, team, bps) => {
+  return api.post(
+    `/teamShotRate`,
+    { eventKey, team, bps },
+    { headers: getAuthHeaders() } // Automatically include token
+  );
+};

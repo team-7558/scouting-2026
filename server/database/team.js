@@ -36,4 +36,26 @@ export const storeTeamsInternal = async (event_code, teams) => {
   }
 };
 
+const getTeamsInternal = async ({eventKey, teams}) => {
+  const tableName = `teams_${eventKey}`;
+  const client = await pgClient();
+  try {
+    const getAllTeamsQuery = `
+    SELECT * FROM ${tableName}
+    `;
+
+    const getSpecificTeamsQuery = `
+    SELECT * FROM ${tableName}
+    WHERE team_number = ANY($1::int[])
+    `;
+
+    if (teams) return await client.query(getSpecificTeamsQuery, [teams]);
+    else return await client.query(getAllTeamsQuery);
+  } finally {
+    await client.release();
+  }
+}
+
+export const getTeams = protectOperation(getTeamsInternal, [USER_ROLES.USER]);
+
 export const storeTeams = protectOperation(storeTeamsInternal, [USER_ROLES.Admin]);

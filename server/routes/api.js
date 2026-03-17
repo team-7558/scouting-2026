@@ -3,7 +3,7 @@ import { customAlphabet } from "nanoid";
 import { getScoutMatch, storeOrUpdateMatches } from "../database/matches.js";
 import { fetchMatches, fetchTeams } from "../services/tba.js";
 import { getUsernameById, verifyToken } from "./auth.js";
-import { storeTeams } from "../database/team.js";
+import { getTeams, storeTeams } from "../database/team.js";
 
 // no underscores vs default alphabet
 const alphabet =
@@ -35,6 +35,19 @@ router.post("/matches", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Error processing match data:", error);
     res.status(500).json({ message: "Server error: " + error.message });
+  }
+});
+
+router.get("/teams", verifyToken, async (req, res) => {
+  const { eventKey, teams } = req.body;
+  if (!eventKey) return res.status(400).json({ message: "Missing event key" });
+
+  try {
+    const teamsData = await getTeams(req, {eventKey, teams});
+    return res.json(teamsData.rows);
+  } catch (error) {
+    console.error("Error getting teams", error);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 

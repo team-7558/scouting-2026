@@ -1,7 +1,7 @@
 // routes/admin.js
 import express from "express";
 import notion from "../services/notionClient.js"; // adjust the path as needed
-import { setShootingRate, storeTeams } from "../database/team.js";
+import { getTeam, setShootingRate, storeTeams } from "../database/team.js";
 import { verifyToken } from "./auth.js";
 // import { storePitScouting } from "../database/pit_scouting.js";
 
@@ -37,13 +37,17 @@ router.post("/importNotionPitScouting", async (req, res) => {
 
 router.post("/teamShotRate", verifyToken, async (req, res) => {
   const { eventKey, team, bps } = req.body;
-  try {
-    await setShootingRate(req, eventKey, team, bps);
-    return res.status(200).json({ message: "Updated Successfully" });
-  } catch (error) {
-    console.error("Error setting teams rate", error);
-    res.status(500).json({ message: "Server error" });
+  return await setShootingRate(req, eventKey, team, bps, res);
+});
+
+//returns an array of all teams with their shot rates
+router.get("/teamShotRate", verifyToken, async (req, res) => {
+  const { eventKey, robotNumber } = req.body;
+  const response = await getTeam(req, eventKey, robotNumber);
+  if (response.rowCount===0) {
+    return res.status(400).json({ message: "Robot not found" });
   }
+  return res.status(200).json(response.rows[0]);
 });
 
 router.post("/addTeamsToEvent", verifyToken, async (req, res) => {

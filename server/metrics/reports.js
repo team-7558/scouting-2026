@@ -104,16 +104,11 @@ export const calculateReportTotals = (report) => {
       case "AUTO_MOVEMENT": {
         const normalizedLocation = String(location).trim().toUpperCase();
 
-        console.log("location:", normalizedLocation, normalizedLocation == "\"BUMP\"", normalizedLocation == "\"TRENCH\"");
-
         if (normalizedLocation == "\"BUMP\"") {
-          console.log("ADDING CYCLE: BUMP");
           phaseResults.movement.bumps += 1;
         } else if (normalizedLocation == "\"TRENCH\"") {
-          console.log("ADDING CYCLE: TRENCH");
           phaseResults.movement.trenches += 1;
         } else {
-          console.log("ADDING CYCLE: MOVEMENT123123");
           phaseResults.movement.movements += 1;
         }
         break;
@@ -129,8 +124,6 @@ export const calculateReportTotals = (report) => {
         if (rate > 0 && startTime !== null && endTime !== null) {
           const duration = endTime - startTime;
         }
-
-        console.log("abcde", rate, phaseResults.fuel.shotRateSum);
 
         // Intake -> Attained
         if (cycleType === "INTAKE") {
@@ -198,7 +191,6 @@ export const calculateReportTotals = (report) => {
 
 // ---------- Average metrics helper (keeps similar shape to your original but generic) ----------
 export const calculateAverageMetrics = (reports) => {
-  console.log("avging metrics", reports);
   if (!Array.isArray(reports) || reports.length === 0) return {};
 
   const averageMetrics = {
@@ -213,11 +205,9 @@ export const calculateAverageMetrics = (reports) => {
   reports.forEach((r) => {
     // MODIFIED: Added '&& r.totals.disabled !== 0' to ignore zero values
     if (r.totals && typeof r.totals.disabled === "number" && r.totals.disabled !== 0) {
-      console.log("disabled", r.totals.disabled);
       disabledSum += { No: 0, Yes: 1, Partially: 0.5 }[r.totals.disabled];
       accuracySum += { Low: 40, Med: 70, High: 100, Perfect: 100 }[r.totals.accuracy]
     }
-    console.log("report", r);
   });
   averageMetrics.disabled = disabledSum / reports.length;
 
@@ -226,7 +216,6 @@ export const calculateAverageMetrics = (reports) => {
     // take keys from first report's totals if present
     const structure = {};
     const firstTotals = reports[0].totals && reports[0].totals[phase] ? reports[0].totals[phase] : {};
-    console.log("firstTotals", firstTotals);
     for (const category of Object.keys(firstTotals)) {
       structure[category] = {};
       for (const key of Object.keys(firstTotals[category])) {
@@ -247,7 +236,6 @@ export const calculateAverageMetrics = (reports) => {
         structure[category][key] = count > 0 ? [sum / reports.length, sum / count] : null;
       }
     }
-    console.log("structure", structure);
     return structure;
   };
 

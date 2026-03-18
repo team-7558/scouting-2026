@@ -9,6 +9,7 @@ import { getMatchDataInternal } from "../database/matches.js";
 // Import the new pit scouting query function:
 // import { getPitScoutingByRobotInternal } from "../database/pit_scouting.js";
 import { verifyToken } from "./auth.js";
+import { getTeams } from "../database/team.js";
 
 const router = express.Router();
 
@@ -42,10 +43,6 @@ router.get("/", verifyToken, async (req, res) => {
       return res.status(204).json({ data: [] });
     }
 
-    console.log("reportsAndCyclesFiltered", reports);
-    console.log("reportsAndCyclesFilteredAuto", reports.auto);
-    console.log("reportsAndCyclesFilteredTele", reports.tele);
-
     // Group reports by robot
     const reportsByRobot = {};
     reports.forEach((report) => {
@@ -57,10 +54,15 @@ router.get("/", verifyToken, async (req, res) => {
     });
 
     // Calculate averages for each robot group
+    const teamsData = await getTeams(req, eventKey, Object.keys(reportsByRobot));
+
     let averages = {};
     Object.keys(reportsByRobot).forEach((robotId) => {
       averages[robotId] = calculateAverageMetrics(reportsByRobot[robotId]);
-      console.log("averages", averages[robotId]);
+      const teamObj = teamsData.rows.find(el => el.team_number==robotId);
+      // console.log("abcde", teamObj, teamsData.rows, robotId);
+      averages[robotId].teamName = teamObj?.team_name || null;
+      averages[robotId].avgShotRate = teamObj?.avg_shot_rate || null;
     });
     if (matchKey) {
       // Retrieve the match data using our existing internal function.

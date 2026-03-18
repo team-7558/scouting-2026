@@ -43,7 +43,7 @@ router.get("/teams", verifyToken, async (req, res) => {
   if (!eventKey) return res.status(400).json({ message: "Missing event key" });
 
   try {
-    const teamsData = await getTeams(req, {eventKey, teams});
+    const teamsData = await getTeams(req, eventKey, teams);
     return res.json(teamsData.rows);
   } catch (error) {
     console.error("Error getting teams", error);

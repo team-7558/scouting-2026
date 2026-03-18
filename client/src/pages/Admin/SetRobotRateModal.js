@@ -42,14 +42,16 @@ const SetRobotRateModal = ({ open, handleClose }) => {
     const handleSetRate = async () => {
         try {
             const response = await setTeamShootingRate(event, teamNumber, bps);
-            if (!response.status===200) throw new Error(response.data.message);
+            console.log(response);
             showAlert(response.data.message);
             setShouldClose(true);
         } catch (err) {
-        setError(
-            "Error: " + (err.message)
-            // "Error"
-        );
+          if (err) {
+            const message = err.response.data?.message || "Unknown backend error";
+            setError("Error: " + message);
+          } else {
+            setError("Error: " + err.message);
+          }
         }
     };
 
@@ -83,7 +85,7 @@ const SetRobotRateModal = ({ open, handleClose }) => {
           onChange={(e) => setEvent(e.target.value)}
         >
           {[...ATTENDING_EVENTS, ...PRACTICE_EVENTS].map(eventKey => 
-            <MenuItem value={eventKey}>{eventKey}</MenuItem>
+            <MenuItem key={eventKey} value={eventKey}>{eventKey}</MenuItem>
           )}
         </TextField>
         {error && <p style={{ color: "red" }}>{error}</p>}

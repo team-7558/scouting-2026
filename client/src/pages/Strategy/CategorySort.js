@@ -93,10 +93,12 @@ const camelCaseToWords = (str) => {
 }
 
 // ----------------- CategoryTable (Corrected for Sorting) -----------------
-const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
+const CategoryTable = ({ data, group, rows, metricKeys, headingColor }) => {
   const theme = useTheme();
   const [order, setOrder] = useState("asc");
   const [orderBy, setOrderBy] = useState("robot");
+
+  console.log("averages", data, group, rows, metricKeys, headingColor);
 
   const processedRows = useMemo(() => {
     // Create a new array of rows that includes the calculated values as properties.
@@ -107,7 +109,7 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
         let rawValue;
         if (calculatedMetrics[group]?.[key]) {
           // This metric is calculated on the fly.
-          const calculatedResult = calculatedMetrics[group][key](row);
+          const calculatedResult = calculatedMetrics[group][key](data[row.robot], row.phase);
           // Convert the result (which might be a string like "-") to a number for sorting.
           // parseFloat will correctly handle numbers-as-strings ("25.1") and return NaN for "-".
           rawValue = parseFloat(calculatedResult);
@@ -182,7 +184,9 @@ const CategoryTable = ({ group, rows, metricKeys, headingColor }) => {
               {metricKeys.map((key) => (
                 <TableCell key={key} sx={{ color: "#fff", fontSize: "40px", }}>
                   {/* The display logic remains the same, as it will re-calculate for presentation */}
-                  {calculatedMetrics[group]?.[key] ? calculatedMetrics[group]?.[key](row) : formatValue(row[key], key)}
+                  {calculatedMetrics[group]?.[key] 
+                    ? calculatedMetrics[group]?.[key](data[row.robot], row.phase) 
+                    : formatValue(row[key], key)}
                 </TableCell>
               ))}
             </TableRow>
@@ -263,7 +267,7 @@ const AveragesTable = ({ averages, phaseFilter, headingColors }) => {
               {openGroups[group] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </Box>
             <Collapse in={openGroups[group]} timeout="auto" unmountOnExit>
-              <CategoryTable group={group} rows={rows} metricKeys={metricKeys} headingColor={headingColors?.[group]} />
+              <CategoryTable data={averages} group={group} rows={rows} metricKeys={metricKeys} headingColor={headingColors?.[group]} />
             </Collapse>
           </Box>
         );

@@ -69,130 +69,7 @@ const formatValue = (value, key, roundingCount) => {
   return v;
 };
 
-const ViewReportGraphs = ({ data, headingColors }) => {
-  const [selectedPhase, setSelectedPhase] = useState("tele");
-
-  const getAvailableMetrics = () => {
-    if (!data?.reports?.[0]?.totals?.[selectedPhase]) {
-      return [];
-    }
-    return Object.keys(data.reports[0].totals[selectedPhase]);
-  };
-
-  const [selectedMetric, setSelectedMetric] = useState(getAvailableMetrics()[0] || "");
-
-  useEffect(() => {
-    const availableMetrics = getAvailableMetrics();
-    if (!availableMetrics.includes(selectedMetric)) {
-      setSelectedMetric(availableMetrics[0] || "");
-    }
-  }, [selectedPhase, data]);
-
-  const MetricsChart = ({ data, title }) => {
-    let newData = [];
-    const maxReportsCount = Math.max(...Object.values(data).map(arr => arr.length));
-
-    for (let i = 0; i < maxReportsCount; i++) {
-      let nextElement = { name: `Report ${i + 1}` };
-      for (const key in data) {
-        const val = data[key][i];
-        nextElement[key] = val ? (calculatedMetrics[selectedMetric][title] ? calculatedMetrics[selectedMetric][title](val) : val[title]) : 0;
-      }
-      newData.push(nextElement);
-    }
-
-
-    const colors = ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#FFA500", "#800080", "#008000", "#000080"];
-
-    return (
-      <Box sx={{ width: { xs: "90%", sm: "45%" }, aspectRatio: "16/9", mb: 4 }}>
-        <Typography variant="h6" sx={{ textAlign: "center", color: "#ccc", height: "15%" }}>
-          {camelCaseToWords(title)}
-        </Typography>
-        <Box sx={{ width: "100%", height: "85%" }}>
-          <ResponsiveContainer>
-            <LineChart data={newData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid stroke="#ccc" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              {Object.keys(data).map((robot, i) => {
-                return (
-                  <Line
-                    key={robot.toString()}
-                    type="monotone"
-                    dataKey={robot.toString()}
-                    stroke={colors[i % colors.length]}
-                  />
-                )
-              })}
-            </LineChart>
-          </ResponsiveContainer>
-        </Box>
-      </Box>
-    );
-  };
-
-  if (!data?.reports || data.reports.length === 0) {
-    return null;
-  }
-
-  const availableMetrics = getAvailableMetrics();
-  const submetrics = (selectedPhase && selectedMetric) ? visibleMetrics[selectedPhase][selectedMetric] : [];
-  return (
-    <Paper sx={{ bgcolor: "#111", margin: "2%", width: "96%", padding: "2vh 2vw", boxShadow: `0px 0px 10px #aaa` }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 4 }}>
-        <FormControl>
-          <InputLabel id="phaseSelector-label" sx={{ color: "#ccc" }}>Phase</InputLabel>
-          <Select
-            labelId="phaseSelector-label"
-            value={selectedPhase}
-            label="Phase"
-            onChange={(e) => setSelectedPhase(e.target.value)}
-            sx={{ color: "#eee", border: `2px solid #ccc`, svg: { color: "#ccc" } }}
-          >
-            <MenuItem value={"auto"}>AUTO</MenuItem>
-            <MenuItem value={"tele"}>TELE</MenuItem>
-          </Select>
-        </FormControl>
-
-        {availableMetrics.length > 0 && (
-          <FormControl>
-            <InputLabel id="metricSelector-label" sx={{ color: "#ccc" }}>Metric</InputLabel>
-            <Select
-              labelId="metricSelector-label"
-              value={selectedMetric}
-              label="Metric"
-              onChange={(e) => setSelectedMetric(e.target.value)}
-              sx={{ color: "#eee", border: "2px solid #ccc", svg: { color: "#ccc" } }}
-            >
-              {availableMetrics.map(name => (
-                <MenuItem key={name} value={name}>{camelCaseToWords(name)}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )}
-      </Box>
-
-      <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-evenly" }}>
-        {submetrics.map(submetricName => {
-          let allData = {};
-          data.reports.forEach(report => {
-            if (!allData[report.robot]) {
-              allData[report.robot] = [];
-            }
-            const value = report.totals[selectedPhase]?.[selectedMetric];
-            allData[report.robot].push(Array.isArray(value) ? value[0] : value);
-          });
-          return (visibleMetrics[selectedPhase][selectedMetric].includes(submetricName) && <MetricsChart key={submetricName} data={allData} title={submetricName} />);
-        })}
-      </Box>
-    </Paper>
-  );
-};
-
-const ViewIndividualReports = ({ reports, headingColors }) => {
+const ViewIndividualReports = ({ reports, averages, headingColors }) => {
   const [currentReport, setCurrentReport] = useState(0);
   const [selectedPhase, setSelectedPhase] = useState("tele");
 
@@ -228,7 +105,12 @@ const ViewIndividualReports = ({ reports, headingColors }) => {
               {dataKeys.map(categoryKey => {
                 return (
                   <TableCell key={`values-${categoryKey}-${metric}`} sx={{ color: GROUP_COLORS[metric] || '#fff', backgroundColor: "#444", border: `2px solid ${GROUP_COLORS[metric] || '#fff'}` }}>
-                    {calculatedMetrics[metric]?.[categoryKey] ? calculatedMetrics[metric][categoryKey](data) : formatValue(data[categoryKey], categoryKey, 1)}
+                    {calculatedMetrics[metric]?.[categoryKey] 
+                      ? calculatedMetrics[metric][categoryKey]({
+                        ...reports[currentReport].totals,
+                        avgShotRate: averages[reports[currentReport].robot].avgShotRate,
+                      }, selectedPhase) 
+                      : formatValue(data[categoryKey], categoryKey, 1)}
                   </TableCell>
                 )
               })}
@@ -585,7 +467,7 @@ const CategoryTable = ({ averages, headingColors = {} }) => {
                         backgroundColor: "#444",
                         border: `2px solid ${headingColors[metric] || "#fff"}`
                       }}>
-                        {calculatedMetrics[metric]?.[subMetric] ? calculatedMetrics[metric][subMetric](metricValue) : formatValue(value, subMetric, 1)}
+                        {calculatedMetrics[metric]?.[subMetric] ? calculatedMetrics[metric][subMetric](averages[robot], phase) : formatValue(value, subMetric, 1)}
                       </TableCell>
                     )
                   });
@@ -671,24 +553,36 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
 
         let res;
         if (robots.length > 1) {
-          let responses = [];
-          // Multiple robots: Fetch each robot individually and await all responses
-          robots.forEach(async (robot) => {
-            const robotParams = { ...params, robot };
-            const a = await getReports(robotParams);
-            if (a.status===200) {
-              responses.push(a.data);
-            }
-            else setError(`Could not find data for team ${robot}`)
+          const calls = robots.map(async (robot) => {
+          const robotParams = { ...params, robot };
+          const res = await getReports(robotParams); // axios response
+          if (res.status === 200) {
+            return res.data;        // just the data
+          } else {
+            setError(`Could not find data for team ${robot}`);
+            return null;            // or throw, depending on your needs
+          }
+        });
+
+        // Wait for all requests to finish
+        const results = await Promise.all(calls);
+
+        // Filter out nulls / failures
+        const responses = results.filter(Boolean); // array of data objects
+
+        // Now combine
+        const combinedAverages = {};
+        responses
+          .flatMap(r => r.averages)     // because each r already is data
+          .forEach(r => {
+            const key = Object.keys(r)[0];
+            combinedAverages[key] = r[key];
           });
-          // const responses = await Promise.all(calls);
-          // Aggregate or combine data as needed, here we combine all data arrays
-          const combinedAverages = {}
-          responses.flatMap(r => r.data.averages).forEach(r => {
-            combinedAverages[Object.keys(r)[0]] = r[Object.keys(r)[0]];
-          });
-          const combinedReports = responses.flatMap(r => r.data.reports);
-          setReportData({ averages: combinedAverages, reports: combinedReports });
+
+        const combinedReports = responses.flatMap(r => r.reports);
+
+        console.log("combined", combinedAverages, combinedReports);
+        setReportData({ averages: combinedAverages, reports: combinedReports });
         } else {
           // No robots or single robot: just fetch once with existing params
           res = await getReports(params);
@@ -760,8 +654,7 @@ const ViewReports = ({ requiredParamKeys = ["eventKey"] }) => {
           <Typography color="error">{error}</Typography>
         ) : tableRows.length ? (<>
           <CategoryTable averages={reportData.averages} headingColors={headingColors} />
-          <ViewIndividualReports reports={reportData.reports} />
-          {window.location.pathname.startsWith("/robots") && <ViewReportGraphs data={reportData} headingColors={headingColors} />}
+          <ViewIndividualReports reports={reportData.reports} averages={reportData.averages}/>
         </>) : (
           <Typography sx={{ color: "#888" }}>No data available</Typography>
         )

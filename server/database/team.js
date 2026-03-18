@@ -36,7 +36,7 @@ export const storeTeamsInternal = async (event_code, teams) => {
   }
 };
 
-const getTeamsInternal = async ({eventKey, teams}) => {
+const getTeamsInternal = async (eventKey, teams) => {
   const tableName = `teams_${eventKey}`;
   const client = await pgClient();
   try {
@@ -56,18 +56,38 @@ const getTeamsInternal = async ({eventKey, teams}) => {
   }
 }
 
-const setShootingRateInternal = async (eventKey, team, bps) => {
+const setShootingRateInternal = async (eventKey, team, bps, res) => {
   const tableName = `teams_${eventKey}`;
   const client = await pgClient();
 
   const query = `
-  UPDATE ${tableName}
-  SET avg_shot_rate = $1
-  WHERE team_number = $2
+    UPDATE ${tableName}
+    SET avg_shot_rate = $1
+    WHERE team_number = $2
   `
 
-  await client.query(query, [bps, team]);
+  const dbResponse = await client.query(query, [bps, team]);
+
+  if (dbResponse.rowCount===0) {
+    return res.status(400).json({ message: "Team not found for that event key" });
+  }
+
+  return res.status(200).json({ message: "Updated Successfully" });
 }
+
+const getTeamInternal = async (eventKey, robotNumber) => {
+  const tableName = `teams_${eventKey}`;
+  const client = await pgClient();
+
+  const query = `
+    SELECT * FROM ${tableName} WHERE team_number = $1
+  `
+
+  const response = await client.query(query, [robotNumber]);
+  return response;
+}
+
+export const getTeam = protectOperation(getTeamInternal, [USER_ROLES.USER]);
 
 export const setShootingRate = protectOperation(setShootingRateInternal, [USER_ROLES.ADMIN]);
 

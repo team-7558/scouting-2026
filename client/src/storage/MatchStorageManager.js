@@ -59,7 +59,6 @@ export const submitMatch = async (
 
   try {
     const { eventKey, matchKey, station } = Object.fromEntries(searchParams);
-    console.log("abcde", eventKey, matchKey, station, matchData);
     const response = await submitMatchRequest({
       eventKey,
       matchKey,

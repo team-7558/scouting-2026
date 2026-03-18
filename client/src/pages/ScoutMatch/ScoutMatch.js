@@ -147,7 +147,9 @@ const ScoutingConfigButton = ({ config, positionKey, match, scaleWidthToActual }
       drawBorder={isSelected}
       disabled={isDisabled}
       color={config.color || COLORS.ACTIVE}
-      onClick={() => config.onClick && config.onClick(match, positionKey, currentTime)}
+      onPointerDown={() => config.onClick && config.onClick(match, positionKey, currentTime)}
+      onPointerUp={() => config.onClickEnd && config.onClickEnd(match, positionKey, currentTime)}
+      onPointerLeave={() => config.onClickCancel && config.onClickCancel(match, positionKey, currentTime)}
       scaleWidthToActual={scaleWidthToActual}
     >
       {config.textFunction && config.textFunction(match, positionKey)}

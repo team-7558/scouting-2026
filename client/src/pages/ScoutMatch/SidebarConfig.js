@@ -35,40 +35,6 @@ export const SIDEBAR_CONFIG = [
     isDisabled: (match) => match.startingPosition < 0,
   },
 
-  // ------------ CYCLE/BYPASSING Stop --------------
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "stopCycleBypass",
-    positions: ["stop"],
-    flexWeight: 2,
-    label: (match) => `Stop ${match.activeCycle.type.toLowerCase().replace(/[aeiou]$/i, '')}ing`,
-    show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
-      ([CYCLE_TYPES.SHOOTING, CYCLE_TYPES.BYPASS].includes(match.activeCycle.type)),
-    onClick: (match, key, currentTime) => {
-      console.log("currentTime", currentTime);
-      match.setActiveCycle({
-        ...match.activeCycle,
-        endTime: currentTime,
-      }, `Stop ${match.activeCycle.type.toLowerCase()}ing`);
-    }
-  },
-
-  {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    id: "stopIntake",
-    positions: ["stop"],
-    flexWeight: 2,
-    label: (match) => `Stop Intaking`,
-    show: (match, key) => exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime) &&
-      ([CYCLE_TYPES.INTAKE].includes(match.activeCycle.type)),
-    onClick: (match, key, currentTime) => {
-      match.setActiveCycle({
-        ...match.activeCycle,
-        endTime: currentTime,
-      }, `Stop Intaking`);
-    }
-  },
-
   // ------------- HANG LEVEL --------------------------
   {
     phases: [PHASES.TELE], // Hanging is a TeleOp action

@@ -69,7 +69,7 @@ export const SCOUTING_CONFIG = {
 
   HUB: {
     phases: [PHASES.AUTO, PHASES.TELE],
-    positions: { CLOSE: [855, 800], FAR: [455, 1250] },
+    positions: { SHOOT: [855, 800]},
     dimensions: { width: 600, height: 300 },
     textFunction: (match, key) => key,
     color: COLORS.SHOOT,
@@ -84,13 +84,18 @@ export const SCOUTING_CONFIG = {
       match.setActiveCycle({
         type: CYCLE_TYPES.SHOOTING,
         phase: match.phase,
-        location: key,
         startTime: currentTime,
         endTime: null,
-      }, `Start Shooting (${key}) Cycle`);
+      });
+    },
+    onClickEnd: (match, key, currentTime) => {
+      match.setActiveCycle({
+        ...match.activeCycle,
+        endTime: currentTime,
+      })
     },
     isSelected: (match, key) =>
-      match.activeCycle?.type === CYCLE_TYPES.SHOOTING && match.activeCycle?.location === key,
+      match.activeCycle?.type === CYCLE_TYPES.SHOOTING && exists(match.activeCycle?.startTime),
   },
 
   TOWER: {
@@ -109,77 +114,6 @@ export const SCOUTING_CONFIG = {
     },
     isSelected: (match, key) =>
       match.activeCycle?.type === CYCLE_TYPES.HANG,
-  },
-
-  // Add these THREE objects to your SCOUTING_CONFIG in ScoutingConfig.js
-
-  // Configuration for the Depot Intake button
-  DEPOT_INTAKE: {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    // Replace with your desired coordinates
-    positions: { DEPOT: [500, 518] },
-    dimensions: { width: 700, height: 250 },
-    textFunction: (match, key) => "Alliance Zone Intake",
-    showFunction: (match, key) => match.cycles.filter(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT).length % 2 === 1 && !match.isDefending(),
-    color: COLORS.INTAKE, // Using the color from Constants.js
-    fontSize: 71,
-    // When clicked, it starts an INTAKE cycle with the specific location
-    onClick: (match, key, currentTime) => {
-      match.setActiveCycle({
-        type: CYCLE_TYPES.INTAKE,
-        phase: match.phase,
-        location: "ALLIANCE_ZONE", // Will be "DEPOT"
-        startTime: currentTime,
-      }, `Start Intake (${"ALLIANCE ZONE"}) Cycle`);
-    },
-    isSelected: (match, key) =>
-      match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === "ALLIANCE_ZONE",
-  },
-
-  NEUTRAL_ZONE_INTAKE: {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    // Replace with your desired coordinates
-    positions: { ZONE: [1650, 800] },
-    showFunction: (match, key) => match.cycles.filter(c => c.type === CYCLE_TYPES.AUTO_MOVEMENT).length % 2 === 0 && !match.isDefending(),
-    dimensions: { width: 950, height: 300 },
-    textFunction: (match, key) => "Neutral Zone Intake",
-    color: COLORS.INTAKE, // Using the color from Constants.js
-    fontSize: 70,
-    // When clicked, it starts an INTAKE cycle with the specific location
-    onClick: (match, key, currentTime) => {
-      match.setActiveCycle({
-        type: CYCLE_TYPES.INTAKE,
-        phase: match.phase,
-        location: "NEUTRAL_ZONE", // Will be "DEPOT"
-        startTime: currentTime,
-      }, `Start Intake (NEUTRAL ZONE) Cycle`);
-    },
-    isSelected: (match, key) =>
-      match.activeCycle?.type === CYCLE_TYPES.INTAKE && match.activeCycle?.location === "NEUTRAL_ZONE",
-  },
-
-  // Configuration for the Bypass (Burst) button
-  BYPASS: {
-    phases: [PHASES.AUTO, PHASES.TELE],
-    // Replace with your desired coordinates
-    positions: { ALLIANCE_ZONE: [500, 235], NEUTRAL_ZONE: [1650, 800] },
-    dimensions: { width: 800, height: 300 },
-    textFunction: (match, key) => "BYPASS",
-    color: COLORS.SHOOT, // Using a primary/active color
-    showFunction: (match, key) =>
-      key === "ALLIANCE_ZONE" ? !match.isDefending() : match.isDefending(),
-    // showFunction: (match, key) => ,
-    fontSize: 90,
-    onClick: (match, key, currentTime) => {
-      match.setActiveCycle({
-        type: CYCLE_TYPES.BYPASS,
-        phase: match.phase,
-        location: key,
-        startTime: currentTime,
-      }, `Start Bypass (${key}) Cycle`);
-    },
-    isSelected: (match, key) =>
-      match.activeCycle?.type === CYCLE_TYPES.BYPASS && match.activeCycle?.location === key,
   },
 
   HISTORY_CONTROLS: {

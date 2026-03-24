@@ -207,7 +207,7 @@ const Overlay = ({match}) => {
   }
   return (
     <Dialog open={true} onClose={handleClose} fullWidth maxWidth="md">
-      <DialogTitle variant="h2" sx={{textAlign: "center"}}>{config.title || ""}</DialogTitle>
+      <DialogTitle variant="h3" sx={{textAlign: "center"}}>{config.title || ""}</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column' }}>
         <Box
           sx={{
@@ -265,7 +265,7 @@ const Overlay = ({match}) => {
                             ? '5px solid black'
                             : '1px solid black',
                           flex: 1,
-                          height: "100%",
+                          minHeight: "15vh",
                           ...option.sx
                         }}
                         fullWidth
@@ -316,7 +316,7 @@ const Overlay = ({match}) => {
                     gap: 4 
                   }}
                 >
-                  <Typography variant="h2" sx={{ textAlign: "center", fontWeight: "bold" }}>
+                  <Typography variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
                     {contentConfig.label}: {currentVal}
                   </Typography>
                   
@@ -335,7 +335,7 @@ const Overlay = ({match}) => {
                 </Box>
               );
             }
-            else return contentConfig.componentFunction(match, currentTime);
+            else return contentConfig.componentFunction(match, currentTime, content, setContent);
           })}
         </Box>
       </DialogContent>

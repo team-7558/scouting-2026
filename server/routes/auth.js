@@ -48,13 +48,11 @@ export const extractRoleFromRequest = (req) => {
 // Sign-in endpoint (PUBLIC)
 router.post("/signin", async (req, res) => {
   let { username, password } = req.body;
-  console.log("here1");
   if (!username || !password) {
     return res.status(400).json({ message: "Username and password required" });
   }
 
   username = username.toLowerCase();
-  console.log("here2");
 
   try {
     const user = await authenticateUser(req, username, password);

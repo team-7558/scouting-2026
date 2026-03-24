@@ -9,6 +9,12 @@ import {
   AUTO_MAX_TIME
 } from "./Constants";
 
+import {
+  Button,
+  Box,
+  Typography
+} from "@mui/material";
+
 const exists = (val) => {
   return val !== null && val !== undefined
 }
@@ -72,55 +78,22 @@ export const SIDEBAR_CONFIG = [
     phases: [PHASES.TELE],
     // Positioned same as PHASE_CHANGER
     positions: ["DEFENSE"],
-    label: (match, key) => match.isDefending() ? "End Defend/Steal" : "Start Defense/Steal",
+    label: (match, key) => match.isDefending() ? "End Defend/Steal" : "Start Defense",
     color: (match) => match.isDefending() ? COLORS.INTAKE : COLORS.HANG_DEFENSE,
     show: (match) => true,
     onClick: (match, key, currentTime) => {
       if (match.isDefending()) {
         match.setDefenseCycle(
           prev => { return { ...prev.defenseCycle, endTime: currentTime } },
-          `End Defense/Steal`); // End defense
+          `End Defense`); // End defense
       } else {
         match.setDefenseCycle({
           type: CYCLE_TYPES.DEFENSE,
           phase: match.phase,
           startTime: currentTime,
-        }, `Start Defense/Steal`);
+        }, `Start Defense`);
       }
     },
-  },
-
-  // ---------- DEFENSE & CONTACT (Contextual) ----------
-  {
-    phases: [PHASES.TELE],
-    id: "contactCounters",
-    positions: ["pin", "foul"],
-    flexWeight: 1,
-    label: (match, key) => `${key.charAt(0).toUpperCase() + key.slice(1)}s: ${match.activeCycle[`${key}Count`] || 0}`,
-    onClick: (match, key) => {
-      match.setActiveCycle(
-        prev => ({ ...prev, [`${key}Count`]: (prev[`${key}Count`] || 0) + 1 }),
-        `Increment ${key} Counter`
-      );
-    },
-    color: (match, key) => key === 'pin' ? COLORS.SUCCESS : COLORS.FAIL,
-    show: (match) => match.activeCycle?.type === CYCLE_TYPES.CONTACT && exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
-  },
-
-  {
-    phases: [PHASES.TELE],
-    id: "contactEnd",
-    positions: ["endContact"],
-    flexWeight: 2,
-    label: () => "End Contact Cycle",
-    onClick: (match, key, currentTime) => {
-      match.setActiveCycle(
-        prev => ({ ...prev, endTime: currentTime }),
-        `End Contact Cycle`
-      );
-    },
-    color: () => COLORS.ACTIVE,
-    show: (match) => match.activeCycle?.type === CYCLE_TYPES.CONTACT && exists(match.activeCycle.startTime) && !exists(match.activeCycle.endTime),
   },
 
   {
@@ -311,6 +284,151 @@ export const OVERLAY_CONFIG = [
         id: "feedCount",
         label: "Balls Fed",
         defaultValue: 0
+      }
+    ]
+  },
+
+  //CONTACT
+  {
+    phases: [PHASES.AUTO, PHASES.TELE],
+    showFunction: (match) => match.isDefending(),
+    title: "DEFENSE",
+    
+    handleDone: (content, match, currentTime) => {
+      if (match.activeCycle?.type === CYCLE_TYPES.CONTACT) {
+        match.setCycles([...match.cycles, {
+          ...match.activeCycle,
+          endTime: currentTime,
+          cycle_time: currentTime - match.activeCycle.startTime,
+          pin_count: Number(content.pinCount) || 0,
+          foul_count: Number(content.foulCount) || 0
+        }], "End Contact & Defense");
+        
+        match.setActiveCycle(() => ({})); 
+      }
+
+      match.setDefenseCycle({
+        ...match.defenseCycle,
+        endTime: currentTime
+      }, "End Defense");
+    },
+    
+    handleClose: (match) => {
+      match.setDefenseCycle(() => ({}));
+      match.setActiveCycle(() => ({}));
+    },
+    
+    content: (match) => [
+      {
+        id: "contactTracking",
+        componentFunction: (match, currentTime, content, setContent) => {
+          const pins = content.pinCount || 0;
+          const fouls = content.foulCount || 0;
+          const isContacting = match.activeCycle?.type === CYCLE_TYPES.CONTACT;
+
+          const contactDuration = isContacting && match.activeCycle.startTime
+            ? Math.floor((currentTime - match.activeCycle.startTime) / 1000)
+            : 0;
+
+          return (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', width: '100%', py: 2 }}>
+              
+              {/* ACTION BUTTONS CONTAINER */}
+              <Box sx={{ display: 'flex', width: '85%', gap: 2, justifyContent: 'center' }}>
+                {!isContacting ? (
+                  <Button 
+                    variant="contained" 
+                    color={COLORS.CONTACT} 
+                    sx={{ fontSize: "2.5rem", flex: 1, height: 120, fontWeight: "bold", borderRadius: 4 }}
+                    onClick={() => {
+                      match.setActiveCycle({
+                        type: CYCLE_TYPES.CONTACT,
+                        phase: match.phase,
+                        startTime: currentTime,
+                      });
+                    }}
+                  >
+                    START CONTACT
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      variant="contained" 
+                      color={COLORS.CONTACT} 
+                      sx={{ fontSize: "2rem", flex: 2, height: 120, fontWeight: "bold", borderRadius: 4 }}
+                      onClick={() => {
+                        match.setCycles([...match.cycles, {
+                          ...match.activeCycle,
+                          endTime: currentTime,
+                          cycle_time: currentTime - match.activeCycle.startTime,
+                          pin_count: pins,
+                          foul_count: fouls
+                        }], "Contact Cycle");
+                        
+                        match.setActiveCycle(() => ({}));
+                        setContent({ ...content, pinCount: 0, foulCount: 0 });
+                      }}
+                    >
+                      END CONTACT CYCLE ({contactDuration}s)
+                    </Button>
+
+                    <Button 
+                      variant="outlined" 
+                      color={COLORS.CONTACT}
+                      sx={{ fontSize: "2rem", flex: 1, height: 120, fontWeight: "bold", borderRadius: 4, borderWidth: 4 }}
+                      onClick={() => {
+                        match.setActiveCycle(() => ({}));
+                        setContent({ ...content, pinCount: 0, foulCount: 0 });
+                      }}
+                    >
+                      CANCEL
+                    </Button>
+                  </>
+                )}
+              </Box>
+
+              {/* PIN COUNTER */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: "100%", justifyContent: "center", mt: 2 }}>
+                <Typography variant="h4" sx={{ width: 150, textAlign: 'left', fontWeight: 'bold', opacity: isContacting ? 1 : 0.4 }}>
+                  Pins: {pins}
+                </Typography>
+                <Button disabled={!isContacting} variant="contained" color="error" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, pinCount: Math.max(0, pins - 1) })}>-1</Button>
+                <Button disabled={!isContacting} variant="contained" color="success" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, pinCount: pins + 1 })}>+1</Button>
+              </Box>
+
+              {/* FOUL COUNTER */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: "100%", justifyContent: "center" }}>
+                <Typography variant="h4" sx={{ width: 150, textAlign: 'left', fontWeight: 'bold', opacity: isContacting ? 1 : 0.4 }}>
+                  Fouls: {fouls}
+                </Typography>
+                <Button disabled={!isContacting} variant="contained" color="error" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, foulCount: Math.max(0, fouls - 1) })}>-1</Button>
+                <Button disabled={!isContacting} variant="contained" color="success" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, foulCount: fouls + 1 })}>+1</Button>
+              </Box>
+
+              {/* HISTORY CONTROLS (UNDO / REDO) */}
+              <Box sx={{ display: 'flex', width: '85%', gap: 2, justifyContent: 'center', mt: 2, pt: 3, borderTop: '1px solid #444' }}>
+                <Button 
+                  variant="contained" 
+                  disabled={!match.canUndo()}
+                  onClick={() => match.undo()}
+                  sx={{ flex: 1, height: 60, fontSize: "1.2rem", bgcolor: "#555", "&:hover": { bgcolor: "#666" } }}
+                >
+                  UNDO {match.canUndo() ? `(${match.lastUndoMessage})` : ""}
+                </Button>
+                
+                <Button 
+                  variant="contained" 
+                  disabled={!match.canRedo()}
+                  onClick={() => match.redo()}
+                  sx={{ flex: 1, height: 60, fontSize: "1.2rem", bgcolor: "#555", "&:hover": { bgcolor: "#666" } }}
+                >
+                  REDO {match.canRedo() ? `(${match.redoMessage})` : ""}
+                </Button>
+              </Box>
+
+            </Box>
+          );
+        }
       }
     ]
   }

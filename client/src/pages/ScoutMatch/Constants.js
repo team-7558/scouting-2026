@@ -1,6 +1,6 @@
 //update in server too
-export const PRACTICE_EVENTS = ["2026onosh"];
-export const ATTENDING_EVENTS = ["2026ontor", "2026tuis"];
+export const PRACTICE_EVENTS = [] //["2026onosh"];
+export const ATTENDING_EVENTS = ["2026onbar"] //["2026ontor"];
 
 export const FIELD_VIRTUAL_HEIGHT = 1610;
 export const FIELD_VIRTUAL_WIDTH = 3510;

@@ -207,7 +207,7 @@ const Overlay = ({match}) => {
   }
   return (
     <Dialog open={true} onClose={handleClose} fullWidth maxWidth="md">
-      <DialogTitle variant="h3" sx={{textAlign: "center"}}>{config.title || ""}</DialogTitle>
+      {/* <DialogTitle variant="h6" sx={{textAlign: "center"}}>{config.title || ""}</DialogTitle> */}
       <DialogContent sx={{ display: 'flex', flexDirection: 'column' }}>
         <Box
           sx={{
@@ -316,20 +316,20 @@ const Overlay = ({match}) => {
                     gap: 4 
                   }}
                 >
-                  <Typography variant="h4" sx={{ textAlign: "center", fontWeight: "bold" }}>
+                  <Typography variant="h6" sx={{ textAlign: "center", fontWeight: "bold" }}>
                     {contentConfig.label}: {currentVal==0 ? "-" : currentVal}
                   </Typography>
                   
                   <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
                     {/* MINUS BUTTONS */}
-                    <Button variant="contained" color="error" sx={{ flex: 1, fontSize: "2rem" }} onClick={() => handleIncrement(-30)}>-30</Button>
-                    <Button variant="contained" color="error" sx={{ flex: 1, fontSize: "2rem" }} onClick={() => handleIncrement(-20)}>-20</Button>
-                    <Button variant="contained" color="error" sx={{ flex: 1, fontSize: "2rem" }} onClick={() => handleIncrement(-10)}>-10</Button>
+                    <Button variant="contained" color="error" sx={{ flex: 1, fontSize: "1rem" }} onClick={() => handleIncrement(-30)}>-30</Button>
+                    <Button variant="contained" color="error" sx={{ flex: 1, fontSize: "1rem" }} onClick={() => handleIncrement(-20)}>-20</Button>
+                    <Button variant="contained" color="error" sx={{ flex: 1, fontSize: "1rem" }} onClick={() => handleIncrement(-10)}>-10</Button>
                     
                     {/* PLUS BUTTONS */}
-                    <Button variant="contained" color="success" sx={{ flex: 1, fontSize: "2rem" }} onClick={() => handleIncrement(10)}>+10</Button>
-                    <Button variant="contained" color="success" sx={{ flex: 1, fontSize: "2rem" }} onClick={() => handleIncrement(20)}>+20</Button>
-                    <Button variant="contained" color="success" sx={{ flex: 1, fontSize: "2rem" }} onClick={() => handleIncrement(30)}>+30</Button>
+                    <Button variant="contained" color="success" sx={{ flex: 1, fontSize: "1rem" }} onClick={() => handleIncrement(10)}>+10</Button>
+                    <Button variant="contained" color="success" sx={{ flex: 1, fontSize: "1rem" }} onClick={() => handleIncrement(20)}>+20</Button>
+                    <Button variant="contained" color="success" sx={{ flex: 1, fontSize: "1rem" }} onClick={() => handleIncrement(30)}>+30</Button>
                   </Box>
 
                 </Box>

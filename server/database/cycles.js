@@ -31,8 +31,7 @@ export const storeCyclesInternal = async (
         foul_count INT
       );
     `;
-    console.log(await client.query(createTableQuery));
-    // console.log("created table");
+    await client.query(createTableQuery);
 
     for (let i = 0; i < cycles.length; i++) {
       const cycle = cycles[i];

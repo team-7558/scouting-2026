@@ -11,7 +11,6 @@ import { verifyToken } from "./auth.js";
 const router = express.Router();
 
 router.post("/", verifyToken, async (req, res) => {
-  console.log(req.body);
   const { message_type, message_data } = req.body;
 
   if (!message_type || !message_data) {

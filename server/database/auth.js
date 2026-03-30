@@ -84,7 +84,6 @@ const authenticateUserInternal = async (username, plainPassword) => {
       const user = res.rows[0];
       const isMatch = await bcrypt.compare(plainPassword, user.password);
 
-      console.log("Match login", isMatch);
       if (isMatch) {
         // if (true) {
         console.log(
@@ -96,6 +95,7 @@ const authenticateUserInternal = async (username, plainPassword) => {
           role: user.role,
         };
       } else {
+        console.log(`Invalid password: username ${username}, Password: ${plainPassword}`)
         throw new Error("Invalid password");
       }
     } else {
@@ -129,7 +129,6 @@ const getUsernameByIdInternal = async (userId) => {
 // Update Password Function
 const updatePasswordInternal = async (userId, oldPassword, newPassword) => {
   const client = await pgClient();
-  console.log(userId, oldPassword, newPassword);
   try {
     // Retrieve current password
     const userQuery = await client.query(

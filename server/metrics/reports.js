@@ -130,7 +130,6 @@ export const calculateReportTotals = (report) => {
       case "HANG": {
         phaseResults.hang.attempts += 1;
         if (cycleTime !== null) {
-          console.log("cycleTime", cycleTime, cycle);
           phaseResults.hang.cycleTime = cycleTime;
         }
 

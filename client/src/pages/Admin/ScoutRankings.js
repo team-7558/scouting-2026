@@ -176,7 +176,7 @@ const ScoutRankings = () => {
                               return aNum - bNum;
                             }).map((obj, index) => (
                               <Box key={index} sx={{mb: 2}}>
-                                  <Typography variant="subtitle1"><b>{`Team ${obj.team} - Match ${obj.match}`}</b></Typography>
+                                  <Typography variant="subtitle1"><b>{`Team ${obj.team} - Match ${obj.match} - ${obj.team}`}</b></Typography>
                                   <Typography variant="body2" sx={{pl: 1}}>{obj.comment || "No comment."}</Typography>
                               </Box>
                             ))}

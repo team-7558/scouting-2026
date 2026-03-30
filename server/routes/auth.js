@@ -22,9 +22,7 @@ export const verifyToken = (req, res, next) => {
 
     if (!token) return res.status(401).json({ message: "Malformed token" });
 
-    console.log(token);
     const user = jwt.verify(token, JWT_SECRET);
-    console.log(user);
     req.user = user; // attach user to request
     next();
   } catch (err) {
@@ -56,7 +54,6 @@ router.post("/signin", async (req, res) => {
 
   try {
     const user = await authenticateUser(req, username, password);
-    console.log("here3");
     const token = jwt.sign(
       {
         id: Number(user.id),

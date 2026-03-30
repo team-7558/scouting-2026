@@ -68,7 +68,6 @@ app.use((err, req, res, next) => {
   console.error("JSON parse error:", err.message);
   res.status(400).json({ error: err.message });
 });
-// console.log(app);
 
 // Use the auth routes
 app.use("/api/reports", reportsRoutes);

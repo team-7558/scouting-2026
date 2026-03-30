@@ -137,7 +137,6 @@ export const storeMatchesInternal = async (event_code, matches) => {
         b3,
         event_key,
       ]);
-      console.log(response);
     }
   } finally {
     await client.release();

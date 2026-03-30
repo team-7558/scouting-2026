@@ -29,8 +29,6 @@ export const storeReportInternal = async (eventKey, report) => {
     `;
     await client.query(createTableQuery);
 
-    console.log("CREATED NEW TABLE", tableName);
-
     const insertQuery = `
       INSERT INTO ${tableName} 
         (id, event_key, match_key, match_start_time, submission_time, roles, comments, disabled, driver_skill, defense_skill, accuracy, scout_id, scout_name, robot, station)
@@ -164,7 +162,7 @@ export const getReportsFilteredInternal = async (eventKey, matchKey, robot) => {
       try {
         return await getMatchPreviousReportsInternal(eventKey, matchKey);
       } catch (error) {
-        console.log(error);
+        console.log("Error getting match reports", error);
         return [];
       }
     }

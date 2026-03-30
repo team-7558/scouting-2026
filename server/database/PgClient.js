@@ -51,7 +51,7 @@ export const protectOperation =
       }
       throw new Error("Not authorized to used this route.");
     } catch (err) {
-      console.log(err);
+      console.log("Error protecting opperation", err);
       throw err;
     }
   };

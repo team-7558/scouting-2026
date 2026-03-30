@@ -60,7 +60,6 @@ router.get("/", verifyToken, async (req, res) => {
     Object.keys(reportsByRobot).forEach((robotId) => {
       averages[robotId] = calculateAverageMetrics(reportsByRobot[robotId]);
       const teamObj = teamsData.rows.find(el => el.team_number==robotId);
-      // console.log("abcde", teamObj, teamsData.rows, robotId);
       averages[robotId].teamName = teamObj?.team_name || null;
       averages[robotId].avgShotRate = teamObj?.avg_shot_rate || null;
     });
@@ -78,7 +77,6 @@ router.get("/", verifyToken, async (req, res) => {
         [matchData.b2]: "b2",
         [matchData.b3]: "b3",
       };
-      console.log(robotStations, averages);
       Object.keys(robotStations).forEach((robotKey) => {
         if (averages[robotKey]) {
           averages[robotKey].matchStation = robotStations[robotKey];

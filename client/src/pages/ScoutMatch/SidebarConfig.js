@@ -257,7 +257,7 @@ export const OVERLAY_CONFIG = [
     phases: [PHASES.AUTO, PHASES.TELE],
     // Defensive check just in case!
     showFunction: (match) => !!match.activeCycle.type && match.activeCycle.type === CYCLE_TYPES.FEED,
-    title: "FEEDING (FERRY)",
+    title: "FEEDING (Push)",
     handleDone: (content, match, currentTime) => {
       // If they didn't click anything, it defaults to 0
       const count = parseInt(content.feedCount) || 0;
@@ -330,7 +330,7 @@ export const OVERLAY_CONFIG = [
             : 0;
 
           return (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', width: '100%', py: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', width: '100%', py: 2 }}>
               
               {/* ACTION BUTTONS CONTAINER */}
               <Box sx={{ display: 'flex', width: '85%', gap: 2, justifyContent: 'center' }}>
@@ -354,7 +354,7 @@ export const OVERLAY_CONFIG = [
                     <Button 
                       variant="contained" 
                       color={COLORS.CONTACT} 
-                      sx={{ fontSize: "2rem", flex: 2, height: 120, fontWeight: "bold", borderRadius: 4 }}
+                      sx={{ fontSize: "1rem", flex: 2, height: 30, fontWeight: "bold", borderRadius: 4 }}
                       onClick={() => {
                         match.setCycles([...match.cycles, {
                           ...match.activeCycle,
@@ -368,13 +368,13 @@ export const OVERLAY_CONFIG = [
                         setContent({ ...content, pinCount: 0, foulCount: 0 });
                       }}
                     >
-                      END CONTACT CYCLE ({contactDuration}s)
+                      END
                     </Button>
 
                     <Button 
                       variant="outlined" 
                       color={COLORS.CONTACT}
-                      sx={{ fontSize: "2rem", flex: 1, height: 120, fontWeight: "bold", borderRadius: 4, borderWidth: 4 }}
+                      sx={{ fontSize: "1rem", flex: 1, height: 30, fontWeight: "bold", borderRadius: 4, borderWidth: 4 }}
                       onClick={() => {
                         match.setActiveCycle(() => ({}));
                         setContent({ ...content, pinCount: 0, foulCount: 0 });
@@ -386,45 +386,29 @@ export const OVERLAY_CONFIG = [
                 )}
               </Box>
 
-              {/* PIN COUNTER */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: "100%", justifyContent: "center", mt: 2 }}>
-                <Typography variant="h4" sx={{ width: 150, textAlign: 'left', fontWeight: 'bold', opacity: isContacting ? 1 : 0.4 }}>
-                  Pins: {pins}
-                </Typography>
-                <Button disabled={!isContacting} variant="contained" color="error" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, pinCount: Math.max(0, pins - 1) })}>-1</Button>
-                <Button disabled={!isContacting} variant="contained" color="success" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, pinCount: pins + 1 })}>+1</Button>
-              </Box>
+              {isContacting && (<Box sx={{display: 'flex', justifyContent: 'space-between', width: '100%'}}>
+                {/* PIN COUNTER */}
+                <Box sx={{ display: 'flex', flexDirection: "column", alignItems: 'center', gap: 3, width: "100%", justifyContent: "center", mt: 0 }}>
+                  <Typography sx={{ width: 90, textAlign: 'center', fontWeight: 'bold', opacity: isContacting ? 1 : 0.4 }}>
+                    Pins: {pins}
+                  </Typography>
+                  <Box sx={{display: "flex"}}>
+                    <Button disabled={!isContacting} variant="contained" color="error" sx={{ fontSize: "1rem", width: 10, height: 30 }} onClick={() => setContent({ ...content, pinCount: Math.max(0, pins - 1) })}>-1</Button>
+                    <Button disabled={!isContacting} variant="contained" color="success" sx={{ fontSize: "1rem", width: 10, height: 30 }} onClick={() => setContent({ ...content, pinCount: pins + 1 })}>+1</Button>
+                  </Box>
+                </Box>
 
-              {/* FOUL COUNTER */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: "100%", justifyContent: "center" }}>
-                <Typography variant="h4" sx={{ width: 150, textAlign: 'left', fontWeight: 'bold', opacity: isContacting ? 1 : 0.4 }}>
-                  Fouls: {fouls}
-                </Typography>
-                <Button disabled={!isContacting} variant="contained" color="error" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, foulCount: Math.max(0, fouls - 1) })}>-1</Button>
-                <Button disabled={!isContacting} variant="contained" color="success" sx={{ fontSize: "2rem", width: 80, height: 70 }} onClick={() => setContent({ ...content, foulCount: fouls + 1 })}>+1</Button>
-              </Box>
-
-              {/* HISTORY CONTROLS (UNDO / REDO) */}
-              <Box sx={{ display: 'flex', width: '85%', gap: 2, justifyContent: 'center', mt: 2, pt: 3, borderTop: '1px solid #444' }}>
-                <Button 
-                  variant="contained" 
-                  disabled={!match.canUndo()}
-                  onClick={() => match.undo()}
-                  sx={{ flex: 1, height: 60, fontSize: "1.2rem", bgcolor: "#555", "&:hover": { bgcolor: "#666" } }}
-                >
-                  UNDO {match.canUndo() ? `(${match.lastUndoMessage})` : ""}
-                </Button>
-                
-                <Button 
-                  variant="contained" 
-                  disabled={!match.canRedo()}
-                  onClick={() => match.redo()}
-                  sx={{ flex: 1, height: 60, fontSize: "1.2rem", bgcolor: "#555", "&:hover": { bgcolor: "#666" } }}
-                >
-                  REDO {match.canRedo() ? `(${match.redoMessage})` : ""}
-                </Button>
-              </Box>
-
+                {/* PIN COUNTER */}
+                <Box sx={{ display: 'flex', flexDirection: "column", alignItems: 'center', gap: 3, width: "100%", justifyContent: "center", mt: 0 }}>
+                  <Typography sx={{ width: 90, textAlign: 'center', fontWeight: 'bold', opacity: isContacting ? 1 : 0.4 }}>
+                    Fouls: {fouls}
+                  </Typography>
+                  <Box sx={{display: "flex"}}>
+                    <Button disabled={!isContacting} variant="contained" color="error" sx={{ fontSize: "1rem", width: 10, height: 30 }} onClick={() => setContent({ ...content, foulCount: Math.max(0, pins - 1) })}>-1</Button>
+                    <Button disabled={!isContacting} variant="contained" color="success" sx={{ fontSize: "1rem", width: 10, height: 30 }} onClick={() => setContent({ ...content, foulCount: pins + 1 })}>+1</Button>
+                  </Box>
+                </Box>
+              </Box>)}
             </Box>
           );
         }

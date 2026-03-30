@@ -10,11 +10,10 @@ export const DTO_MAPS = {
   // perspectives: ["NONE", "near", "far"],
   accuracy: ["NONE", "Low", "Med", "High", "Perfect"],
   hangLevels: ["NONE", ...Object.keys(HANG_LEVELS)], // ["NONE", "LEVEL_1", "LEVEL_2", "LEVEL_3"] <- remove later
-  cycleTypes: ["NONE", ...Object.keys(CYCLE_TYPES)],
+  cycleTypes: ["NONE", ...Object.values(CYCLE_TYPES)],
   locations: ["NONE", ...Object.keys(GAME_LOCATIONS), "CLOSE", "FAR", "ALL_BUMP", "ALL_TRENCH", "OPP_BUMP", "OPP_TRENCH", ...Object.keys(HANG_LEVELS), ...sliderPositions],
   phases: ["NONE", ...Object.keys(PHASES)],
   roles: ["NONE", ...Object.values(ENDGAME_ROLES)],
-  rates: [0, 1, 3, 6, 9], // Mapping BPS_RANGES values to simple indices
   disabled: ["No", "Yes"],
   matchTypes: ["qm", "sf", "f", "p"]
 };
@@ -35,9 +34,6 @@ export const MATCH_SCHEMA = [
   { key: "disabled", type: "uint8", map: DTO_MAPS.disabled },
   { key: "driverSkill", type: "uint8" },
   { key: "defenseSkill", type: "uint8" },
-  { key: "accuracy", type: "uint8", map: DTO_MAPS.accuracy },
-  { key: "shotRate", type: "uint8", map: DTO_MAPS.rates },
-  { key: "snowballRate", type: "uint8", map: DTO_MAPS.rates },
   { key: "roles", type: "array", itemSchema: [{ type: "uint8", map: DTO_MAPS.roles }] },
 
   {

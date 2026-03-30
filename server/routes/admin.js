@@ -21,9 +21,6 @@ router.post("/importNotionPitScouting", async (req, res) => {
       database_id: databaseId,
     });
     const pages = notionResponse.results;
-    // console.log(pages);
-    // Store (upsert) the pit scouting data into the SQL table.
-    // await storePitScouting(req, eventKey, pages);
 
     res.json({
       message: "Notion pit scouting data imported successfully",
@@ -51,7 +48,6 @@ router.get("/teamShotRate", verifyToken, async (req, res) => {
 });
 
 router.post("/addTeamsToEvent", verifyToken, async (req, res) => {
-  console.log("req", req);
   const { eventKey, teams } = req.body;
   if (!eventKey || !teams) {
     return res.status(400).json({ message: "Missing eventKey or teams" });
@@ -61,7 +57,7 @@ router.post("/addTeamsToEvent", verifyToken, async (req, res) => {
     storeTeams(req, eventKey, teams);
     res.status(200).json({ message: "Stored teams" });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500),json({ message: "Error saving teams" });
   }
 });
